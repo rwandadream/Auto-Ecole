@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingCart, UserPlus, PackageX, DollarSign, TrendingUp } from 'lucide-react'
+import { Wallet, TrendingDown, TrendingUp, Users, Award, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Metric = {
@@ -15,48 +15,67 @@ type Metric = {
 
 const metrics: Metric[] = [
   {
-    label: 'Total Sales',
-    value: '2500',
+    label: "Chiffre d'affaires",
+    value: '8 220 640 F',
     change: '+4.9%',
-    lastMonth: '2345',
-    icon: ShoppingCart,
+    lastMonth: '7 834 000 F',
+    icon: Wallet,
     iconBg: 'bg-primary/10',
     iconColor: 'text-primary',
   },
   {
-    label: 'New Customer',
-    value: '110',
-    change: '+7.5%',
-    lastMonth: '89',
-    icon: UserPlus,
+    label: 'Total dépenses',
+    value: '2 145 300 F',
+    change: '+2.3%',
+    lastMonth: '2 097 000 F',
+    icon: TrendingDown,
+    iconBg: 'bg-rose-500/10',
+    iconColor: 'text-rose-600',
+  },
+  {
+    label: 'Bénéfice net',
+    value: '6 075 340 F',
+    change: '+6.8%',
+    lastMonth: '5 737 000 F',
+    icon: TrendingUp,
     iconBg: 'bg-emerald-500/10',
     iconColor: 'text-emerald-600',
   },
   {
-    label: 'Return Products',
-    value: '72',
-    change: '+6.0%',
-    lastMonth: '60',
-    icon: PackageX,
+    label: 'Élèves inscrits',
+    value: '248',
+    change: '+12',
+    lastMonth: '236',
+    icon: Users,
+    iconBg: 'bg-sky-500/10',
+    iconColor: 'text-sky-600',
+  },
+  {
+    label: 'Taux de réussite',
+    value: '78,5%',
+    change: '+3.2%',
+    lastMonth: '75,3%',
+    icon: Award,
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-600',
   },
   {
-    label: 'Total Revenue',
-    value: '$8,220.64',
-    change: '+4.9%',
-    lastMonth: '$620.00',
-    icon: DollarSign,
-    iconBg: 'bg-sky-500/10',
-    iconColor: 'text-sky-600',
+    label: 'Factures en attente',
+    value: '5',
+    change: '1 240 000 F',
+    lastMonth: '3 impayées',
+    icon: Clock,
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
   },
 ]
 
 export function MetricCards() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {metrics.map((metric) => {
         const Icon = metric.icon
+        const isNegative = metric.label === 'Total dépenses'
         return (
           <div
             key={metric.label}
@@ -71,9 +90,26 @@ export function MetricCards() {
               >
                 <Icon className={cn('h-5 w-5', metric.iconColor)} />
               </div>
-              <div className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1">
-                <TrendingUp className="h-3 w-3 text-emerald-600" />
-                <span className="text-xs font-semibold text-emerald-600">
+              <div
+                className={cn(
+                  'flex items-center gap-1 rounded-full px-2 py-1',
+                  isNegative
+                    ? 'bg-rose-500/10'
+                    : 'bg-emerald-500/10'
+                )}
+              >
+                <TrendingUp
+                  className={cn(
+                    'h-3 w-3',
+                    isNegative ? 'rotate-180 text-rose-600' : 'text-emerald-600'
+                  )}
+                />
+                <span
+                  className={cn(
+                    'text-xs font-semibold',
+                    isNegative ? 'text-rose-600' : 'text-emerald-600'
+                  )}
+                >
                   {metric.change}
                 </span>
               </div>
@@ -86,7 +122,8 @@ export function MetricCards() {
                 {metric.value}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Last month: <span className="font-medium text-foreground">{metric.lastMonth}</span>
+                Mois précédent :{' '}
+                <span className="font-medium text-foreground">{metric.lastMonth}</span>
               </p>
             </div>
           </div>

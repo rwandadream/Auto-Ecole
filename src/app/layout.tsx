@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Finexy - Sales Analytics Dashboard",
-  description: "Modern sales analytics dashboard with revenue insights, order tracking, and performance metrics.",
-  keywords: ["Finexy", "dashboard", "analytics", "sales", "revenue"],
-  authors: [{ name: "Finexy" }],
+  title: "SARAH AUTO - ERP Auto-École",
+  description: "Plateforme SaaS de gestion d'auto-école : élèves, moniteurs, véhicules, planning, examens, facturation et comptabilité.",
+  keywords: ["SARAH AUTO", "auto-école", "ERP", "conduite", "permis", "élèves"],
+  authors: [{ name: "SARAH AUTO" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

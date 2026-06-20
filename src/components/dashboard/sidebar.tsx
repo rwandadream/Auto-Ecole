@@ -3,18 +3,20 @@
 import { useState } from 'react'
 import {
   LayoutGrid,
-  BarChart3,
-  Lightbulb,
-  Clock,
   Users,
-  ShoppingBag,
-  Tag,
-  Plug,
-  MessageSquare,
+  GraduationCap,
+  Car,
+  CalendarDays,
+  ClipboardCheck,
+  Receipt,
+  Wallet,
+  FileText,
   Settings,
   HelpCircle,
   LogOut,
   ChevronLeft,
+  ScanLine,
+  UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,36 +34,37 @@ type NavSection = {
 
 const navSections: NavSection[] = [
   {
-    title: 'Menu',
+    title: 'Pilotage',
     items: [
-      { label: 'Dashboard', icon: LayoutGrid, active: true },
-      { label: 'Analytics', icon: BarChart3, badge: '20' },
-      { label: 'Insights', icon: Lightbulb },
-      { label: 'Updates', icon: Clock },
-      { label: 'Customers', icon: Users },
+      { label: 'Tableau de bord', icon: LayoutGrid, active: true },
+      { label: 'Élèves', icon: Users, badge: '20' },
+      { label: 'Scanner CNI', icon: ScanLine },
+      { label: 'Moniteurs', icon: UserCog },
+      { label: 'Véhicules', icon: Car },
     ],
   },
   {
-    title: 'Products',
+    title: 'Activité',
     items: [
-      { label: 'Store', icon: ShoppingBag, badge: '2' },
-      { label: 'Discounts', icon: Tag },
-      { label: 'Integration', icon: Plug },
-      { label: 'Feedback', icon: MessageSquare },
+      { label: 'Planning & Séances', icon: CalendarDays, badge: '2' },
+      { label: 'Examens & Sessions', icon: ClipboardCheck },
+      { label: 'Facturation', icon: Receipt },
+      { label: 'Comptabilité', icon: Wallet },
+      { label: 'Bordereaux', icon: FileText },
     ],
   },
   {
-    title: 'General',
+    title: 'Général',
     items: [
-      { label: 'Settings', icon: Settings },
-      { label: 'Help Desk', icon: HelpCircle },
-      { label: 'Log out', icon: LogOut },
+      { label: 'Paramètres', icon: Settings },
+      { label: 'Assistance', icon: HelpCircle },
+      { label: 'Déconnexion', icon: LogOut },
     ],
   },
 ]
 
 export function Sidebar() {
-  const [activeItem, setActiveItem] = useState('Dashboard')
+  const [activeItem, setActiveItem] = useState('Tableau de bord')
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -74,17 +77,22 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-5">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
-          <span className="text-lg font-bold text-primary-foreground">F</span>
+          <GraduationCap className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            Finexy
-          </span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-base font-bold tracking-tight text-foreground">
+              SARAH AUTO
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              ERP Auto-École
+            </span>
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Toggle sidebar"
+          aria-label="Réduire le menu"
         >
           <ChevronLeft
             className={cn(
@@ -155,13 +163,13 @@ export function Sidebar() {
           <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-4">
             <div className="relative z-10">
               <p className="text-sm font-semibold text-primary-foreground">
-                Upgrade to Pro
+                Relances WhatsApp
               </p>
               <p className="mt-1 text-xs text-primary-foreground/80">
-                Get advanced analytics & insights
+                5 factures impayées à relancer
               </p>
               <button className="mt-3 w-full rounded-lg bg-primary-foreground px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90">
-                Upgrade Now
+                Relancer maintenant
               </button>
             </div>
             <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary-foreground/10" />
