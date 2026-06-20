@@ -155,30 +155,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-
-      {/* Upgrade Card */}
-      {!collapsed && (
-        <div className="px-3 pb-4">
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary to-primary/80 p-4">
-            <div className="relative z-10">
-              <p className="text-sm font-semibold text-primary-foreground">
-                Relances WhatsApp
-              </p>
-              <p className="mt-1 text-xs text-primary-foreground/80">
-                5 factures impayées à relancer
-              </p>
-              <button
-                onClick={() => setActiveView('facturation')}
-                className="mt-3 w-full rounded-lg bg-primary-foreground px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90"
-              >
-                Relancer maintenant
-              </button>
-            </div>
-            <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-primary-foreground/10" />
-            <div className="absolute -bottom-6 -right-6 h-16 w-16 rounded-full bg-primary-foreground/10" />
-          </div>
-        </div>
-      )}
     </aside>
   )
 }
