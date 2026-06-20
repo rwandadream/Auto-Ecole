@@ -2,14 +2,41 @@
 
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
-import { MetricCards } from '@/components/dashboard/metric-cards'
-import { RevenueAnalytics } from '@/components/dashboard/revenue-analytics'
-import { TotalIncome } from '@/components/dashboard/total-income'
-import { RecentOrders } from '@/components/dashboard/recent-orders'
-import { UnpaidInvoices } from '@/components/dashboard/unpaid-invoices'
-import { CalendarRange } from 'lucide-react'
+import { useNavStore } from '@/store/nav-store'
+import { DashboardView } from '@/components/dashboard/views/dashboard-view'
+import { ElevesView } from '@/components/dashboard/views/eleves-view'
+import { ScannerCniView } from '@/components/dashboard/views/scanner-cni-view'
+import { MoniteursView } from '@/components/dashboard/views/moniteurs-view'
+import { VehiculesView } from '@/components/dashboard/views/vehicules-view'
+import { PlanningView } from '@/components/dashboard/views/planning-view'
+import { ExamensView } from '@/components/dashboard/views/examens-view'
+import { BordereauxView } from '@/components/dashboard/views/bordereaux-view'
+import { FacturationView } from '@/components/dashboard/views/facturation-view'
+import { ComptabiliteView } from '@/components/dashboard/views/comptabilite-view'
+import { ParametresView } from '@/components/dashboard/views/parametres-view'
+import { AssistanceView } from '@/components/dashboard/views/assistance-view'
+import { DeconnexionView } from '@/components/dashboard/views/deconnexion-view'
+
+const viewMap = {
+  dashboard: DashboardView,
+  eleves: ElevesView,
+  scanner: ScannerCniView,
+  moniteurs: MoniteursView,
+  vehicules: VehiculesView,
+  planning: PlanningView,
+  examens: ExamensView,
+  bordereaux: BordereauxView,
+  facturation: FacturationView,
+  comptabilite: ComptabiliteView,
+  parametres: ParametresView,
+  assistance: AssistanceView,
+  deconnexion: DeconnexionView,
+} as const
 
 export default function Home() {
+  const activeView = useNavStore((s) => s.activeView)
+  const ViewComponent = viewMap[activeView] ?? DashboardView
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -18,42 +45,7 @@ export default function Home() {
         <Header />
 
         <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-          {/* Dashboard Header */}
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Centre de pilotage
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Indicateurs clés de l'auto-école en temps réel — élèves, finances et examens
-              </p>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 py-2">
-              <CalendarRange className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                01 Avr 2026 - 31 Mai 2026
-              </span>
-            </div>
-          </div>
-
-          {/* Metric Cards */}
-          <MetricCards />
-
-          {/* Charts Grid */}
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <RevenueAnalytics />
-            <TotalIncome />
-          </div>
-
-          {/* Élèves + Relances */}
-          <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <div className="xl:col-span-2">
-              <RecentOrders />
-            </div>
-            <div className="xl:col-span-1">
-              <UnpaidInvoices />
-            </div>
-          </div>
+          <ViewComponent />
         </main>
       </div>
     </div>

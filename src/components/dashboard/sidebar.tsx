@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   LayoutGrid,
   Users,
@@ -19,12 +18,13 @@ import {
   UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useNavStore, type ViewKey } from '@/store/nav-store'
 
 type NavItem = {
   label: string
+  view: ViewKey
   icon: React.ComponentType<{ className?: string }>
   badge?: string
-  active?: boolean
 }
 
 type NavSection = {
@@ -36,36 +36,35 @@ const navSections: NavSection[] = [
   {
     title: 'Pilotage',
     items: [
-      { label: 'Tableau de bord', icon: LayoutGrid, active: true },
-      { label: 'Élèves', icon: Users, badge: '20' },
-      { label: 'Scanner CNI', icon: ScanLine },
-      { label: 'Moniteurs', icon: UserCog },
-      { label: 'Véhicules', icon: Car },
+      { label: 'Tableau de bord', view: 'dashboard', icon: LayoutGrid },
+      { label: 'Élèves', view: 'eleves', icon: Users, badge: '20' },
+      { label: 'Scanner CNI', view: 'scanner', icon: ScanLine },
+      { label: 'Moniteurs', view: 'moniteurs', icon: UserCog },
+      { label: 'Véhicules', view: 'vehicules', icon: Car },
     ],
   },
   {
     title: 'Activité',
     items: [
-      { label: 'Planning & Séances', icon: CalendarDays, badge: '2' },
-      { label: 'Examens & Sessions', icon: ClipboardCheck },
-      { label: 'Facturation', icon: Receipt },
-      { label: 'Comptabilité', icon: Wallet },
-      { label: 'Bordereaux', icon: FileText },
+      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, badge: '2' },
+      { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck },
+      { label: 'Facturation', view: 'facturation', icon: Receipt },
+      { label: 'Comptabilité', view: 'comptabilite', icon: Wallet },
+      { label: 'Bordereaux', view: 'bordereaux', icon: FileText },
     ],
   },
   {
     title: 'Général',
     items: [
-      { label: 'Paramètres', icon: Settings },
-      { label: 'Assistance', icon: HelpCircle },
-      { label: 'Déconnexion', icon: LogOut },
+      { label: 'Paramètres', view: 'parametres', icon: Settings },
+      { label: 'Assistance', view: 'assistance', icon: HelpCircle },
+      { label: 'Déconnexion', view: 'deconnexion', icon: LogOut },
     ],
   },
 ]
 
 export function Sidebar() {
-  const [activeItem, setActiveItem] = useState('Tableau de bord')
-  const [collapsed, setCollapsed] = useState(false)
+  const { activeView, setActiveView, collapsed, toggleCollapsed } = useNavStore()
 
   return (
     <aside
@@ -90,7 +89,7 @@ export function Sidebar() {
           </div>
         )}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
           className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Réduire le menu"
         >
@@ -115,11 +114,11 @@ export function Sidebar() {
             <ul className="space-y-1">
               {section.items.map((item) => {
                 const Icon = item.icon
-                const isActive = activeItem === item.label
+                const isActive = activeView === item.view
                 return (
                   <li key={item.label} className="relative">
                     <button
-                      onClick={() => setActiveItem(item.label)}
+                      onClick={() => setActiveView(item.view)}
                       className={cn(
                         'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
                         isActive
@@ -168,7 +167,10 @@ export function Sidebar() {
               <p className="mt-1 text-xs text-primary-foreground/80">
                 5 factures impayées à relancer
               </p>
-              <button className="mt-3 w-full rounded-lg bg-primary-foreground px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90">
+              <button
+                onClick={() => setActiveView('facturation')}
+                className="mt-3 w-full rounded-lg bg-primary-foreground px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-foreground/90"
+              >
                 Relancer maintenant
               </button>
             </div>

@@ -1,0 +1,30 @@
+import { create } from 'zustand'
+
+export type ViewKey =
+  | 'dashboard'
+  | 'eleves'
+  | 'scanner'
+  | 'moniteurs'
+  | 'vehicules'
+  | 'planning'
+  | 'examens'
+  | 'bordereaux'
+  | 'facturation'
+  | 'comptabilite'
+  | 'parametres'
+  | 'assistance'
+  | 'deconnexion'
+
+interface NavState {
+  activeView: ViewKey
+  collapsed: boolean
+  setActiveView: (view: ViewKey) => void
+  toggleCollapsed: () => void
+}
+
+export const useNavStore = create<NavState>((set) => ({
+  activeView: 'dashboard',
+  collapsed: false,
+  setActiveView: (view) => set({ activeView: view }),
+  toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
+}))
