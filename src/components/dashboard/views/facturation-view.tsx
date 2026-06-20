@@ -20,6 +20,7 @@ import {
   formatXOF,
   initials,
 } from './shared'
+import { NouvelleFactureDialog } from '@/components/dashboard/dialogs/nouvelle-facture-dialog'
 import {
   factures,
   paiements,
@@ -120,6 +121,7 @@ function AvatarCell({ name }: { name: string }) {
 export function FacturationView() {
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState<'Tous' | StatutFacture>('Tous')
+  const [showNewFacture, setShowNewFacture] = useState(false)
 
   const filteredFactures = useMemo(() => {
     return factures.filter((f) => {
@@ -141,7 +143,7 @@ export function FacturationView() {
         title="Facturation"
         description="Factures, paiements et suivi des encaissements"
         actions={
-          <ActionButton variant="primary">
+          <ActionButton variant="primary" onClick={() => setShowNewFacture(true)}>
             <Plus className="h-4 w-4" />
             Nouvelle facture
           </ActionButton>
@@ -320,6 +322,7 @@ export function FacturationView() {
           </Card>
         </TabsContent>
       </Tabs>
+      <NouvelleFactureDialog open={showNewFacture} onOpenChange={setShowNewFacture} />
     </>
   )
 }

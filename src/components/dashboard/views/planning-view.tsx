@@ -11,6 +11,7 @@ import {
   Card,
   initials,
 } from './shared'
+import { NouvelleSeanceDialog } from '@/components/dashboard/dialogs/nouvelle-seance-dialog'
 
 // --- Helpers ---
 const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
@@ -95,6 +96,7 @@ const kpis: Kpi[] = [
 // --- Component ---
 export function PlanningView() {
   const [filtre, setFiltre] = useState<'Tous' | StatutSeance>('Tous')
+  const [showNewSeance, setShowNewSeance] = useState(false)
 
   const seancesFiltrees =
     filtre === 'Tous' ? seances : seances.filter((s) => s.statut === filtre)
@@ -105,7 +107,7 @@ export function PlanningView() {
         title="Planning & Séances"
         description="Planification des leçons de conduite et cours théoriques"
         actions={
-          <ActionButton>
+          <ActionButton onClick={() => setShowNewSeance(true)}>
             <Plus className="h-4 w-4" />
             Nouvelle séance
           </ActionButton>
@@ -254,6 +256,7 @@ export function PlanningView() {
           </div>
         </div>
       </Card>
+      <NouvelleSeanceDialog open={showNewSeance} onOpenChange={setShowNewSeance} />
     </>
   )
 }

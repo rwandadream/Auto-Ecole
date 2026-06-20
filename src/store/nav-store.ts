@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 export type ViewKey =
+  // Admin views
   | 'dashboard'
   | 'eleves'
   | 'scanner'
@@ -14,6 +15,11 @@ export type ViewKey =
   | 'parametres'
   | 'assistance'
   | 'deconnexion'
+  // Student portal views
+  | 'student-dashboard'
+  | 'student-planning'
+  | 'student-factures'
+  | 'student-profil'
 
 interface NavState {
   activeView: ViewKey

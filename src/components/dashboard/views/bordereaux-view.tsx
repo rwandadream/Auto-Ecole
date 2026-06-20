@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { FileDown, ClipboardEdit, Plus, FileText } from 'lucide-react'
 import { examenSessions, type ResultatExamen } from '@/lib/mock-data'
 import {
@@ -8,6 +9,7 @@ import {
   ActionButton,
   Card,
 } from './shared'
+import { SaisieResultatsDialog } from '@/components/dashboard/dialogs/saisie-resultats-dialog'
 
 // --- Helpers ---
 function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
@@ -48,6 +50,8 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 
 // --- Main component ---
 export function BordereauxView() {
+  const [saisieSession, setSaisieSession] = useState<typeof examenSessions[number] | null>(null)
+
   return (
     <>
       <ViewHeader
@@ -80,7 +84,7 @@ export function BordereauxView() {
                   <FileDown className="h-4 w-4" />
                   Générer PDF
                 </button>
-                <ActionButton>
+                <ActionButton onClick={() => setSaisieSession(sess)}>
                   <ClipboardEdit className="h-4 w-4" />
                   Saisir les résultats
                 </ActionButton>
@@ -143,6 +147,7 @@ export function BordereauxView() {
           </Card>
         ))}
       </div>
+      <SaisieResultatsDialog session={saisieSession} open={!!saisieSession} onOpenChange={(v) => { if (!v) setSaisieSession(null) }} />
     </>
   )
 }

@@ -22,6 +22,8 @@ import {
   formatXOF,
   initials,
 } from '@/components/dashboard/views/shared'
+import { NouvelEleveDialog } from '@/components/dashboard/dialogs/nouvel-eleve-dialog'
+import { EleveDetailDialog } from '@/components/dashboard/dialogs/eleve-detail-dialog'
 
 type StatutFiltre = 'Tous' | StatutEleve
 
@@ -93,6 +95,9 @@ export function ElevesView() {
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [page, setPage] = useState(1)
+  const [showAddEleve, setShowAddEleve] = useState(false)
+  const [selectedCode, setSelectedCode] = useState<string | null>(null)
+  const [showDetail, setShowDetail] = useState(false)
 
   const elevesFiltres = useMemo(() => {
     return eleves.filter((e) => {
@@ -122,7 +127,7 @@ export function ElevesView() {
         title="Élèves"
         description="Registre central des apprenants — du prospect à l'admis"
         actions={
-          <ActionButton variant="primary" onClick={() => {}}>
+          <ActionButton variant="primary" onClick={() => setShowAddEleve(true)}>
             <Plus className="h-4 w-4" />
             Ajouter un élève
           </ActionButton>
@@ -304,6 +309,10 @@ export function ElevesView() {
                       <button
                         aria-label="Actions"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        onClick={() => {
+                          setSelectedCode(e.code)
+                          setShowDetail(true)
+                        }}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
@@ -353,6 +362,9 @@ export function ElevesView() {
           </div>
         </div>
       </Card>
+
+      <NouvelEleveDialog open={showAddEleve} onOpenChange={setShowAddEleve} />
+      <EleveDetailDialog eleveCode={selectedCode} open={showDetail} onOpenChange={setShowDetail} />
     </div>
   )
 }
