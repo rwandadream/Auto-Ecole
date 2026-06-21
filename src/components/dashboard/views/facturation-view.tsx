@@ -11,6 +11,7 @@ import {
   Smartphone,
   Building2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ViewHeader,
@@ -21,12 +22,13 @@ import {
   initials,
 } from './shared'
 import { NouvelleFactureDialog } from '@/components/dashboard/dialogs/nouvelle-facture-dialog'
+import { NouveauPaiementDialog } from '@/components/dashboard/dialogs/nouveau-paiement-dialog'
 import {
-  factures,
-  paiements,
   type StatutFacture,
   type ModePaiement,
 } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
+import { generateFacturePdf, relanceWhatsApp, messageRelanceFacture } from '@/lib/utils-docs'
 
 const statutTone: Record<StatutFacture, 'rose' | 'amber' | 'emerald'> = {
   'Non payée': 'rose',
@@ -119,9 +121,13 @@ function AvatarCell({ name }: { name: string }) {
 }
 
 export function FacturationView() {
+  const factures = useDataStore((s) => s.factures)
+  const paiements = useDataStore((s) => s.paiements)
+  const eleves = useDataStore((s) => s.eleves)
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState<'Tous' | StatutFacture>('Tous')
   const [showNewFacture, setShowNewFacture] = useState(false)
+  const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null)
 
   const filteredFactures = useMemo(() => {
     return factures.filter((f) => {
@@ -133,9 +139,15 @@ export function FacturationView() {
       const matchStatut = statutFilter === 'Tous' || f.statut === statutFilter
       return matchSearch && matchStatut
     })
-  }, [search, statutFilter])
+  }, [factures, search, statutFilter])
 
   const impayeesCount = factures.filter((f) => f.statut === 'Impayée').length
+  const caTotal = useMemo(() => factures.reduce((sum, f) => sum + f.montant, 0), [factures])
+  const encaisse = useMemo(() => paiements.reduce((sum, p) => sum + p.montant, 0), [paiements])
+  const enAttente = useMemo(
+    () => factures.filter((f) => f.statut !== 'Payée').reduce((sum, f) => sum + f.reste, 0),
+    [factures],
+  )
 
   return (
     <>
@@ -152,9 +164,9 @@ export function FacturationView() {
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Chiffre d'affaires total" value={formatXOF(2845000)} tone="primary" />
-        <KpiCard label="Encaissé" value={formatXOF(1715000)} tone="emerald" />
-        <KpiCard label="En attente" value={formatXOF(1130000)} tone="amber" />
+        <KpiCard label="Chiffre d'affaires total" value={formatXOF(caTotal)} tone="primary" />
+        <KpiCard label="Encaissé" value={formatXOF(encaisse)} tone="emerald" />
+        <KpiCard label="En attente" value={formatXOF(enAttente)} tone="amber" />
         <KpiCard label="Factures impayées" value={String(impayeesCount)} tone="rose" />
       </div>
 
@@ -219,7 +231,12 @@ export function FacturationView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredFactures.map((f) => (
+                  {filteredFactures.map((f) => {
+                    const eleve = eleves.find((e) => e.code === f.eleveCode)
+                    const telephone = eleve?.telephone ?? ''
+                    const [prenom, ...restNom] = f.eleve.split(' ')
+                    const nom = restNom.join(' ')
+                    return (
                     <tr key={f.id} className="hover:bg-muted/40">
                       <td className="px-4 py-3">
                         <span className="font-mono text-sm font-bold text-foreground">{f.numero}</span>
@@ -252,18 +269,50 @@ export function FacturationView() {
                           <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Voir">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Télécharger PDF">
+                          <button
+                            onClick={() => {
+                              generateFacturePdf(f)
+                              toast.success(`Facture ${f.numero} générée.`)
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title="Télécharger PDF"
+                          >
                             <Download className="h-4 w-4" />
                           </button>
-                          {f.statut === 'Impayée' && (
-                            <button className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-500/10" title="Relancer WhatsApp">
+                          {f.statut !== 'Payée' && (
+                            <button
+                              onClick={() => setPaiementFactureId(f.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-500/10"
+                              title="Encaisser"
+                            >
+                              <Banknote className="h-4 w-4" />
+                            </button>
+                          )}
+                          {f.statut === 'Impayée' && telephone && (
+                            <button
+                              onClick={() =>
+                                relanceWhatsApp(
+                                  telephone,
+                                  messageRelanceFacture({
+                                    prenom,
+                                    nom,
+                                    numeroFacture: f.numero,
+                                    reste: f.reste,
+                                    telephone,
+                                  }),
+                                )
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-500/10"
+                              title="Relancer WhatsApp"
+                            >
                               <MessageCircle className="h-4 w-4" />
                             </button>
                           )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                   {filteredFactures.length === 0 && (
                     <tr>
                       <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -323,6 +372,11 @@ export function FacturationView() {
         </TabsContent>
       </Tabs>
       <NouvelleFactureDialog open={showNewFacture} onOpenChange={setShowNewFacture} />
+      <NouveauPaiementDialog
+        factureId={paiementFactureId}
+        open={!!paiementFactureId}
+        onOpenChange={(v) => { if (!v) setPaiementFactureId(null) }}
+      />
     </>
   )
 }

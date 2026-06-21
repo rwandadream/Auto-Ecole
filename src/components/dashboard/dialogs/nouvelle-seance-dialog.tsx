@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { CalendarPlus } from 'lucide-react'
+import { toast } from 'sonner'
 import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { eleves, moniteurs, vehicules } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 
 export function NouvelleSeanceDialog({
   open,
@@ -12,6 +14,8 @@ export function NouvelleSeanceDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
+  const addSeance = useDataStore((s) => s.addSeance)
+
   const [eleveCode, setEleveCode] = useState('')
   const [moniteurId, setMoniteurId] = useState('')
   const [vehiculeId, setVehiculeId] = useState('')
@@ -22,6 +26,65 @@ export function NouvelleSeanceDialog({
   const [notes, setNotes] = useState('')
 
   const vehiculesDisponibles = vehicules.filter((v) => v.etat === 'Disponible')
+
+  const resetForm = () => {
+    setEleveCode('')
+    setMoniteurId('')
+    setVehiculeId('')
+    setDate('')
+    setHeureDebut('')
+    setHeureFin('')
+    setType('Conduite')
+    setNotes('')
+  }
+
+  const computeDureeMin = (debut: string, fin: string) => {
+    if (!debut || !fin) return 0
+    const [dh, dm] = debut.split(':').map(Number)
+    const [fh, fm] = fin.split(':').map(Number)
+    const debutMin = dh * 60 + dm
+    const finMin = fh * 60 + fm
+    return Math.max(0, finMin - debutMin)
+  }
+
+  const handleSubmit = () => {
+    if (!eleveCode || !moniteurId || !date || !heureDebut || !heureFin) {
+      toast.error('Veuillez renseigner tous les champs obligatoires')
+      return
+    }
+    if (heureFin <= heureDebut) {
+      toast.error("L'heure de fin doit être après l'heure de début")
+      return
+    }
+    const eleve = eleves.find((e) => e.code === eleveCode)
+    const moniteur = moniteurs.find((m) => m.id === moniteurId)
+    const vehicule = vehicules.find((v) => v.id === vehiculeId)
+    if (!eleve || !moniteur) {
+      toast.error('Élève ou moniteur introuvable')
+      return
+    }
+    const eleveNom = `${eleve.prenom} ${eleve.nom}`
+    const moniteurNom = `${moniteur.prenom} ${moniteur.nom}`
+    const vehiculeDesc = vehicule
+      ? `${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})`
+      : '—'
+    const duree = computeDureeMin(heureDebut, heureFin)
+    addSeance({
+      eleve: eleveNom,
+      eleveCode,
+      moniteur: moniteurNom,
+      vehicule: vehiculeDesc,
+      date,
+      heureDebut,
+      heureFin,
+      duree,
+      statut: 'Planifié',
+      notes: notes.trim(),
+    })
+    toast.success('Séance planifiée')
+    resetForm()
+    onOpenChange(false)
+  }
 
   return (
     <Modal
@@ -39,7 +102,7 @@ export function NouvelleSeanceDialog({
             Annuler
           </button>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={handleSubmit}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <CalendarPlus className="h-4 w-4" />

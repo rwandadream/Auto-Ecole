@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { Save, Calendar, Clock, MapPin, Award, User } from 'lucide-react'
+import { toast } from 'sonner'
 import { Modal } from '@/components/dashboard/modal'
 import { StatusBadge } from '@/components/dashboard/views/shared'
+import { useDataStore } from '@/store/data-store'
 
 type SessionCandidat = {
   nomComplet: string
@@ -14,6 +16,7 @@ type SessionCandidat = {
 }
 
 type Session = {
+  id: string
   numeroBordereau: string
   date: string
   heure: string
@@ -50,6 +53,7 @@ export function SaisieResultatsDialog({
 }) {
   const [results, setResults] = useState<ResultRow[]>([])
   const [prevSession, setPrevSession] = useState<Session | null>(session)
+  const updateSessionResultats = useDataStore((s) => s.updateSessionResultats)
   if (session !== prevSession) {
     setPrevSession(session)
     setResults(
@@ -81,6 +85,22 @@ export function SaisieResultatsDialog({
     setResults((prev) => prev.map((r, i) => (i === idx ? { ...r, notes } : r)))
   }
 
+  const handleSave = () => {
+    updateSessionResultats(
+      session.id,
+      results.map((r) => ({
+        nomComplet: r.nomComplet,
+        identifiant: r.identifiant,
+        telephone: r.telephone,
+        categoriePermis: r.categoriePermis,
+        resultat: r.resultat,
+        notes: r.notes,
+      })) as unknown as Parameters<typeof updateSessionResultats>[1]
+    )
+    toast.success('Résultats enregistrés')
+    onOpenChange(false)
+  }
+
   return (
     <Modal
       open={open}
@@ -97,7 +117,7 @@ export function SaisieResultatsDialog({
             Annuler
           </button>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={handleSave}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <Save className="h-4 w-4" />

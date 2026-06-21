@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Receipt } from 'lucide-react'
+import { toast } from 'sonner'
 import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { formatXOF } from '@/components/dashboard/views/shared'
 import { eleves, formations } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 
 export function NouvelleFactureDialog({
   open,
@@ -13,6 +15,8 @@ export function NouvelleFactureDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
+  const addFacture = useDataStore((s) => s.addFacture)
+
   const today = new Date().toISOString().split('T')[0]
 
   const [eleveCode, setEleveCode] = useState('')
@@ -28,6 +32,38 @@ export function NouvelleFactureDialog({
     if (f) {
       setMontant(f.prix)
     }
+  }
+
+  const resetForm = () => {
+    setEleveCode('')
+    setFormationId('')
+    setMontant(0)
+    setDateEmission(today)
+    setNotes('')
+  }
+
+  const handleSubmit = () => {
+    if (!eleveCode || !formationId || montant <= 0) {
+      toast.error('Veuillez sélectionner un élève, une formation et un montant valide')
+      return
+    }
+    const eleve = eleves.find((e) => e.code === eleveCode)
+    const formation = formations.find((f) => f.id === formationId)
+    if (!eleve || !formation) {
+      toast.error('Élève ou formation introuvable')
+      return
+    }
+    const eleveNom = `${eleve.prenom} ${eleve.nom}`
+    addFacture({
+      eleve: eleveNom,
+      eleveCode,
+      formation: formation.nom,
+      montant,
+      dateEmission,
+    })
+    toast.success('Facture émise')
+    resetForm()
+    onOpenChange(false)
   }
 
   return (
@@ -46,7 +82,7 @@ export function NouvelleFactureDialog({
             Annuler
           </button>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={handleSubmit}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <Receipt className="h-4 w-4" />

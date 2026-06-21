@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { FileDown, ClipboardEdit, Plus, FileText } from 'lucide-react'
-import { examenSessions, type ResultatExamen } from '@/lib/mock-data'
+import { FileDown, ClipboardEdit, Plus } from 'lucide-react'
+import { type ResultatExamen } from '@/lib/mock-data'
+import { toast } from 'sonner'
+import { useDataStore } from '@/store/data-store'
+import { generateBordereauPdf } from '@/lib/utils-docs'
 import {
   ViewHeader,
   StatusBadge,
@@ -10,6 +13,7 @@ import {
   Card,
 } from './shared'
 import { SaisieResultatsDialog } from '@/components/dashboard/dialogs/saisie-resultats-dialog'
+import { NouvelleSessionDialog } from '@/components/dashboard/dialogs/nouvelle-session-dialog'
 
 // --- Helpers ---
 function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
@@ -50,7 +54,9 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 
 // --- Main component ---
 export function BordereauxView() {
+  const examenSessions = useDataStore((s) => s.examenSessions)
   const [saisieSession, setSaisieSession] = useState<typeof examenSessions[number] | null>(null)
+  const [showAddSession, setShowAddSession] = useState(false)
 
   return (
     <>
@@ -58,7 +64,7 @@ export function BordereauxView() {
         title="Bordereaux d'examen"
         description="Sessions collectives et génération de bordereaux PDF officiels"
         actions={
-          <ActionButton>
+          <ActionButton variant="primary" onClick={() => setShowAddSession(true)}>
             <Plus className="h-4 w-4" />
             Nouvelle session
           </ActionButton>
@@ -80,7 +86,13 @@ export function BordereauxView() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <button className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <button
+                  onClick={() => {
+                    generateBordereauPdf(sess)
+                    toast.success(`Bordereau ${sess.numeroBordereau} généré.`)
+                  }}
+                  className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
                   <FileDown className="h-4 w-4" />
                   Générer PDF
                 </button>
@@ -148,6 +160,7 @@ export function BordereauxView() {
         ))}
       </div>
       <SaisieResultatsDialog session={saisieSession} open={!!saisieSession} onOpenChange={(v) => { if (!v) setSaisieSession(null) }} />
+      <NouvelleSessionDialog open={showAddSession} onOpenChange={setShowAddSession} />
     </>
   )
 }

@@ -1,13 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Plus, Car, CheckCircle2, Wrench, CalendarClock } from 'lucide-react'
-import { vehicules, type EtatVehicule } from '@/lib/mock-data'
+import { type EtatVehicule } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 import {
   ViewHeader,
   StatusBadge,
   ActionButton,
   Card,
 } from '@/components/dashboard/views/shared'
+import { NouveauVehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
 
 function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (etat) {
@@ -49,13 +52,20 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 }
 
 export function VehiculesView() {
+  const vehicules = useDataStore((s) => s.vehicules)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const totalVehicules = vehicules.length
+  const disponibles = vehicules.filter((v) => v.etat === 'Disponible').length
+  const enMaintenance = vehicules.filter((v) => v.etat === 'En maintenance').length
+
   return (
     <div>
       <ViewHeader
         title="Véhicules"
         description="Parc automobile de l'auto-école"
         actions={
-          <ActionButton variant="primary" onClick={() => {}}>
+          <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
             <Plus className="h-4 w-4" />
             Ajouter un véhicule
           </ActionButton>
@@ -66,19 +76,19 @@ export function VehiculesView() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KpiCard
           label="Total véhicules"
-          value="6"
+          value={String(totalVehicules)}
           icon={<Car className="h-5 w-5" />}
           tone="primary"
         />
         <KpiCard
           label="Disponibles"
-          value="4"
+          value={String(disponibles)}
           icon={<CheckCircle2 className="h-5 w-5" />}
           tone="emerald"
         />
         <KpiCard
           label="En maintenance"
-          value="1"
+          value={String(enMaintenance)}
           icon={<Wrench className="h-5 w-5" />}
           tone="amber"
         />
@@ -135,6 +145,8 @@ export function VehiculesView() {
           )
         })}
       </div>
+
+      <NouveauVehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
     </div>
   )
 }

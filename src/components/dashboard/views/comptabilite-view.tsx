@@ -23,7 +23,9 @@ import {
   Card,
   formatXOF,
 } from './shared'
-import { depenses, type CategorieDepense, type ModePaiement } from '@/lib/mock-data'
+import { type CategorieDepense, type ModePaiement } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
+import { NouvelleDepenseDialog } from '@/components/dashboard/dialogs/nouvelle-depense-dialog'
 
 const categorieConfig: Record<
   CategorieDepense,
@@ -125,7 +127,9 @@ function KpiCard({
 }
 
 export function ComptabiliteView() {
+  const depenses = useDataStore((s) => s.depenses)
   const [search, setSearch] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
 
   // Compute totals per category
   const categorieTotals = useMemo(() => {
@@ -142,11 +146,21 @@ export function ComptabiliteView() {
       totals[d.categorie] += d.montant
     })
     return totals
-  }, [])
+  }, [depenses])
 
   const totalDepenses = useMemo(
     () => depenses.reduce((sum, d) => sum + d.montant, 0),
-    [],
+    [depenses],
+  )
+
+  const depensesVehicules = useMemo(
+    () => depenses.filter((d) => d.vehicule !== '—').reduce((sum, d) => sum + d.montant, 0),
+    [depenses],
+  )
+
+  const depensesSalaires = useMemo(
+    () => depenses.filter((d) => d.categorie === 'Salaires').reduce((sum, d) => sum + d.montant, 0),
+    [depenses],
   )
 
   const filteredDepenses = useMemo(() => {
@@ -158,7 +172,7 @@ export function ComptabiliteView() {
         d.categorie.toLowerCase().includes(q) ||
         d.vehicule.toLowerCase().includes(q),
     )
-  }, [search])
+  }, [depenses, search])
 
   return (
     <>
@@ -166,7 +180,7 @@ export function ComptabiliteView() {
         title="Comptabilité"
         description="Registre des dépenses et comptabilité analytique"
         actions={
-          <ActionButton variant="primary">
+          <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
             <Plus className="h-4 w-4" />
             Nouvelle dépense
           </ActionButton>
@@ -175,9 +189,9 @@ export function ComptabiliteView() {
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard label="Total dépenses" value={formatXOF(2145300)} tone="rose" />
-        <KpiCard label="Dépenses véhicules" value={formatXOF(345000)} tone="primary" />
-        <KpiCard label="Salaires & charges" value={formatXOF(1520000)} tone="emerald" />
+        <KpiCard label="Total dépenses" value={formatXOF(totalDepenses)} tone="rose" />
+        <KpiCard label="Dépenses véhicules" value={formatXOF(depensesVehicules)} tone="primary" />
+        <KpiCard label="Salaires & charges" value={formatXOF(depensesSalaires)} tone="emerald" />
       </div>
 
       {/* Category breakdown */}
@@ -312,6 +326,8 @@ export function ComptabiliteView() {
           </table>
         </div>
       </Card>
+
+      <NouvelleDepenseDialog open={showAdd} onOpenChange={setShowAdd} />
     </>
   )
 }

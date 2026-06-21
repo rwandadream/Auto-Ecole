@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
+import { toast } from 'sonner'
 import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { useDataStore } from '@/store/data-store'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3'
 
@@ -13,6 +15,8 @@ export function NouvelEleveDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
+  const addEleve = useDataStore((s) => s.addEleve)
+
   const [nom, setNom] = useState('')
   const [prenom, setPrenom] = useState('')
   const [dateNaissance, setDateNaissance] = useState('')
@@ -27,6 +31,49 @@ export function NouvelEleveDialog({
   const [typePermis, setTypePermis] = useState('B')
   const [codeDossier, setCodeDossier] = useState('')
   const [parrain, setParrain] = useState('')
+
+  const resetForm = () => {
+    setNom('')
+    setPrenom('')
+    setDateNaissance('')
+    setLieuNaissance('')
+    setSexe('M')
+    setNationalite('Ivoirienne')
+    setTelephone('')
+    setEmail('')
+    setAdresse('')
+    setTypePiece('CNI')
+    setNumPiece('')
+    setTypePermis('B')
+    setCodeDossier('')
+    setParrain('')
+  }
+
+  const handleSubmit = () => {
+    if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
+      toast.error('Veuillez renseigner le nom, le prénom et le téléphone')
+      return
+    }
+    const estParraine = parrain.trim() !== ''
+    addEleve({
+      nom: nom.trim(),
+      prenom: prenom.trim(),
+      telephone: telephone.trim(),
+      email: email.trim(),
+      dateNaissance,
+      lieuNaissance: lieuNaissance.trim(),
+      sexe,
+      nationalite: nationalite.trim(),
+      typePiece,
+      numPiece: numPiece.trim(),
+      typePermis,
+      estParraine,
+      parrainNom: parrain.trim(),
+    })
+    toast.success('Élève créé avec succès')
+    resetForm()
+    onOpenChange(false)
+  }
 
   return (
     <Modal
@@ -44,7 +91,7 @@ export function NouvelEleveDialog({
             Annuler
           </button>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={handleSubmit}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <UserPlus className="h-4 w-4" />

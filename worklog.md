@@ -286,3 +286,258 @@ Stage Summary:
 - Saisie résultats : useEffect reset state sur changement de session, édition inline des résultats via select + input notes, résumé coloré dynamique (admis/échec/attente) calculé en temps réel.
 - Nouvelle facture : useEffect auto-remplit le montant quand une formation est sélectionnée, aperçu en direct formatXOF(montant) en bas.
 - Pas de lint/build lancé conformément aux consignes.
+
+---
+Task ID: 3 (phase CRUD)
+Agent: Main (orchestrator)
+Task: CRUD foundation — data-store, PDF, WhatsApp utilities
+
+Work Log:
+- Créé `/src/store/data-store.ts` : store Zustand avec toutes les entités (eleves, moniteurs, vehicules, formations, permis, inspecteurs, seances, examens, examenSessions, factures, paiements, depenses, profiles, auditLog) + actions de mutation (add/update/delete) pour chaque entité. addPaiement recalcule automatiquement le solde et le statut de la facture. logAction push dans auditLog.
+- Créé `/src/lib/utils-docs.ts` : 
+  - WhatsApp: sanitizePhone(), relanceWhatsApp(tel, msg), messageRelanceFacture() 
+  - PDF (jsPDF + jspdf-autotable): generateFacturePdf(), generateRecuPdf(), generateBordereauPdf() — bande orange d'en-tête, tableaux autoTable, totaux, footer
+- Installé jspdf + jspdf-autotable via bun add
+
+Stage Summary:
+- Foundation CRUD prête. Les sous-agents doivent maintenant :
+  1. Câbler les dialogs existants au data-store (nouvel-eleve, nouvelle-seance, nouvelle-facture, saisie-resultats)
+  2. Créer les dialogs manquants (moniteur, véhicule, dépense, paiement, examen, session, formation)
+  3. Migrer les vues vers useDataStore au lieu d'importer mock-data directement
+  4. Fix les valeurs hardcodées (KPIs, unpaid-invoices, total élèves)
+  5. Câbler les boutons PDF (facture, reçu, bordereau) et WhatsApp (relances)
+- API du store: useDataStore(s => s.eleves), useDataStore(s => s.addEleve), etc.
+- API PDF: import { generateFacturePdf, generateRecuPdf, generateBordereauPdf } from '@/lib/utils-docs'
+- API WhatsApp: import { relanceWhatsApp, messageRelanceFacture } from '@/lib/utils-docs'
+
+---
+Task ID: 4-b
+Agent: full-stack-developer (missing CRUD dialogs)
+Task: Créer les dialogs manquants (moniteur, véhicule, dépense, paiement, examen, session)
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` (section "Task ID: 3 (phase CRUD)") pour comprendre l'API du data-store Zustand (`addMoniteur`, `addVehicule`, `addDepense`, `addPaiement`, `addExamen`, `addExamenSession`) et la structure des entités (factures avec reste/paye, eleves avec statut/typePermis, vehicules avec etat, inspecteurs avec actif, examenSessions avec candidats[]).
+- Lu `/src/store/data-store.ts` : confirmé les signatures exactes (addPaiement recalcule auto le solde + statut de la facture, addExamenSession génère un numéroBordereau BORD-YYYY-NNN).
+- Lu `/src/components/dashboard/modal.tsx` : Modal({open, onOpenChange, title, description, children, footer, size='md'}) avec sizes sm/md/lg/xl → max-w-md/lg/2xl/4xl. Field({label, required, children}), FormInput/FormSelect (h-10 rounded-lg border-input focus:ring-ring/40), FormTextarea.
+- Lu `/src/components/dashboard/dialogs/nouvelle-seance-dialog.tsx` et `nouvelle-facture-dialog.tsx` pour aligner le pattern visuel (footer à 2 boutons Annuler/Action primary avec icône Lucide, grid responsive sm:grid-cols-2).
+- Lu `/src/lib/mock-data.ts` : confirmé les champs eleve.typePermis ('A'|'B'|'AB'), eleve.statut (8 valeurs dont 'Inscrit', 'En formation', 'Examen'), facture.reste/paye/montant, depense.modePaiement/vehicule, examen.resultat ('En attente'|'Admis'|'Échec').
+- Confirmé disponibilité du composant shadcn `@/components/ui/checkbox` (Checkbox primitive Radix avec data-[state=checked]:bg-primary).
+
+- Créé `nouveau-moniteur-dialog.tsx` (size 'md') :
+  - 6 champs useState (nom, prenom, telephone, email, specialite='Conduite', statut='Disponible').
+  - Layout grid sm:grid-cols-2 (Nom+Prénom, Téléphone+Email, Spécialité+Statut).
+  - handleSubmit → validation (nom/prenom/telephone/specialite requis) → `addMoniteur({ nom, prenom, telephone, email, specialite, statut })` → toast.success('Moniteur ajouté') → reset + close.
+  - reset() réinitialise tous les champs au state initial (y compris specialite=Conduite, statut=Disponible).
+  - handleOpenChange intercale le reset quand on ferme.
+  - Footer : bouton Annuler (outline) + bouton "Ajouter le moniteur" (UserPlus, primary).
+
+- Créé `nouveau-vehicule-dialog.tsx` (size 'md') :
+  - 4 champs useState (marque, modele, immatriculation, etat='Disponible').
+  - Immatriculation affichée en font-mono et automatiquement mise en majuscules au submit.
+  - Layout grid sm:grid-cols-2 pour Marque+Modèle, Immatriculation pleine largeur, État en dessous.
+  - handleSubmit → validation (marque/modele/immatriculation requis) → `addVehicule({ marque, modele, immatriculation: UPPER, etat })` → toast.success('Véhicule ajouté').
+  - Footer : bouton Annuler + bouton "Ajouter le véhicule" (Car, primary).
+
+- Créé `nouvelle-depense-dialog.tsx` (size 'md') :
+  - 6 champs useState (categorie='Carburant', montant=0, description, modePaiement='Espèces', vehicule='—', date=today).
+  - Sélecteurs constants : CATEGORIES (7 valeurs), MODES (4 valeurs), CATEGORIES_WITH_VEHICULE=['Carburant','Entretien','Réparations'].
+  - Helper vehiculeLabel(v) → "Marque Modèle (immat)".
+  - Le champ Véhicule est conditionnel (rendu uniquement si categorie ∈ CATEGORIES_WITH_VEHICULE) — sinon vehicule reste '—'.
+  - Changement de catégorie : si on bascule vers une catégorie sans véhicule, on reset vehicule='—'.
+  - handleSubmit → validation (categorie, montant>0, description, date requis) → `addDepense({ categorie, montant, description, modePaiement, vehicule: showVehicule ? vehicule : '—', date })` → toast.success('Dépense enregistrée').
+  - Aperçu en direct bg-muted p-3 avec formatXOF(montant) en text-lg font-bold text-primary.
+  - Véhicules chargés via `useDataStore(s => s.vehicules)`.
+  - Footer : bouton Annuler + bouton "Enregistrer la dépense" (Wallet, primary).
+
+- Créé `nouveau-paiement-dialog.tsx` (size 'md') :
+  - Props : { factureId: string|null, open, onOpenChange }.
+  - Guard `if (!factureId || !facture) return null` en tête.
+  - Lookup facture depuis `useDataStore(s => s.factures).find(f => f.id === factureId)`.
+  - 4 champs useState (montant=0, modePaiement='Espèces', reference, datePaiement=today).
+  - useEffect sur [open, factureId] : quand on ouvre et qu'on a une facture, setMontant(facture.reste) + reset modePaiement/reference/datePaiement.
+  - Bandeau d'info facture en haut (border bg-muted/40 p-4, grid sm:grid-cols-2) avec 4 cellules : Numéro (font-mono, FileText), Élève (User + code mono), Montant total (formatXOF, Coins), Reste à payer (formatXOF, coloré rose si >0 / emerald si =0, Calendar).
+  - Inputs : Montant (type=number, max=facture.reste), Mode de paiement (4 options), Référence (input font-mono), Date (type=date).
+  - Aperçu bg-muted p-3 : "Montant encaissé" + formatXOF(montant) text-primary.
+  - handleSubmit → validation (montant>0, reference, datePaiement) → résout `facture.eleve` → `addPaiement({ factureId, eleve: facture.eleve, montant, modePaiement, reference, datePaiement })` → toast.success('Paiement encaissé'). Le store recalcule auto le solde/statut de la facture.
+  - Footer : bouton Annuler + bouton "Encaisser le paiement" (Banknote, primary).
+  - Pas de reset sur close (le useEffect reset à la prochaine ouverture) pour préserver l'animation.
+
+- Créé `nouvel-examen-dialog.tsx` (size 'md') :
+  - 6 champs useState (eleveCode, typeExamen='Conduite', typePermis='B', dateExamen, inspecteur='—', notes).
+  - Élève : FormSelect qui map eleves du store → "Prénom Nom (EL-XXXX)".
+  - Type d'examen : Code/Conduite. Type de permis : A/B/AB/C.
+  - Inspecteur : FormSelect qui map inspecteurs actifs du store → "Prénom Nom", avec option "— Aucun inspecteur —".
+  - Notes : FormTextarea optionnel rows=3.
+  - handleSubmit → validation (eleveCode, dateExamen) → lookup eleve dans le store → construit eleveNom = "Prénom Nom" → `addExamen({ eleve, eleveCode, typeExamen, typePermis, dateExamen, inspecteur, resultat: 'En attente', notes })` → toast.success('Examen planifié').
+  - Footer : bouton Annuler + bouton "Planifier l'examen" (CalendarCheck, primary).
+
+- Créé `nouvelle-session-dialog.tsx` (size 'lg', le plus complexe) :
+  - 7 champs useState (date, heure='08:00', centre, typeExamen='Conduite', inspecteur='—', vehicule='—', selectedEleves=[]).
+  - STATUTS_ELIGIBLES = ['Inscrit', 'En formation', 'Examen'].
+  - vehiculesDisponibles = vehicules.filter(v => v.etat === 'Disponible').
+  - elevesEligibles = eleves.filter(e => STATUTS_ELIGIBLES.includes(e.statut)).
+  - Inspecteur : map inspecteurs actifs du store.
+  - Véhicule : rendu UNIQUEMENT si typeExamen === 'Conduite' (sinon "—"). Si on bascule vers Code, on reset vehicule='—' via handleTypeChange.
+  - Notes informatives selon le type : "Aucun véhicule requis pour une session de code." / "Seuls les véhicules disponibles sont proposés."
+  - Multi-select candidats : carte border border-border bg-card avec header (Users icon + count) et liste scrollable max-h-72 avec custom-scrollbar. Chaque item = label cursor-pointer avec Checkbox shadcn + nom + code mono + badge statut (hidden sm:inline).
+  - toggleEleve(code) ajoute/retire dans selectedEleves (string[]).
+  - Résumé dynamique bg-muted p-3 "Candidats sélectionnés" + count text-primary, visible uniquement si ≥1 candidat.
+  - handleSubmit → validation (date, heure, centre, ≥1 candidat) → build candidats[] via snapshot de chaque eleve sélectionné : `{ nomComplet: "Prénom Nom", identifiant: code, telephone, categoriePermis: eleve.typePermis, resultat: 'En attente' }` → `addExamenSession({ date, heure, centre, typeExamen, inspecteur, vehicule: type==='Conduite' ? vehicule : '—', candidats })` → toast.success('Session créée'). Le store génère auto le numeroBordereau.
+  - Footer : bouton Annuler + bouton "Créer la session" (CalendarPlus, primary).
+
+- Tous les fichiers commencent par `'use client'`, utilisent NAMED export (pas default), importent Modal/Field/FormInput/FormSelect/FormTextarea depuis `@/components/dashboard/modal`, `useDataStore` depuis `@/store/data-store`, `toast` depuis `sonner`.
+- Design system cohérent : orange primary (bg-primary/text-primary-foreground), boutons primary h-10 px-4 rounded-lg, boutons outline border-input bg-background hover:bg-muted, formatXOF() pour les montants, font-mono pour numéros/codes.
+- Texte français partout, responsive mobile-first (grid-cols-1 → sm:grid-cols-2 → lg:grid-cols-3 pour la session).
+- Aucun appel API ni DB — 100% Zustand data-store + useState local.
+
+Stage Summary:
+- Files created:
+  - `/src/components/dashboard/dialogs/nouveau-moniteur-dialog.tsx` → `export function NouveauMoniteurDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouveau-vehicule-dialog.tsx` → `export function NouveauVehiculeDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvelle-depense-dialog.tsx` → `export function NouvelleDepenseDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouveau-paiement-dialog.tsx` → `export function NouveauPaiementDialog({ factureId, open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvel-examen-dialog.tsx` → `export function NouvelExamenDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvelle-session-dialog.tsx` → `export function NouvelleSessionDialog({ open, onOpenChange })`
+- Tous les dialogs sont câblés au data-store Zustand via les actions add*. Toast sonner déclenché après chaque mutation réussie. Reset des champs à la fermeture.
+- Patterns respectés : footer à 2 boutons (Annuler outline + Action primary avec icône Lucide), champs wrappés dans Field avec required* orange, grid responsive sm:grid-cols-2 (ou 3 pour la session), aperçus en direct bg-muted p-3 avec formatXOF pour dépense/paiement.
+- Particularités : (1) paiement dialog utilise useEffect pour setMontant(reste) à l'ouverture, garde `if (!factureId || !facture) return null` ; (2) dépense dialog affiche le sélecteur véhicule uniquement si catégorie ∈ [Carburant, Entretien, Réparations] ; (3) session dialog utilise Checkbox shadcn pour le multi-select candidats avec liste scrollable max-h-72 custom-scrollbar, et masque le sélecteur véhicule quand typeExamen === 'Code'.
+- Pas de lint/build lancé conformément aux consignes.
+
+---
+Task ID: 4-a
+Agent: full-stack-developer (wire CRUD dialogs)
+Task: Câbler les dialogs existants au data-store (élève, séance, facture, résultats)
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` (section "Task ID: 3 (phase CRUD)" + Task 2-c) pour comprendre l'API du data-store Zustand (`addEleve`, `addSeance`, `addFacture`, `updateSessionResultats`) et la structure des dialogs existants (champs useState, footer à 2 boutons, Modal shared).
+- Lu `/src/store/data-store.ts` : confirmé les signatures — addEleve génère auto id/code/seancesFaites/seancesTotales/solde/statut/dateInscription/moniteur, addFacture génère auto numéro/paye/reste/statut, updateSessionResultats(sessionId, candidats[]) remplace le tableau candidats.
+- Lu `/src/app/layout.tsx` : un `<Toaster />` (de `@/components/ui/toaster`) est déjà présent. Ajouté `import { Toaster as SonnerToaster } from 'sonner'` et rendu `<SonnerToaster richColors position="top-right" />` juste après le Toaster existant (les deux cohabitent — sonner est utilisé par les dialogs, le Toaster shadcn reste pour l'existant).
+- Lu les 4 dialogs cibles pour identifier les useState fields existants et le footer button à câbler.
+
+- Câblé `/src/components/dashboard/dialogs/nouvel-eleve-dialog.tsx` :
+  - Ajouté imports `toast` from 'sonner' + `useDataStore` from '@/store/data-store'.
+  - Récupéré `addEleve = useDataStore(s => s.addEleve)`.
+  - Ajouté `resetForm()` qui remet tous les useState à leur valeur initiale.
+  - Ajouté `handleSubmit()` : validation (nom + prenom + telephone requis, sinon toast.error) → calcule `estParraine = parrain.trim() !== ''` → `addEleve({ nom, prenom, telephone, email, dateNaissance, lieuNaissance, sexe, nationalite, typePiece, numPiece, typePermis, estParraine, parrainNom })` → `toast.success('Élève créé avec succès')` → resetForm() → onOpenChange(false).
+  - Bouton "Créer l'élève" → onClick={handleSubmit} (au lieu de onOpenChange(false) no-op).
+
+- Câblé `/src/components/dashboard/dialogs/nouvelle-seance-dialog.tsx` :
+  - Ajouté imports `toast` + `useDataStore`. Récupéré `addSeance`.
+  - Ajouté `resetForm()` + helper `computeDureeMin(debut, fin)` qui split "HH:MM" et renvoie la différence en minutes.
+  - `handleSubmit()` : validation (eleveCode + moniteurId + date + heureDebut + heureFin requis ; heureFin > heureDebut) → lookup eleve/moniteur/vehicule depuis mock-data → construit `eleveNom = "Prenom Nom"`, `moniteurNom = "Prenom Nom"`, `vehiculeDesc = "Marque Modèle (immat)"` (ou "—" si pas de véhicule) → `addSeance({ eleve, eleveCode, moniteur, vehicule, date, heureDebut, heureFin, duree, statut: 'Planifié', notes })` → toast.success('Séance planifiée') → resetForm + close.
+  - Bouton "Planifier la séance" → onClick={handleSubmit}.
+
+- Câblé `/src/components/dashboard/dialogs/nouvelle-facture-dialog.tsx` :
+  - Ajouté imports `toast` + `useDataStore`. Récupéré `addFacture`.
+  - Ajouté `resetForm()` (réinitialise eleveCode, formationId, montant=0, dateEmission=today, notes).
+  - `handleSubmit()` : validation (eleveCode + formationId + montant>0) → lookup eleve + formation depuis mock-data → `addFacture({ eleve: "Prenom Nom", eleveCode, formation: formation.nom, montant, dateEmission })` → toast.success('Facture émise') → resetForm + close. Le store génère auto le numéro, paye=0, reste=montant, statut='Non payée'.
+  - Bouton "Émettre la facture" → onClick={handleSubmit}.
+
+- Câblé `/src/components/dashboard/dialogs/saisie-resultats-dialog.tsx` :
+  - Ajouté imports `toast` + `useDataStore`. Récupéré `updateSessionResultats`.
+  - Étendu le type `Session` local pour y ajouter `id: string` (le vrai objet passé par bordereaux-view.tsx est `typeof examenSessions[number]` qui a un id, mais le type local du dialog ne l'avait pas — nécessaire pour accéder à `session.id`).
+  - Ajouté `handleSave()` : map results → tableau `{ nomComplet, identifiant, telephone, categoriePermis, resultat, notes }` (incluant les notes saisies inline) → cast `as unknown as Parameters<typeof updateSessionResultats>[1]` (car le type CandidatSession du store n'a pas `notes` mais le store l'accepte à runtime — cast pour satisfaire TypeScript sans modifier le store) → `updateSessionResultats(session.id, ...)` → toast.success('Résultats enregistrés') → onOpenChange(false).
+  - Bouton "Enregistrer les résultats" → onClick={handleSave}.
+
+- Vérifié `/home/z/my-project/dev.log` après chaque édition : compilation réussie (`✓ Compiled in Xms`), aucune erreur TypeScript ou runtime.
+
+Stage Summary:
+- Files modified:
+  - `/src/app/layout.tsx` → ajout import `{ Toaster as SonnerToaster }` from 'sonner' + rendu `<SonnerToaster richColors position="top-right" />` après le Toaster shadcn existant
+  - `/src/components/dashboard/dialogs/nouvel-eleve-dialog.tsx` → addEleve + toast + resetForm + handleSubmit (bouton "Créer l'élève" câblé)
+  - `/src/components/dashboard/dialogs/nouvelle-seance-dialog.tsx` → addSeance + computeDureeMin + résolution eleve/moniteur/vehicule names + toast + resetForm + handleSubmit (bouton "Planifier la séance" câblé)
+  - `/src/components/dashboard/dialogs/nouvelle-facture-dialog.tsx` → addFacture + résolution eleve/formation names + toast + resetForm + handleSubmit (bouton "Émettre la facture" câblé)
+  - `/src/components/dashboard/dialogs/saisie-resultats-dialog.tsx` → updateSessionResultats + ajout `id` au type Session local + toast + handleSave (bouton "Enregistrer les résultats" câblé)
+- Patterns cohérents sur les 4 dialogs : validation simple (toast.error si champs requis manquants) → call store action → toast.success → resetForm → onOpenChange(false).
+- Le store reste inchangé — addEleve/addSeance/addFacture/updateSessionResultats gèrent déjà la génération des id/code/numéro et l'audit log.
+- Le sonner Toaster est désormais monté globalement dans layout.tsx (richColors + position top-right), en plus du Toaster shadcn préexistant.
+- Pas de lint/build lancé conformément aux consignes ; dev server compile proprement (vérifié dans dev.log).
+
+---
+Task ID: 4-c
+Agent: full-stack-developer (migrate views to store)
+Task: Migrer les vues vers le data-store + câbler boutons (PDF, WhatsApp, nouveaux dialogs)
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` (sections Task 3 / 4-a / 4-b) pour comprendre l'API du data-store Zustand (`useDataStore(s => s.eleves)` + add/update/delete), les utilitaires PDF/WhatsApp (`generateFacturePdf`, `generateBordereauPdf`, `relanceWhatsApp`, `messageRelanceFacture`), et la structure des entités (eleves.statut, moniteurs.statut, vehicules.etat, factures.reste/statut, paiements.montant, depenses.categorie/vehicule, examenSessions).
+- Lu `/src/store/data-store.ts` : confirmed signatures `addMoniteur`, `addVehicule`, `addDepense`, `addExamen`, `addExamenSession`, `addPaiement` (ce dernier recalcule auto le solde + statut de la facture).
+- Lu les 7 vues cibles (`eleves-view`, `moniteurs-view`, `vehicules-view`, `comptabilite-view`, `examens-view`, `bordereaux-view`, `facturation-view`) pour identifier les imports `from '@/lib/mock-data'` à remplacer, les boutons non-câblés, et les KPIs hardcodés.
+- Constaté que les 6 dialogs manquants (moniteur, vehicule, depense, examen, session, paiement) n'étaient PAS présents sur disque — créé chacun :
+
+- Créé `nouveau-moniteur-dialog.tsx` (size 'md') : 6 champs (nom, prenom, telephone, email, specialite='Conduite', statut='Disponible'). handleSubmit → `addMoniteur(...)` + toast.success. Footer Annuler + "Créer le moniteur" (UserPlus).
+
+- Créé `nouveau-vehicule-dialog.tsx` (size 'md') : 4 champs (marque, modele, immatriculation, etat='Disponible'). handleSubmit → `addVehicule(...)` + toast.success. Footer Annuler + "Ajouter le véhicule" (Plus).
+
+- Créé `nouvelle-depense-dialog.tsx` (size 'md') : 6 champs (categorie, montant, description, modePaiement, vehicule, date). Véhicules chargés depuis `useDataStore(s => s.vehicules)`. handleSubmit → `addDepense(...)` + toast.success. Aperçu live bg-muted formatXOF(montant).
+
+- Créé `nouvel-examen-dialog.tsx` (size 'md') : 7 champs (eleveCode, typeExamen, typePermis, dateExamen, inspecteur, resultat, notes). Élèves + inspecteurs chargés depuis le store. handleSubmit → lookup eleve → `addExamen({ eleve: "Prenom Nom", ... })` + toast.success.
+
+- Créé `nouvelle-session-dialog.tsx` (size 'lg') : 7 champs (date, heure, centre, typeExamen, inspecteur, vehicule, selectedEleves[]). Multi-select candidats via checkboxes (liste scrollable max-h-56). handleSubmit → build candidats[] depuis eleves sélectionnés → `addExamenSession({ date, heure, centre, typeExamen, inspecteur, vehicule, candidats })` + toast.success. Store génère auto le numeroBordereau.
+
+- Créé `nouveau-paiement-dialog.tsx` (size 'md') : Props { factureId: string|null, open, onOpenChange }. Lookup facture depuis le store. useEffect reset montant=facture.reste à l'ouverture. 4 champs (montant, modePaiement, reference, datePaiement). Récap facture en haut (montant total / déjà payé / reste à payer). Aperçu "Nouveau reste après encaissement". handleSubmit → validation montant ≤ reste → `addPaiement(...)` + toast.success. Le store recalcule auto le solde/statut de la facture.
+
+- Migré `eleves-view.tsx` :
+  - `import { eleves, type StatutEleve }` → `import { type StatutEleve } from '@/lib/mock-data'` + `const eleves = useDataStore(s => s.eleves)`.
+  - `const totalEleves = 248` → `const totalEleves = eleves.length`.
+  - KPI cards : Total = `eleves.length`, En formation = `eleves.filter(e => e.statut === 'En formation').length`, Admis = `eleves.filter(e => e.statut === 'Admis').length`, Taux réussite = "78,5 %" (statique, non dérivable du mock).
+  - useMemo dependencies : ajouté `eleves` pour refilter quand le store change.
+  - Dialogs `NouvelEleveDialog` + `EleveDetailDialog` déjà câblés — conservés tels quels.
+
+- Migré `moniteurs-view.tsx` :
+  - `import { moniteurs }` → `const moniteurs = useDataStore(s => s.moniteurs)`.
+  - Bouton "Ajouter un moniteur" (onClick={() => {}}) → `setShowAdd(true)` avec `const [showAdd, setShowAdd] = useState(false)`.
+  - Rendu `<NouveauMoniteurDialog open={showAdd} onOpenChange={setShowAdd} />` à la fin.
+  - KPIs dérivés : Total = `moniteurs.length`, Disponibles = `moniteurs.filter(m => m.statut === 'Disponible').length`, En mission = `moniteurs.filter(m => m.statut === 'En mission').length`.
+
+- Migré `vehicules-view.tsx` :
+  - `import { vehicules }` → `const vehicules = useDataStore(s => s.vehicules)`.
+  - Bouton "Ajouter un véhicule" → `setShowAdd(true)` + rendu `<NouveauVehiculeDialog .../>`.
+  - KPIs dérivés : Total = `vehicules.length`, Disponibles = `vehicules.filter(v => v.etat === 'Disponible').length`, En maintenance = `vehicules.filter(v => v.etat === 'En maintenance').length`.
+
+- Migré `comptabilite-view.tsx` :
+  - `import { depenses, type CategorieDepense }` → type conservé depuis mock-data + `const depenses = useDataStore(s => s.depenses)`.
+  - Bouton "Nouvelle dépense" (pas de onClick avant) → `setShowAdd(true)` + rendu `<NouvelleDepenseDialog .../>`.
+  - KPIs dérivés : Total dépenses = `depenses.reduce(sum montant)`, Dépenses véhicules = `depenses.filter(d => d.vehicule !== '—').reduce(sum)`, Salaires = `depenses.filter(d => d.categorie === 'Salaires').reduce(sum)`.
+  - Tous les useMemo ont `depenses` en dependency → recalcul auto quand le store change.
+
+- Migré `examens-view.tsx` :
+  - `import { examens, examenSessions }` → supprimé ; sous-composants `ExamensIndividuels` et `SessionsCollectives` appellent `useDataStore(s => s.examens)` et `useDataStore(s => s.examenSessions)` directement.
+  - Bouton "Nouvel examen" → `setShowAdd(true)` + rendu `<NouvelExamenDialog .../>` dans `ExamensView`.
+
+- Migré `bordereaux-view.tsx` :
+  - `import { examenSessions }` → `const examenSessions = useDataStore(s => s.examenSessions)`.
+  - Bouton "Nouvelle session" → `setShowAddSession(true)` + rendu `<NouvelleSessionDialog .../>`.
+  - Bouton "Générer PDF" par session → `generateBordereauPdf(sess)` + `toast.success('Bordereau XXX généré')`.
+  - `SaisieResultatsDialog` déjà câblé — conservé.
+  - Import `FileText` supprimé (inutilisé).
+
+- Migré `facturation-view.tsx` :
+  - `import { factures, paiements, type StatutFacture, type ModePaiement }` → types conservés + `const factures = useDataStore(s => s.factures)`, `const paiements = useDataStore(s => s.paiements)`, `const eleves = useDataStore(s => s.eleves)`.
+  - Bouton "Télécharger PDF" par facture → `generateFacturePdf(f)` + `toast.success('Facture XXX générée')`.
+  - Bouton "Encaisser" (nouveau, icône Banknote) sur factures non-payées → `setPaiementFactureId(f.id)` → ouvre `<NouveauPaiementDialog factureId={paiementFactureId} open={!!paiementFactureId} onOpenChange={...} />`.
+  - Bouton WhatsApp par facture impayée → lookup `eleve = eleves.find(e => e.code === f.eleveCode)` pour récupérer `telephone` → `relanceWhatsApp(telephone, messageRelanceFacture({ prenom, nom, numeroFacture, reste, telephone }))`. Le prenom/nom est splitté depuis `f.eleve` (format "Prenom Nom").
+  - KPIs dérivés : CA total = `factures.reduce(sum montant)`, Encaissé = `paiements.reduce(sum montant)`, En attente = `factures.filter(f => f.statut !== 'Payée').reduce(sum reste)`, Impayées = `factures.filter(f => f.statut === 'Impayée').length`.
+  - `NouvelleFactureDialog` déjà câblé — conservé.
+
+- Vérifié `/home/z/my-project/dev.log` après toutes les éditions : compilation propre (`✓ Compiled in Xms`), requêtes GET / 200 OK, aucune erreur TypeScript ou Module-not-found relative à mes fichiers.
+
+Stage Summary:
+- Files created:
+  - `/src/components/dashboard/dialogs/nouveau-moniteur-dialog.tsx` → `export function NouveauMoniteurDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouveau-vehicule-dialog.tsx` → `export function NouveauVehiculeDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvelle-depense-dialog.tsx` → `export function NouvelleDepenseDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvel-examen-dialog.tsx` → `export function NouvelExamenDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouvelle-session-dialog.tsx` → `export function NouvelleSessionDialog({ open, onOpenChange })`
+  - `/src/components/dashboard/dialogs/nouveau-paiement-dialog.tsx` → `export function NouveauPaiementDialog({ factureId, open, onOpenChange })`
+- Files modified:
+  - `/src/components/dashboard/views/eleves-view.tsx` → useDataStore(eleves) + KPIs dérivés (totalEleves=enFormation=admis)
+  - `/src/components/dashboard/views/moniteurs-view.tsx` → useDataStore(moniteurs) + bouton Ajouter câblé + KPIs dérivés
+  - `/src/components/dashboard/views/vehicules-view.tsx` → useDataStore(vehicules) + bouton Ajouter câblé + KPIs dérivés
+  - `/src/components/dashboard/views/comptabilite-view.tsx` → useDataStore(depenses) + bouton Nouvelle dépense câblé + KPIs dérivés (total/véhicules/salaires)
+  - `/src/components/dashboard/views/examens-view.tsx` → useDataStore(examens, examenSessions) dans sous-composants + bouton Nouvel examen câblé
+  - `/src/components/dashboard/views/bordereaux-view.tsx` → useDataStore(examenSessions) + bouton Nouvelle session câblé + bouton Générer PDF câblé (generateBordereauPdf + toast)
+  - `/src/components/dashboard/views/facturation-view.tsx` → useDataStore(factures, paiements, eleves) + bouton Télécharger PDF (generateFacturePdf) + bouton Encaisser (NouveauPaiementDialog) + bouton WhatsApp (relanceWhatsApp + messageRelanceFacture) + KPIs dérivés (CA/Encaissé/Attente/Impayées)
+- Tous les dialogs créés utilisent Modal/Field/FormInput/FormSelect/FormTextarea depuis `@/components/dashboard/modal`, `useDataStore` depuis `@/store/data-store`, `toast` depuis `sonner`. Patterns cohérents avec les dialogs existants (footer 2 boutons Annuler/Action primary, validation simple, reset sur close).
+- Toutes les vues sont désormais abonnées au store Zustand via `useDataStore(s => s.X)` → toute mutation CRUD (add/update/delete) rafraîchit automatiquement l'UI (KPIs, listes, filtres).
+- Boutons d'action câblés : PDF facture, PDF bordereau, WhatsApp relance (avec lookup eleve pour téléphone), Encaisser (ouverture NouveauPaiementDialog), tous les boutons "Ajouter/Nouveau" ouvrant leurs dialogs respectifs.
+- Pas de lint/build lancé conformément aux consignes. Dev server compile proprement (vérifié dans dev.log : `✓ Compiled in Xms` récurrents, GET / 200 OK).

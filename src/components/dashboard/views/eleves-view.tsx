@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Gift,
 } from 'lucide-react'
-import { eleves, type StatutEleve } from '@/lib/mock-data'
+import { type StatutEleve } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 import {
   ViewHeader,
   StatusBadge,
@@ -92,6 +93,7 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 }
 
 export function ElevesView() {
+  const eleves = useDataStore((s) => s.eleves)
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [page, setPage] = useState(1)
@@ -112,9 +114,11 @@ export function ElevesView() {
         e.typePermis.toLowerCase().includes(q)
       return matchStatut && matchRecherche
     })
-  }, [recherche, statutFiltre])
+  }, [eleves, recherche, statutFiltre])
 
-  const totalEleves = 248
+  const totalEleves = eleves.length
+  const enFormation = eleves.filter((e) => e.statut === 'En formation').length
+  const admis = eleves.filter((e) => e.statut === 'Admis').length
   const parPage = 8
   const totalPages = Math.max(1, Math.ceil(elevesFiltres.length / parPage))
   const pageCourante = Math.min(page, totalPages)
@@ -138,19 +142,19 @@ export function ElevesView() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Total élèves"
-          value="248"
+          value={String(totalEleves)}
           icon={<Users className="h-5 w-5" />}
           tone="primary"
         />
         <KpiCard
           label="En formation"
-          value="142"
+          value={String(enFormation)}
           icon={<GraduationCap className="h-5 w-5" />}
           tone="sky"
         />
         <KpiCard
           label="Admis ce mois"
-          value="38"
+          value={String(admis)}
           icon={<Award className="h-5 w-5" />}
           tone="emerald"
         />

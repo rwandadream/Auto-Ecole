@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { UserPlus, Users, CheckCircle2, Briefcase, Phone, Mail } from 'lucide-react'
-import { moniteurs, type StatutMoniteur } from '@/lib/mock-data'
+import { type StatutMoniteur } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 import {
   ViewHeader,
   StatusBadge,
@@ -9,6 +11,7 @@ import {
   Card,
   initials,
 } from '@/components/dashboard/views/shared'
+import { NouveauMoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
 
 function statutTone(statut: StatutMoniteur): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (statut) {
@@ -50,13 +53,20 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 }
 
 export function MoniteursView() {
+  const moniteurs = useDataStore((s) => s.moniteurs)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const totalMoniteurs = moniteurs.length
+  const disponibles = moniteurs.filter((m) => m.statut === 'Disponible').length
+  const enMission = moniteurs.filter((m) => m.statut === 'En mission').length
+
   return (
     <div>
       <ViewHeader
         title="Moniteurs"
         description="Équipe pédagogique — moniteurs de conduite et de code"
         actions={
-          <ActionButton variant="primary" onClick={() => {}}>
+          <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
             <UserPlus className="h-4 w-4" />
             Ajouter un moniteur
           </ActionButton>
@@ -67,19 +77,19 @@ export function MoniteursView() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KpiCard
           label="Total moniteurs"
-          value="6"
+          value={String(totalMoniteurs)}
           icon={<Users className="h-5 w-5" />}
           tone="primary"
         />
         <KpiCard
           label="Disponibles"
-          value="4"
+          value={String(disponibles)}
           icon={<CheckCircle2 className="h-5 w-5" />}
           tone="emerald"
         />
         <KpiCard
           label="En mission"
-          value="1"
+          value={String(enMission)}
           icon={<Briefcase className="h-5 w-5" />}
           tone="amber"
         />
@@ -135,6 +145,8 @@ export function MoniteursView() {
           )
         })}
       </div>
+
+      <NouveauMoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
     </div>
   )
 }

@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { Plus, FileText, MoreHorizontal } from 'lucide-react'
-import { examens, examenSessions, type ResultatExamen } from '@/lib/mock-data'
+import { type ResultatExamen } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -12,6 +14,7 @@ import {
   Card,
   initials,
 } from './shared'
+import { NouvelExamenDialog } from '@/components/dashboard/dialogs/nouvel-examen-dialog'
 
 // --- Helpers ---
 function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
@@ -42,6 +45,7 @@ function typeExamenBadge(type: string) {
 
 // --- Sub-component: Examens individuels table ---
 function ExamensIndividuels() {
+  const examens = useDataStore((s) => s.examens)
   return (
     <Card className="p-0">
       <div className="custom-scrollbar overflow-x-auto">
@@ -104,6 +108,7 @@ function ExamensIndividuels() {
 
 // --- Sub-component: Sessions collectives grid ---
 function SessionsCollectives() {
+  const examenSessions = useDataStore((s) => s.examenSessions)
   const setActiveView = useNavStore((s) => s.setActiveView)
 
   return (
@@ -163,13 +168,14 @@ function SessionsCollectives() {
 
 // --- Main component ---
 export function ExamensView() {
+  const [showAdd, setShowAdd] = useState(false)
   return (
     <>
       <ViewHeader
         title="Examens & Sessions"
         description="Suivi des examens individuels et sessions collectives"
         actions={
-          <ActionButton>
+          <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
             <Plus className="h-4 w-4" />
             Nouvel examen
           </ActionButton>
@@ -189,6 +195,8 @@ export function ExamensView() {
           <SessionsCollectives />
         </TabsContent>
       </Tabs>
+
+      <NouvelExamenDialog open={showAdd} onOpenChange={setShowAdd} />
     </>
   )
 }
