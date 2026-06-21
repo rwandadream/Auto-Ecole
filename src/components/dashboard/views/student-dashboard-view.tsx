@@ -10,7 +10,8 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
-import { seances, eleves, type StatutEleve } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
+import type { StatutEleve } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -68,6 +69,8 @@ function lifecycleIndex(statut: StatutEleve): number {
 
 export function StudentDashboardView() {
   const user = useAuthStore((s) => s.user)
+  const seances = useDataStore((s) => s.seances)
+  const eleves = useDataStore((s) => s.eleves)
 
   if (!user || user.mode !== 'eleve') return null
 

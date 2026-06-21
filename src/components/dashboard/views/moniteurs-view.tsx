@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus, Users, CheckCircle2, Briefcase, Phone, Mail } from 'lucide-react'
+import { UserPlus, Users, CheckCircle2, Briefcase, Phone, Mail, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { type StatutMoniteur } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 import {
@@ -12,6 +13,23 @@ import {
   initials,
 } from '@/components/dashboard/views/shared'
 import { NouveauMoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
+import { ModifierMoniteurDialog } from '@/components/dashboard/dialogs/modifier-moniteur-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 function statutTone(statut: StatutMoniteur): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (statut) {
@@ -54,7 +72,11 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 
 export function MoniteursView() {
   const moniteurs = useDataStore((s) => s.moniteurs)
+  const deleteMoniteur = useDataStore((s) => s.deleteMoniteur)
   const [showAdd, setShowAdd] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const totalMoniteurs = moniteurs.length
   const disponibles = moniteurs.filter((m) => m.statut === 'Disponible').length
@@ -101,9 +123,40 @@ export function MoniteursView() {
           const nomComplet = `${m.prenom} ${m.nom}`
           const isCode = m.specialite === 'Code'
           return (
-            <Card key={m.id} className="flex flex-col gap-4">
+            <Card key={m.id} className="relative flex flex-col gap-4">
+              {/* Actions menu (top-right) */}
+              <div className="absolute right-3 top-3 z-10">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      aria-label="Actions"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setEditId(m.id)
+                        setShowEdit(true)
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-rose-600 focus:text-rose-600"
+                      onSelect={() => setDeleteId(m.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               {/* Header: avatar + name + statut */}
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 pr-8">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                   {initials(nomComplet)}
                 </div>
@@ -147,6 +200,36 @@ export function MoniteursView() {
       </div>
 
       <NouveauMoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
+      <ModifierMoniteurDialog moniteurId={editId} open={showEdit} onOpenChange={setShowEdit} />
+
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce moniteur ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le moniteur sera définitivement retiré de l&apos;équipe pédagogique.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteId) {
+                  deleteMoniteur(deleteId)
+                  toast.success('Moniteur supprimé.')
+                  setDeleteId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { eleves } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 
 export type UserMode = 'admin' | 'eleve'
 
@@ -57,6 +57,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     return true
   },
   loginEleve: (code, telephone) => {
+    // Lire depuis le data-store (pas mock-data) pour que les élèves nouvellement créés puissent se connecter
+    const eleves = useDataStore.getState().eleves
     const eleve = eleves.find(
       (e) => e.code.toLowerCase() === code.toLowerCase() && e.telephone.replace(/\s/g, '') === telephone.replace(/\s/g, '')
     )

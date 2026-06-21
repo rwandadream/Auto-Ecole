@@ -11,13 +11,11 @@ import {
   Receipt,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from 'sonner'
 import { useAuthStore } from '@/store/auth-store'
-import {
-  factures,
-  paiements,
-  type StatutFacture,
-  type ModePaiement,
-} from '@/lib/mock-data'
+import { useDataStore, type Facture, type Paiement } from '@/store/data-store'
+import type { StatutFacture, ModePaiement } from '@/lib/mock-data'
+import { generateFacturePdf, generateRecuPdf } from '@/lib/utils-docs'
 import {
   ViewHeader,
   Card,
@@ -109,14 +107,33 @@ function SummaryCard({
   )
 }
 
-// Download button with simulated "Génération..." state
-function DownloadButton({ label }: { label: string }) {
+// Download button calling real PDF generators
+function DownloadButton({
+  label,
+  document,
+  type,
+}: {
+  label: string
+  document: Facture | Paiement
+  type: 'facture' | 'recu'
+}) {
   const [generating, setGenerating] = useState(false)
 
   const handleClick = () => {
     if (generating) return
     setGenerating(true)
-    setTimeout(() => setGenerating(false), 1500)
+    try {
+      if (type === 'facture') {
+        generateFacturePdf(document as Facture)
+      } else {
+        generateRecuPdf(document as Paiement)
+      }
+      toast.success('PDF généré')
+    } catch {
+      toast.error('Erreur lors de la génération du PDF')
+    } finally {
+      setTimeout(() => setGenerating(false), 600)
+    }
   }
 
   return (
@@ -137,6 +154,8 @@ function DownloadButton({ label }: { label: string }) {
 
 export function StudentFacturesView() {
   const user = useAuthStore((s) => s.user)
+  const factures = useDataStore((s) => s.factures)
+  const paiements = useDataStore((s) => s.paiements)
 
   if (!user || user.mode !== 'eleve') return null
 
@@ -224,7 +243,7 @@ export function StudentFacturesView() {
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.dateEmission}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <DownloadButton label="Télécharger PDF" />
+                          <DownloadButton label="Télécharger PDF" document={f} type="facture" />
                         </div>
                       </td>
                     </tr>
@@ -275,7 +294,7 @@ export function StudentFacturesView() {
                       <td className="px-4 py-3 text-sm text-muted-foreground">{p.datePaiement}</td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <DownloadButton label="Télécharger le reçu" />
+                          <DownloadButton label="Télécharger le reçu" document={p} type="recu" />
                         </div>
                       </td>
                     </tr>

@@ -1,7 +1,10 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Wallet, TrendingDown, TrendingUp, Users, Award, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useDataStore } from '@/store/data-store'
+import { formatXOF } from '@/components/dashboard/views/shared'
 
 type Metric = {
   label: string
@@ -13,64 +16,85 @@ type Metric = {
   iconColor: string
 }
 
-const metrics: Metric[] = [
-  {
-    label: "Chiffre d'affaires",
-    value: '8 220 640 F',
-    change: '+4.9%',
-    lastMonth: '7 834 000 F',
-    icon: Wallet,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-  },
-  {
-    label: 'Total dépenses',
-    value: '2 145 300 F',
-    change: '+2.3%',
-    lastMonth: '2 097 000 F',
-    icon: TrendingDown,
-    iconBg: 'bg-rose-500/10',
-    iconColor: 'text-rose-600',
-  },
-  {
-    label: 'Bénéfice net',
-    value: '6 075 340 F',
-    change: '+6.8%',
-    lastMonth: '5 737 000 F',
-    icon: TrendingUp,
-    iconBg: 'bg-emerald-500/10',
-    iconColor: 'text-emerald-600',
-  },
-  {
-    label: 'Élèves inscrits',
-    value: '248',
-    change: '+12',
-    lastMonth: '236',
-    icon: Users,
-    iconBg: 'bg-sky-500/10',
-    iconColor: 'text-sky-600',
-  },
-  {
-    label: 'Taux de réussite',
-    value: '78,5%',
-    change: '+3.2%',
-    lastMonth: '75,3%',
-    icon: Award,
-    iconBg: 'bg-amber-500/10',
-    iconColor: 'text-amber-600',
-  },
-  {
-    label: 'Factures en attente',
-    value: '5',
-    change: '1 240 000 F',
-    lastMonth: '3 impayées',
-    icon: Clock,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-  },
-]
-
 export function MetricCards() {
+  const factures = useDataStore((s) => s.factures)
+  const depenses = useDataStore((s) => s.depenses)
+  const eleves = useDataStore((s) => s.eleves)
+  const examens = useDataStore((s) => s.examens)
+
+  const metrics: Metric[] = useMemo(() => {
+    const ca = factures.reduce((sum, f) => sum + f.montant, 0)
+    const totalDepenses = depenses.reduce((sum, d) => sum + d.montant, 0)
+    const benefice = ca - totalDepenses
+
+    // Taux de réussite : admis / (total - en attente)
+    const examensNotes = examens.filter((x) => x.resultat !== 'En attente')
+    const admis = examensNotes.filter((x) => x.resultat === 'Admis').length
+    const tauxReussite =
+      examensNotes.length > 0
+        ? `${((admis / examensNotes.length) * 100).toFixed(1).replace('.', ',')}%`
+        : '—'
+
+    const facturesEnAttente = factures.filter((f) => f.statut !== 'Payée').length
+
+    return [
+      {
+        label: "Chiffre d'affaires",
+        value: formatXOF(ca),
+        change: '+4.9%',
+        lastMonth: '7 834 000 F',
+        icon: Wallet,
+        iconBg: 'bg-primary/10',
+        iconColor: 'text-primary',
+      },
+      {
+        label: 'Total dépenses',
+        value: formatXOF(totalDepenses),
+        change: '+2.3%',
+        lastMonth: '2 097 000 F',
+        icon: TrendingDown,
+        iconBg: 'bg-rose-500/10',
+        iconColor: 'text-rose-600',
+      },
+      {
+        label: 'Bénéfice net',
+        value: formatXOF(benefice),
+        change: '+6.8%',
+        lastMonth: '5 737 000 F',
+        icon: TrendingUp,
+        iconBg: 'bg-emerald-500/10',
+        iconColor: 'text-emerald-600',
+      },
+      {
+        label: 'Élèves inscrits',
+        value: String(eleves.length),
+        change: '+12',
+        lastMonth: '236',
+        icon: Users,
+        iconBg: 'bg-sky-500/10',
+        iconColor: 'text-sky-600',
+      },
+      {
+        label: 'Taux de réussite',
+        value: tauxReussite,
+        change: '+3.2%',
+        lastMonth: '75,3%',
+        icon: Award,
+        iconBg: 'bg-amber-500/10',
+        iconColor: 'text-amber-600',
+      },
+      {
+        label: 'Factures en attente',
+        value: String(facturesEnAttente),
+        change: '1 240 000 F',
+        lastMonth: '3 impayées',
+        icon: Clock,
+        iconBg: 'bg-primary/10',
+        iconColor: 'text-primary',
+      },
+    ]
+  }, [factures, depenses, eleves, examens])
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {metrics.map((metric) => {

@@ -5,7 +5,6 @@ import { Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { formatXOF } from '@/components/dashboard/views/shared'
-import { eleves, formations } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 
 export function NouvelleFactureDialog({
@@ -16,6 +15,8 @@ export function NouvelleFactureDialog({
   onOpenChange: (v: boolean) => void
 }) {
   const addFacture = useDataStore((s) => s.addFacture)
+  const eleves = useDataStore((s) => s.eleves)
+  const formations = useDataStore((s) => s.formations)
 
   const today = new Date().toISOString().split('T')[0]
 

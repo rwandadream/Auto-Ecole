@@ -7,6 +7,7 @@ import {
   Paperclip,
   Eye,
   Pencil,
+  Trash2,
   Banknote,
   Smartphone,
   Building2,
@@ -17,6 +18,7 @@ import {
   Package,
   MoreHorizontal,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   ViewHeader,
   ActionButton,
@@ -26,6 +28,18 @@ import {
 import { type CategorieDepense, type ModePaiement } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 import { NouvelleDepenseDialog } from '@/components/dashboard/dialogs/nouvelle-depense-dialog'
+import { ModifierDepenseDialog } from '@/components/dashboard/dialogs/modifier-depense-dialog'
+import { Modal } from '@/components/dashboard/modal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const categorieConfig: Record<
   CategorieDepense,
@@ -128,8 +142,13 @@ function KpiCard({
 
 export function ComptabiliteView() {
   const depenses = useDataStore((s) => s.depenses)
+  const deleteDepense = useDataStore((s) => s.deleteDepense)
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   // Compute totals per category
   const categorieTotals = useMemo(() => {
@@ -304,11 +323,29 @@ export function ComptabiliteView() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Voir">
+                        <button
+                          onClick={() => setDetailId(d.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          title="Voir"
+                        >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Modifier">
+                        <button
+                          onClick={() => {
+                            setEditId(d.id)
+                            setShowEdit(true)
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          title="Modifier"
+                        >
                           <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(d.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-500/10"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -328,6 +365,120 @@ export function ComptabiliteView() {
       </Card>
 
       <NouvelleDepenseDialog open={showAdd} onOpenChange={setShowAdd} />
+      <ModifierDepenseDialog depenseId={editId} open={showEdit} onOpenChange={setShowEdit} />
+
+      {/* Detail modal (read-only) */}
+      <DepenseDetailModal depenseId={detailId} open={detailId !== null} onOpenChange={(v) => { if (!v) setDetailId(null) }} />
+
+      {/* Delete confirmation */}
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette dépense ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La dépense sera définitivement retirée du registre comptable.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteId) {
+                  deleteDepense(deleteId)
+                  toast.success('Dépense supprimée.')
+                  setDeleteId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
+  )
+}
+
+// --- Dépense detail modal (read-only) ---
+function DepenseDetailModal({
+  depenseId,
+  open,
+  onOpenChange,
+}: {
+  depenseId: string | null
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) {
+  const depense = useDataStore((s) => s.depenses).find((d) => d.id === depenseId)
+  if (!depense) {
+    return (
+      <Modal open={open} onOpenChange={onOpenChange} title="Détail de la dépense" size="md">
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          Aucune dépense sélectionnée.
+        </div>
+      </Modal>
+    )
+  }
+  const cfg = categorieConfig[depense.categorie]
+  const mp = modePaiementBadge[depense.modePaiement]
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Détail de la dépense"
+      description={`Enregistrée le ${depense.date}`}
+      size="md"
+      footer={
+        <button
+          onClick={() => onOpenChange(false)}
+          className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          Fermer
+        </button>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex items-center justify-between rounded-lg bg-muted/40 p-4">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex h-8 w-8 items-center justify-center rounded-md ${cfg.badge}`}>
+              {cfg.icon}
+            </span>
+            <div>
+              <p className="text-xs text-muted-foreground">Catégorie</p>
+              <p className="text-sm font-semibold text-foreground">{depense.categorie}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Montant</p>
+            <p className="text-lg font-bold text-primary">{formatXOF(depense.montant)}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DetailRow label="Description" value={depense.description} />
+          <DetailRow label="Mode de paiement" value={
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${mp.bg} ${mp.fg}`}>
+              {mp.icon}
+              {depense.modePaiement}
+            </span>
+          } />
+          <DetailRow label="Véhicule associé" value={depense.vehicule === '—' ? 'Aucun' : depense.vehicule} />
+          <DetailRow label="Date" value={depense.date} />
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value ?? '—'}</p>
+    </div>
   )
 }

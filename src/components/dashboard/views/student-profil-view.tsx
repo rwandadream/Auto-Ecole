@@ -17,7 +17,8 @@ import {
   X,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
-import { eleves } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -112,6 +113,8 @@ function EditableRow({
 
 export function StudentProfilView() {
   const user = useAuthStore((s) => s.user)
+  const eleves = useDataStore((s) => s.eleves)
+  const updateEleve = useDataStore((s) => s.updateEleve)
   const [editMode, setEditMode] = useState(false)
   const [form, setForm] = useState<{ telephone: string; email: string; nationalite: string }>({
     telephone: '',
@@ -131,6 +134,17 @@ export function StudentProfilView() {
       nationalite: me?.nationalite ?? '',
     })
     setEditMode(true)
+  }
+
+  const handleSave = () => {
+    if (!me) return
+    updateEleve(me.id, {
+      telephone: form.telephone,
+      email: form.email,
+      nationalite: form.nationalite,
+    })
+    toast.success('Profil mis à jour')
+    setEditMode(false)
   }
 
   const statutBadgeTone = me
@@ -267,7 +281,7 @@ export function StudentProfilView() {
                 </div>
               </div>
               <button
-                onClick={() => setEditMode(false)}
+                onClick={handleSave}
                 className="mt-4 flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto sm:px-4"
               >
                 <Check className="h-4 w-4" />

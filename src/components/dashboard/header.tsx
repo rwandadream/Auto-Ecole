@@ -2,8 +2,16 @@
 
 import { Search, X, LayoutGrid, Bell, HelpCircle, ChevronDown, Calendar } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { useAuthStore } from '@/store/auth-store'
+import { initials } from '@/components/dashboard/views/shared'
 
 export function Header() {
+  const user = useAuthStore((s) => s.user)
+
+  const userName = user?.mode === 'admin' ? user.name : 'Utilisateur'
+  const userRole = user?.mode === 'admin' ? user.role : '—'
+  const userInitials = initials(userName || 'U')
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card px-6">
       {/* Search */}
@@ -47,12 +55,12 @@ export function Header() {
         <button className="flex items-center gap-2.5 rounded-lg p-1 pr-2 transition-colors hover:bg-muted">
           <Avatar className="h-8 w-8 border border-border">
             <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-              AD
+              {userInitials}
             </AvatarFallback>
           </Avatar>
           <div className="hidden text-left sm:block">
-            <p className="text-sm font-semibold leading-tight text-foreground">Aïcha Diallo</p>
-            <p className="text-xs leading-tight text-muted-foreground">Admin Principal</p>
+            <p className="text-sm font-semibold leading-tight text-foreground">{userName}</p>
+            <p className="text-xs leading-tight text-muted-foreground">{userRole}</p>
           </div>
           <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
         </button>

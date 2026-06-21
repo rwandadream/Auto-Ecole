@@ -5,7 +5,7 @@ import { Save, Calendar, Clock, MapPin, Award, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/dashboard/modal'
 import { StatusBadge } from '@/components/dashboard/views/shared'
-import { useDataStore } from '@/store/data-store'
+import { useDataStore, type Eleve, type Examen } from '@/store/data-store'
 
 type SessionCandidat = {
   nomComplet: string
@@ -54,6 +54,9 @@ export function SaisieResultatsDialog({
   const [results, setResults] = useState<ResultRow[]>([])
   const [prevSession, setPrevSession] = useState<Session | null>(session)
   const updateSessionResultats = useDataStore((s) => s.updateSessionResultats)
+  const updateEleve = useDataStore((s) => s.updateEleve)
+  const addExamen = useDataStore((s) => s.addExamen)
+  const eleves = useDataStore((s) => s.eleves)
   if (session !== prevSession) {
     setPrevSession(session)
     setResults(
@@ -86,6 +89,7 @@ export function SaisieResultatsDialog({
   }
 
   const handleSave = () => {
+    // 1. Met à jour la session avec les résultats saisis
     updateSessionResultats(
       session.id,
       results.map((r) => ({
@@ -97,7 +101,37 @@ export function SaisieResultatsDialog({
         notes: r.notes,
       })) as unknown as Parameters<typeof updateSessionResultats>[1]
     )
-    toast.success('Résultats enregistrés')
+
+    // 2. Pour chaque candidat dont le résultat n'est plus « En attente »,
+    //    on met à jour le statut de l'élève et on crée un enregistrement examen individuel.
+    let updatedCount = 0
+    for (const c of results) {
+      if (c.resultat === 'En attente') continue
+
+      const eleve = eleves.find((e) => e.code === c.identifiant)
+      if (eleve) {
+        const nouveauStatut = c.resultat === 'Admis' ? 'Admis' : 'Ajourné'
+        updateEleve(eleve.id, { statut: nouveauStatut as Eleve['statut'] })
+      }
+
+      addExamen({
+        eleve: c.nomComplet,
+        eleveCode: c.identifiant,
+        typeExamen: session.typeExamen,
+        typePermis: c.categoriePermis,
+        dateExamen: session.date,
+        inspecteur: session.inspecteur,
+        resultat: c.resultat as Examen['resultat'],
+        notes: c.notes || '',
+      })
+      updatedCount++
+    }
+
+    toast.success(
+      updatedCount > 0
+        ? `Résultats enregistrés — ${updatedCount} élève${updatedCount > 1 ? 's' : ''} mis à jour`
+        : 'Résultats enregistrés'
+    )
     onOpenChange(false)
   }
 

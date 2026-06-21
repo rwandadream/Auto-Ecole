@@ -9,7 +9,8 @@ import {
   FileText,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
-import { seances, type StatutSeance } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
+import type { StatutSeance } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -73,6 +74,7 @@ const TODAY = '2026-12-02'
 
 export function StudentPlanningView() {
   const user = useAuthStore((s) => s.user)
+  const seances = useDataStore((s) => s.seances)
   const [filtre, setFiltre] = useState<Filtre>('avenir')
 
   if (!user || user.mode !== 'eleve') return null

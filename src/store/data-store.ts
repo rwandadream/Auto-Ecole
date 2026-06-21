@@ -128,13 +128,32 @@ interface DataState {
   // Examens CRUD
   addExamen: (data: Omit<Examen, 'id'>) => void
   updateExamen: (id: string, patch: Partial<Examen>) => void
+  deleteExamen: (id: string) => void
 
   // Sessions CRUD
   addExamenSession: (data: Omit<ExamenSession, 'id' | 'numeroBordereau'>) => void
   updateSessionResultats: (sessionId: string, candidats: CandidatSession[]) => void
+  deleteExamenSession: (id: string) => void
+
+  // Inspecteurs CRUD
+  addInspecteur: (data: Omit<Inspecteur, 'id'>) => void
+  updateInspecteur: (id: string, patch: Partial<Inspecteur>) => void
+  deleteInspecteur: (id: string) => void
+
+  // Permis CRUD
+  addPermis: (data: Omit<Permis, 'id'>) => void
+  updatePermis: (id: string, patch: Partial<Permis>) => void
+  deletePermis: (id: string) => void
+
+  // Profiles CRUD
+  addProfile: (data: Omit<Profile, 'id'>) => void
+  updateProfile: (id: string, patch: Partial<Profile>) => void
+  deleteProfile: (id: string) => void
 
   // Factures CRUD
   addFacture: (data: { eleve: string; eleveCode: string; formation: string; montant: number; dateEmission: string }) => void
+  updateFacture: (id: string, patch: Partial<Facture>) => void
+  deleteFacture: (id: string) => void
 
   // Paiements
   addPaiement: (data: { factureId: string; eleve: string; montant: number; modePaiement: ModePaiement; reference: string; datePaiement: string }) => void
@@ -347,7 +366,13 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   // --- Paiements (avec recalcul automatique du solde) ---
   addPaiement: (data) => {
-    const newP: Paiement = { ...data, id: uid('pa') } as Paiement
+    // Récupérer le numéro de facture pour le champ `facture` du paiement
+    const factureRecord = get().factures.find((f) => f.id === data.factureId)
+    const newP: Paiement = {
+      ...data,
+      facture: factureRecord?.numero ?? data.factureId,
+      id: uid('pa'),
+    } as Paiement
     set((s) => {
       // Recalculer le solde de la facture
       const factures = s.factures.map((f) => {
@@ -362,6 +387,80 @@ export const useDataStore = create<DataState>((set, get) => ({
       return { paiements: [newP, ...s.paiements], factures }
     })
     get().logAction('INSERT', 'paiements', newP.id, `Encaissement de ${data.montant.toLocaleString('fr-FR')} F pour ${data.eleve}`)
+  },
+
+  // --- Factures update/delete ---
+  updateFacture: (id, patch) => {
+    set((s) => ({ factures: s.factures.map((f) => (f.id === id ? { ...f, ...patch } : f)) }))
+    get().logAction('UPDATE', 'factures', id, `Modification de la facture`)
+  },
+
+  deleteFacture: (id) => {
+    set((s) => ({ factures: s.factures.filter((f) => f.id !== id) }))
+    get().logAction('DELETE', 'factures', id, `Suppression de la facture`)
+  },
+
+  // --- Examens delete ---
+  deleteExamen: (id) => {
+    set((s) => ({ examens: s.examens.filter((x) => x.id !== id) }))
+    get().logAction('DELETE', 'examens', id, `Suppression de l'examen`)
+  },
+
+  // --- Sessions delete ---
+  deleteExamenSession: (id) => {
+    set((s) => ({ examenSessions: s.examenSessions.filter((sess) => sess.id !== id) }))
+    get().logAction('DELETE', 'examen_sessions', id, `Suppression de la session`)
+  },
+
+  // --- Inspecteurs CRUD ---
+  addInspecteur: (data) => {
+    const newI: Inspecteur = { ...data, id: uid('i') } as Inspecteur
+    set((s) => ({ inspecteurs: [newI, ...s.inspecteurs] }))
+    get().logAction('INSERT', 'inspecteurs', newI.id, `Ajout de l'inspecteur ${newI.prenom} ${newI.nom}`)
+  },
+
+  updateInspecteur: (id, patch) => {
+    set((s) => ({ inspecteurs: s.inspecteurs.map((i) => (i.id === id ? { ...i, ...patch } : i)) }))
+    get().logAction('UPDATE', 'inspecteurs', id, `Modification de l'inspecteur`)
+  },
+
+  deleteInspecteur: (id) => {
+    set((s) => ({ inspecteurs: s.inspecteurs.filter((i) => i.id !== id) }))
+    get().logAction('DELETE', 'inspecteurs', id, `Suppression de l'inspecteur`)
+  },
+
+  // --- Permis CRUD ---
+  addPermis: (data) => {
+    const newP: Permis = { ...data, id: uid('p') } as Permis
+    set((s) => ({ permis: [newP, ...s.permis] }))
+    get().logAction('INSERT', 'permis', newP.id, `Ajout du permis ${newP.code}`)
+  },
+
+  updatePermis: (id, patch) => {
+    set((s) => ({ permis: s.permis.map((p) => (p.id === id ? { ...p, ...patch } : p)) }))
+    get().logAction('UPDATE', 'permis', id, `Modification du permis`)
+  },
+
+  deletePermis: (id) => {
+    set((s) => ({ permis: s.permis.filter((p) => p.id !== id) }))
+    get().logAction('DELETE', 'permis', id, `Suppression du permis`)
+  },
+
+  // --- Profiles CRUD ---
+  addProfile: (data) => {
+    const newPr: Profile = { ...data, id: uid('u') } as Profile
+    set((s) => ({ profiles: [newPr, ...s.profiles] }))
+    get().logAction('INSERT', 'profiles', newPr.id, `Ajout de l'utilisateur ${newPr.name}`)
+  },
+
+  updateProfile: (id, patch) => {
+    set((s) => ({ profiles: s.profiles.map((p) => (p.id === id ? { ...p, ...patch } : p)) }))
+    get().logAction('UPDATE', 'profiles', id, `Modification du profil`)
+  },
+
+  deleteProfile: (id) => {
+    set((s) => ({ profiles: s.profiles.filter((p) => p.id !== id) }))
+    get().logAction('DELETE', 'profiles', id, `Suppression de l'utilisateur`)
   },
 
   // --- Dépenses ---

@@ -10,9 +10,20 @@ import {
   Banknote,
   Smartphone,
   Building2,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   ViewHeader,
   StatusBadge,
@@ -128,6 +139,8 @@ export function FacturationView() {
   const [statutFilter, setStatutFilter] = useState<'Tous' | StatutFacture>('Tous')
   const [showNewFacture, setShowNewFacture] = useState(false)
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null)
+  const [deleteFactureId, setDeleteFactureId] = useState<string | null>(null)
+  const deleteFacture = useDataStore((s) => s.deleteFacture)
 
   const filteredFactures = useMemo(() => {
     return factures.filter((f) => {
@@ -308,6 +321,13 @@ export function FacturationView() {
                               <MessageCircle className="h-4 w-4" />
                             </button>
                           )}
+                          <button
+                            onClick={() => setDeleteFactureId(f.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-500/10"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -377,6 +397,36 @@ export function FacturationView() {
         open={!!paiementFactureId}
         onOpenChange={(v) => { if (!v) setPaiementFactureId(null) }}
       />
+
+      <AlertDialog
+        open={deleteFactureId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteFactureId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette facture ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La facture et son solde seront définitivement supprimés.
+              Les paiements déjà encaissés ne seront pas affectés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteFactureId) {
+                  deleteFacture(deleteFactureId)
+                  toast.success('Facture supprimée.')
+                  setDeleteFactureId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

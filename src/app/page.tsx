@@ -18,6 +18,8 @@ import { BordereauxView } from '@/components/dashboard/views/bordereaux-view'
 import { FacturationView } from '@/components/dashboard/views/facturation-view'
 import { ComptabiliteView } from '@/components/dashboard/views/comptabilite-view'
 import { ParametresView } from '@/components/dashboard/views/parametres-view'
+import { InspecteursView } from '@/components/dashboard/views/inspecteurs-view'
+import { AuditLogView } from '@/components/dashboard/views/audit-log-view'
 import { AssistanceView } from '@/components/dashboard/views/assistance-view'
 import { DeconnexionView } from '@/components/dashboard/views/deconnexion-view'
 import { StudentDashboardView } from '@/components/dashboard/views/student-dashboard-view'
@@ -31,12 +33,14 @@ const viewMap = {
   scanner: ScannerCniView,
   moniteurs: MoniteursView,
   vehicules: VehiculesView,
+  inspecteurs: InspecteursView,
   planning: PlanningView,
   examens: ExamensView,
   bordereaux: BordereauxView,
   facturation: FacturationView,
   comptabilite: ComptabiliteView,
   parametres: ParametresView,
+  audit: AuditLogView,
   assistance: AssistanceView,
   deconnexion: DeconnexionView,
 } as const

@@ -4,7 +4,7 @@ import { Pencil } from 'lucide-react'
 import { Modal } from '@/components/dashboard/modal'
 import { StatusBadge, initials, formatXOF } from '@/components/dashboard/views/shared'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { eleves, seances, examens, factures } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 import type { StatutEleve, StatutSeance, ResultatExamen, StatutFacture } from '@/lib/mock-data'
 
 function statutEleveTone(s: StatutEleve) {
@@ -89,6 +89,11 @@ export function EleveDetailDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
+  const eleves = useDataStore((s) => s.eleves)
+  const seances = useDataStore((s) => s.seances)
+  const examens = useDataStore((s) => s.examens)
+  const factures = useDataStore((s) => s.factures)
+
   const eleve = eleves.find((e) => e.code === eleveCode)
 
   if (!eleve) {

@@ -16,15 +16,20 @@ import {
   ChevronLeft,
   ScanLine,
   UserCog,
+  Shield,
+  History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
+import { useAuthStore } from '@/store/auth-store'
 
 type NavItem = {
   label: string
   view: ViewKey
   icon: React.ComponentType<{ className?: string }>
   badge?: string
+  /** Roles allowed to see this item. If omitted, item is visible to everyone. */
+  roles?: string[]
 }
 
 type NavSection = {
@@ -32,31 +37,49 @@ type NavSection = {
   items: NavItem[]
 }
 
+// All roles in the system
+const ALL_ROLES = [
+  'Administrateur principal',
+  'Administrateur secondaire',
+  'Comptable',
+  'Moniteur',
+  'Conseiller',
+]
+
+// Helper: normalize role for matching (the auth-store may return 'Administrateur'
+// for unknown emails — treat it as an admin)
+function normalizeRole(role: string): string {
+  if (role === 'Administrateur') return 'Administrateur principal'
+  return role
+}
+
 const navSections: NavSection[] = [
   {
     title: 'Pilotage',
     items: [
       { label: 'Tableau de bord', view: 'dashboard', icon: LayoutGrid },
-      { label: 'Élèves', view: 'eleves', icon: Users, badge: '20' },
-      { label: 'Scanner CNI', view: 'scanner', icon: ScanLine },
-      { label: 'Moniteurs', view: 'moniteurs', icon: UserCog },
-      { label: 'Véhicules', view: 'vehicules', icon: Car },
+      { label: 'Élèves', view: 'eleves', icon: Users, badge: '20', roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
+      { label: 'Scanner CNI', view: 'scanner', icon: ScanLine, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
+      { label: 'Moniteurs', view: 'moniteurs', icon: UserCog, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Véhicules', view: 'vehicules', icon: Car, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Inspecteurs', view: 'inspecteurs', icon: Shield, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
     ],
   },
   {
     title: 'Activité',
     items: [
-      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, badge: '2' },
-      { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck },
-      { label: 'Facturation', view: 'facturation', icon: Receipt },
-      { label: 'Comptabilité', view: 'comptabilite', icon: Wallet },
-      { label: 'Bordereaux', view: 'bordereaux', icon: FileText },
+      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, badge: '2', roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Facturation', view: 'facturation', icon: Receipt, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
+      { label: 'Comptabilité', view: 'comptabilite', icon: Wallet, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
+      { label: 'Bordereaux', view: 'bordereaux', icon: FileText, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur'] },
     ],
   },
   {
     title: 'Général',
     items: [
-      { label: 'Paramètres', view: 'parametres', icon: Settings },
+      { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
+      { label: 'Journal d\'audit', view: 'audit', icon: History, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Assistance', view: 'assistance', icon: HelpCircle },
       { label: 'Déconnexion', view: 'deconnexion', icon: LogOut },
     ],
@@ -65,6 +88,22 @@ const navSections: NavSection[] = [
 
 export function Sidebar() {
   const { activeView, setActiveView, collapsed, toggleCollapsed } = useNavStore()
+  const user = useAuthStore((s) => s.user)
+
+  // Determine the current user's role (only for admin mode)
+  const currentRole = user?.mode === 'admin' ? normalizeRole(user.role) : null
+
+  // Filter sections based on role
+  const visibleSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (!item.roles) return true // visible to everyone
+        if (!currentRole) return false // no role → no items with role restriction
+        return item.roles.includes(currentRole)
+      }),
+    }))
+    .filter((section) => section.items.length > 0)
 
   return (
     <aside
@@ -104,7 +143,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="custom-scrollbar flex-1 overflow-y-auto px-3 py-4">
-        {navSections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.title} className="mb-6">
             {!collapsed && (
               <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

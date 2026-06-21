@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { CalendarPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
-import { eleves, moniteurs, vehicules } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 
 export function NouvelleSeanceDialog({
@@ -15,6 +14,9 @@ export function NouvelleSeanceDialog({
   onOpenChange: (v: boolean) => void
 }) {
   const addSeance = useDataStore((s) => s.addSeance)
+  const eleves = useDataStore((s) => s.eleves)
+  const moniteurs = useDataStore((s) => s.moniteurs)
+  const vehicules = useDataStore((s) => s.vehicules)
 
   const [eleveCode, setEleveCode] = useState('')
   const [moniteurId, setMoniteurId] = useState('')

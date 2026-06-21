@@ -4,7 +4,10 @@ import { useMemo, useState } from 'react'
 import {
   Plus,
   Search,
-  MoreHorizontal,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Trash2,
   Users,
   GraduationCap,
   Award,
@@ -13,6 +16,7 @@ import {
   ChevronRight,
   Gift,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { type StatutEleve } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 import {
@@ -25,6 +29,23 @@ import {
 } from '@/components/dashboard/views/shared'
 import { NouvelEleveDialog } from '@/components/dashboard/dialogs/nouvel-eleve-dialog'
 import { EleveDetailDialog } from '@/components/dashboard/dialogs/eleve-detail-dialog'
+import { ModifierEleveDialog } from '@/components/dashboard/dialogs/modifier-eleve-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 type StatutFiltre = 'Tous' | StatutEleve
 
@@ -100,6 +121,10 @@ export function ElevesView() {
   const [showAddEleve, setShowAddEleve] = useState(false)
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState(false)
+  const [editCode, setEditCode] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
+  const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
+  const deleteEleve = useDataStore((s) => s.deleteEleve)
 
   const elevesFiltres = useMemo(() => {
     return eleves.filter((e) => {
@@ -310,16 +335,43 @@ export function ElevesView() {
                       {e.moniteur}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        aria-label="Actions"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        onClick={() => {
-                          setSelectedCode(e.code)
-                          setShowDetail(true)
-                        }}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label="Actions"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setSelectedCode(e.code)
+                              setShowDetail(true)
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Voir le détail
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setEditCode(e.code)
+                              setShowEdit(true)
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-rose-600 focus:text-rose-600"
+                            onSelect={() => setDeleteEleveId(e.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 )
@@ -369,6 +421,37 @@ export function ElevesView() {
 
       <NouvelEleveDialog open={showAddEleve} onOpenChange={setShowAddEleve} />
       <EleveDetailDialog eleveCode={selectedCode} open={showDetail} onOpenChange={setShowDetail} />
+      <ModifierEleveDialog eleveCode={editCode} open={showEdit} onOpenChange={setShowEdit} />
+
+      <AlertDialog
+        open={deleteEleveId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteEleveId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cet élève ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L&apos;élève sera définitivement retiré du registre,
+              ainsi que son code dossier et son rattachement au moniteur.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteEleveId) {
+                  deleteEleve(deleteEleveId)
+                  toast.success('Élève supprimé.')
+                  setDeleteEleveId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

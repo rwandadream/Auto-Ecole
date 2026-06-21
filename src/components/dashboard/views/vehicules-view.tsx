@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Car, CheckCircle2, Wrench, CalendarClock } from 'lucide-react'
+import { Plus, Car, CheckCircle2, Wrench, CalendarClock, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { type EtatVehicule } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 import {
@@ -11,6 +12,23 @@ import {
   Card,
 } from '@/components/dashboard/views/shared'
 import { NouveauVehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
+import { ModifierVehiculeDialog } from '@/components/dashboard/dialogs/modifier-vehicule-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (etat) {
@@ -53,7 +71,11 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 
 export function VehiculesView() {
   const vehicules = useDataStore((s) => s.vehicules)
+  const deleteVehicule = useDataStore((s) => s.deleteVehicule)
   const [showAdd, setShowAdd] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const totalVehicules = vehicules.length
   const disponibles = vehicules.filter((v) => v.etat === 'Disponible').length
@@ -105,9 +127,40 @@ export function VehiculesView() {
                 ? 'bg-amber-500/10 text-amber-600'
                 : 'bg-rose-500/10 text-rose-600'
           return (
-            <Card key={v.id} className="flex flex-col gap-4">
+            <Card key={v.id} className="relative flex flex-col gap-4">
+              {/* Actions menu (top-right) */}
+              <div className="absolute right-3 top-3 z-10">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      aria-label="Actions"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setEditId(v.id)
+                        setShowEdit(true)
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-rose-600 focus:text-rose-600"
+                      onSelect={() => setDeleteId(v.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               {/* Header: icon + marque/modele + immat */}
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 pr-8">
                 <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${iconWrapClass}`}>
                   <Car className="h-6 w-6" />
                 </div>
@@ -147,6 +200,36 @@ export function VehiculesView() {
       </div>
 
       <NouveauVehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
+      <ModifierVehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />
+
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le véhicule sera définitivement retiré du parc automobile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteId) {
+                  deleteVehicule(deleteId)
+                  toast.success('Véhicule supprimé.')
+                  setDeleteId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Camera, ScanLine, UserPlus, CheckCircle2, Loader2, Info } from 'lucide-react'
+import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -11,8 +12,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ViewHeader, Card } from '@/components/dashboard/views/shared'
+import { useDataStore } from '@/store/data-store'
+import { useNavStore } from '@/store/nav-store'
 
 export function ScannerCniView() {
+  const addEleve = useDataStore((s) => s.addEleve)
+  const setActiveView = useNavStore((s) => s.setActiveView)
+
   const [cameraActive, setCameraActive] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [scanned, setScanned] = useState(false)
@@ -59,6 +65,33 @@ export function ScannerCniView() {
     setPrenom('')
     setDateNaissance('')
     setNumPiece('')
+    setTelephone('')
+    setEmail('')
+    setNationalite('')
+    setTypePermis('B')
+    setTypePiece('CNI')
+  }
+
+  const handleCreerEleve = () => {
+    // Validation des champs obligatoires
+    if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
+      toast.error('Veuillez renseigner au moins le nom, le prénom et le téléphone')
+      return
+    }
+    addEleve({
+      nom: nom.trim(),
+      prenom: prenom.trim(),
+      telephone: telephone.trim(),
+      email: email.trim(),
+      dateNaissance,
+      nationalite: nationalite.trim() || 'Ivoirienne',
+      typePiece,
+      numPiece,
+      typePermis,
+    })
+    toast.success('Élève créé avec succès')
+    resetScan()
+    setActiveView('eleves')
   }
 
   return (
@@ -300,6 +333,7 @@ export function ScannerCniView() {
           {/* Submit */}
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button
+              onClick={handleCreerEleve}
               disabled={!scanned}
               className="flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
             >
