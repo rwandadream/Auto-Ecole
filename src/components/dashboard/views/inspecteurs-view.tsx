@@ -21,6 +21,7 @@ import {
   ActionButton,
   Card,
   initials,
+  PaginationFooter,
 } from '@/components/dashboard/views/shared'
 import { NouvelInspecteurDialog } from '@/components/dashboard/dialogs/nouvel-inspecteur-dialog'
 import {
@@ -77,6 +78,7 @@ export function InspecteursView() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState<StatutFilter>('Tous')
+  const [page, setPage] = useState(1)
 
   const total = inspecteurs.length
   const actifs = inspecteurs.filter((i) => i.actif).length
@@ -96,6 +98,12 @@ export function InspecteursView() {
       (statutFilter === 'Inactif' && !i.actif)
     return matchesSearch && matchesStatut
   })
+
+  const parPage = 8
+  const totalPages = Math.max(1, Math.ceil(filtered.length / parPage))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * parPage
+  const inspecteursPage = filtered.slice(debut, debut + parPage)
 
   const deletingTarget = inspecteurs.find((i) => i.id === deletingId)
 
@@ -187,14 +195,14 @@ export function InspecteursView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.length === 0 && (
+              {inspecteursPage.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     Aucun inspecteur ne correspond à votre recherche.
                   </td>
                 </tr>
               )}
-              {filtered.map((i) => {
+              {inspecteursPage.map((i) => {
                 const nomComplet = `${i.prenom} ${i.nom}`
                 return (
                   <tr key={i.id} className="hover:bg-muted/40">
@@ -259,6 +267,15 @@ export function InspecteursView() {
             </tbody>
           </table>
         </div>
+        <PaginationFooter
+          pageCourante={pageCourante}
+          totalPages={totalPages}
+          total={filtered.length}
+          debut={debut}
+          pageDataLength={inspecteursPage.length}
+          label="inspecteurs"
+          setPage={setPage}
+        />
       </Card>
 
       {/* Dialogs */}
