@@ -84,8 +84,6 @@ const navSections: NavSection[] = [
     title: 'Général',
     items: [
       { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
-      { label: 'Journal d\'audit', view: 'audit', icon: History, roles: ['Administrateur principal', 'Administrateur secondaire'] },
-      { label: 'Assistance', view: 'assistance', icon: HelpCircle },
       { label: 'Déconnexion', icon: LogOut, isLogout: true },
     ],
   },
