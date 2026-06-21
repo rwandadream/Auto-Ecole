@@ -12,6 +12,11 @@ import {
   UserPlus,
   Trash2,
   Save,
+  User,
+  Users,
+  BookOpen,
+  History,
+  HelpCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -268,22 +273,56 @@ export function ParametresView() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <ViewHeader
         title="Paramètres"
         description="Configuration de l'ERP et gestion de l'équipe"
       />
 
-      <Tabs defaultValue="profil" className="mt-2">
-        <TabsList>
-          <TabsTrigger value="profil">Mon profil</TabsTrigger>
-          <TabsTrigger value="equipe">Équipe</TabsTrigger>
-          <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
-          <TabsTrigger value="audit">Journal d&apos;audit</TabsTrigger>
-          <TabsTrigger value="assistance">Assistance</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="profil" className="flex flex-col gap-6 lg:flex-row">
+        {/* Barre latérale couvrant le layout */}
+        <div className="lg:w-64 lg:shrink-0">
+          <TabsList className="flex h-auto w-full flex-col gap-1 rounded-xl border border-border bg-card p-2">
+            <TabsTrigger
+              value="profil"
+              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+            >
+              <User className="h-4 w-4" />
+              Mon profil
+            </TabsTrigger>
+            <TabsTrigger
+              value="equipe"
+              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4" />
+              Équipe
+            </TabsTrigger>
+            <TabsTrigger
+              value="catalogue"
+              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+            >
+              <BookOpen className="h-4 w-4" />
+              Catalogue
+            </TabsTrigger>
+            <TabsTrigger
+              value="audit"
+              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+            >
+              <History className="h-4 w-4" />
+              Journal d&apos;audit
+            </TabsTrigger>
+            <TabsTrigger
+              value="assistance"
+              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Assistance
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* -------- Tab 1 : Mon profil -------- */}
+        {/* Contenu des tabs */}
+        <div className="min-w-0 flex-1">
         <TabsContent value="profil">
           <Card>
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -536,6 +575,7 @@ export function ParametresView() {
         <TabsContent value="assistance">
           <AssistancePanel />
         </TabsContent>
+        </div>
       </Tabs>
 
       {/* -------- Dialogs -------- */}
@@ -643,6 +683,6 @@ export function ParametresView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }
