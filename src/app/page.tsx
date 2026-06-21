@@ -10,6 +10,7 @@ import { StudentHeader } from '@/components/dashboard/student-header'
 import { DashboardView } from '@/components/dashboard/views/dashboard-view'
 import { ElevesView } from '@/components/dashboard/views/eleves-view'
 import { EleveDetailView } from '@/components/dashboard/views/eleve-detail-view'
+import { EleveEditView } from '@/components/dashboard/views/eleve-edit-view'
 import { ScannerCniView } from '@/components/dashboard/views/scanner-cni-view'
 import { MoniteursView } from '@/components/dashboard/views/moniteurs-view'
 import { VehiculesView } from '@/components/dashboard/views/vehicules-view'
@@ -69,6 +70,21 @@ export default function Home() {
           <Header />
           <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
             <EleveDetailView eleveCode={selectedEleveCode} />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  // Admin ERP — special case: eleve-edit page needs the selected code
+  if (activeView === 'eleve-edit' && selectedEleveCode) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
+            <EleveEditView eleveCode={selectedEleveCode} />
           </main>
         </div>
       </div>

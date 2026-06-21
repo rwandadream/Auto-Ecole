@@ -5,6 +5,7 @@ export type ViewKey =
   | 'dashboard'
   | 'eleves'
   | 'eleve-detail'
+  | 'eleve-edit'
   | 'scanner'
   | 'moniteurs'
   | 'vehicules'

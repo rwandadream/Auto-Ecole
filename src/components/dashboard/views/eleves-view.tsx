@@ -30,7 +30,6 @@ import {
 } from '@/components/dashboard/views/shared'
 import { NouvelEleveDialog } from '@/components/dashboard/dialogs/nouvel-eleve-dialog'
 
-import { ModifierEleveDialog } from '@/components/dashboard/dialogs/modifier-eleve-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,8 +122,6 @@ export function ElevesView() {
   const [page, setPage] = useState(1)
   const [showAddEleve, setShowAddEleve] = useState(false)
 
-  const [editCode, setEditCode] = useState<string | null>(null)
-  const [showEdit, setShowEdit] = useState(false)
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
 
@@ -362,8 +359,8 @@ export function ElevesView() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => {
-                              setEditCode(e.code)
-                              setShowEdit(true)
+                              setselectedEleveCode(e.code)
+                              setActiveView('eleve-edit')
                             }}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
@@ -426,7 +423,6 @@ export function ElevesView() {
       </Card>
 
       <NouvelEleveDialog open={showAddEleve} onOpenChange={setShowAddEleve} />
-      <ModifierEleveDialog eleveCode={editCode} open={showEdit} onOpenChange={setShowEdit} />
 
       <AlertDialog
         open={deleteEleveId !== null}

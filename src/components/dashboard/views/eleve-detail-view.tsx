@@ -79,7 +79,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
           <ArrowLeft className="h-4 w-4" />
           Retour à la liste
         </button>
-        <ActionButton variant="primary" onClick={() => setActiveView('eleves')}>
+        <ActionButton variant="primary" onClick={() => setActiveView('eleve-edit')}>
           <Pencil className="h-4 w-4" />
           Modifier
         </ActionButton>
