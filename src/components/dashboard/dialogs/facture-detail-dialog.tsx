@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/dashboard/modal'
@@ -41,11 +42,14 @@ export function FactureDetailDialog({
   onOpenChange: (v: boolean) => void
 }) {
   const facture = useDataStore((s) => s.factures.find((f) => f.id === factureId))
-  const paiements = useDataStore((s) =>
-    s.paiements.filter((p) => {
-      const pFactureId = (p as { factureId?: string }).factureId
-      return pFactureId === factureId || (facture ? p.facture === facture.numero : false)
-    }),
+  const allPaiements = useDataStore((s) => s.paiements)
+  const paiements = useMemo(
+    () =>
+      allPaiements.filter((p) => {
+        const pFactureId = (p as { factureId?: string }).factureId
+        return pFactureId === factureId || (facture ? p.facture === facture.numero : false)
+      }),
+    [allPaiements, factureId, facture],
   )
   const eleve = useDataStore((s) => s.eleves.find((e) => e.code === facture?.eleveCode))
 
