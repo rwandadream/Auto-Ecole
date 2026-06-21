@@ -126,21 +126,21 @@ export function LoginView() {
 
       {/* ============== CENTERED LOGIN CARD ============== */}
       <div className="relative z-10 flex w-full max-w-md flex-col px-4 py-8 sm:px-6">
-        {/* Brand header */}
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30 ring-1 ring-white/20">
-            <GraduationCap className="h-9 w-9 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            SARAH AUTO
-          </h1>
-          <p className="mt-0.5 text-sm font-medium uppercase tracking-wider text-white/70">
-            ERP Auto-École
-          </p>
-        </div>
-
-        {/* Glass card */}
+        {/* Glass card (contains logo + form) */}
         <div className="rounded-2xl border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+          {/* Brand header (inside the card) */}
+          <div className="mb-6 flex flex-col items-center text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30 ring-1 ring-white/20">
+              <GraduationCap className="h-9 w-9 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              SARAH AUTO
+            </h1>
+            <p className="mt-0.5 text-sm font-medium uppercase tracking-wider text-white/70">
+              ERP Auto-École
+            </p>
+          </div>
+
           <Tabs value={activeTab} onValueChange={switchTab} className="w-full">
             <TabsList className="grid h-11 w-full grid-cols-2 rounded-lg border border-white/10 bg-white/5 p-1 backdrop-blur-sm">
               <TabsTrigger
