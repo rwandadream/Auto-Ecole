@@ -1,17 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import { UserPlus, Users, CheckCircle2, Briefcase, Phone, Mail, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  UserPlus,
+  Users,
+  CheckCircle2,
+  Briefcase,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Search,
+  Phone,
+  Mail,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { type StatutMoniteur } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
+import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   StatusBadge,
   ActionButton,
   Card,
+  KpiCard,
   initials,
-} from '@/components/dashboard/views/shared'
+  statutMoniteurTone,
+  PaginationFooter,
+} from './shared'
 import { NouveauMoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
 import { ModifierMoniteurDialog } from '@/components/dashboard/dialogs/modifier-moniteur-dialog'
 import {
@@ -31,48 +46,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-function statutTone(statut: StatutMoniteur): React.ComponentProps<typeof StatusBadge>['tone'] {
-  switch (statut) {
-    case 'Disponible':
-      return 'emerald'
-    case 'En mission':
-      return 'amber'
-    case 'Absent':
-      return 'rose'
-    default:
-      return 'slate'
-  }
-}
+type StatutFiltre = 'Tous' | StatutMoniteur
 
-type KpiCardProps = {
-  label: string
-  value: string
-  icon: React.ReactNode
-  tone: 'primary' | 'emerald' | 'amber'
-}
-
-function KpiCard({ label, value, icon, tone }: KpiCardProps) {
-  const toneClasses: Record<KpiCardProps['tone'], string> = {
-    primary: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-600',
-  }
-  return (
-    <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{value}</p>
-      </div>
-    </Card>
-  )
-}
+const STATUT_FILTRES: StatutFiltre[] = ['Tous', 'Disponible', 'En mission', 'Absent']
+const SPECIALITE_FILTRES = ['Tous', 'Conduite', 'Code'] as const
 
 export function MoniteursView() {
   const moniteurs = useDataStore((s) => s.moniteurs)
   const deleteMoniteur = useDataStore((s) => s.deleteMoniteur)
+
+  const [recherche, setRecherche] = useState('')
+  const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
+  const [specialiteFiltre, setSpecialiteFiltre] = useState<(typeof SPECIALITE_FILTRES)[number]>('Tous')
+  const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -81,6 +67,28 @@ export function MoniteursView() {
   const totalMoniteurs = moniteurs.length
   const disponibles = moniteurs.filter((m) => m.statut === 'Disponible').length
   const enMission = moniteurs.filter((m) => m.statut === 'En mission').length
+
+  const moniteursFiltres = useMemo(() => {
+    return moniteurs.filter((m) => {
+      const matchStatut = statutFiltre === 'Tous' || m.statut === statutFiltre
+      const matchSpecialite = specialiteFiltre === 'Tous' || m.specialite === specialiteFiltre
+      const q = recherche.trim().toLowerCase()
+      const nomComplet = `${m.prenom} ${m.nom}`
+      const matchRecherche =
+        q === '' ||
+        nomComplet.toLowerCase().includes(q) ||
+        m.telephone.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.specialite.toLowerCase().includes(q)
+      return matchStatut && matchSpecialite && matchRecherche
+    })
+  }, [moniteurs, recherche, statutFiltre, specialiteFiltre])
+
+  const parPage = 8
+  const totalPages = Math.max(1, Math.ceil(moniteursFiltres.length / parPage))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * parPage
+  const moniteursPage = moniteursFiltres.slice(debut, debut + parPage)
 
   return (
     <div>
@@ -117,87 +125,200 @@ export function MoniteursView() {
         />
       </div>
 
-      {/* Grid of moniteur cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {moniteurs.map((m) => {
-          const nomComplet = `${m.prenom} ${m.nom}`
-          const isCode = m.specialite === 'Code'
-          return (
-            <Card key={m.id} className="relative flex flex-col gap-4">
-              {/* Actions menu (top-right) */}
-              <div className="absolute right-3 top-3 z-10">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      aria-label="Actions"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setEditId(m.id)
-                        setShowEdit(true)
-                      }}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Modifier
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-rose-600 focus:text-rose-600"
-                      onSelect={() => setDeleteId(m.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              {/* Header: avatar + name + statut */}
-              <div className="flex items-start gap-3 pr-8">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {initials(nomComplet)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-semibold text-foreground">{nomComplet}</h3>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span
-                      className={
-                        isCode
-                          ? 'inline-flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-600'
-                          : 'inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary'
-                      }
-                    >
-                      {m.specialite}
-                    </span>
-                    <StatusBadge label={m.statut} tone={statutTone(m.statut)} />
-                  </div>
-                </div>
-              </div>
+      {/* Toolbar */}
+      <Card className="mb-4 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={recherche}
+              onChange={(e) => {
+                setRecherche(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Rechercher un moniteur..."
+              aria-label="Rechercher un moniteur"
+              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+          </div>
 
-              {/* Contact info */}
-              <div className="space-y-2 border-t border-border pt-3">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{m.telephone}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{m.email}</span>
-                </div>
-              </div>
+          <div className="custom-scrollbar -mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1 lg:pb-0">
+            {SPECIALITE_FILTRES.map((s) => {
+              const actif = specialiteFiltre === s
+              return (
+                <button
+                  key={s}
+                  aria-pressed={actif}
+                  onClick={() => {
+                    setSpecialiteFiltre(s)
+                    setPage(1)
+                  }}
+                  className={cn(
+                    'h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors',
+                    actif
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {s}
+                </button>
+              )
+            })}
+            <span className="mx-1 h-5 w-px bg-border" />
+            {STATUT_FILTRES.map((s) => {
+              const actif = statutFiltre === s
+              return (
+                <button
+                  key={s}
+                  aria-pressed={actif}
+                  onClick={() => {
+                    setStatutFiltre(s)
+                    setPage(1)
+                  }}
+                  className={cn(
+                    'h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors',
+                    actif
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </Card>
 
-              {/* Footer */}
-              <div className="mt-auto flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                <span className="text-xs text-muted-foreground">Séances animées</span>
-                <span className="text-sm font-bold text-foreground">{m.seances}</span>
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+      {/* Table */}
+      <Card className="p-0">
+        <div className="custom-scrollbar overflow-x-auto">
+          <table className="w-full min-w-[960px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Moniteur
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Téléphone
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Email
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Spécialité
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Statut
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Séances animées
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {moniteursPage.map((m) => {
+                const nomComplet = `${m.prenom} ${m.nom}`
+                const isCode = m.specialite === 'Code'
+                return (
+                  <tr key={m.id} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {initials(nomComplet)}
+                        </div>
+                        <p className="truncate font-semibold text-foreground">{nomComplet}</p>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                        {m.telephone}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                        <span className="truncate">{m.email}</span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          'inline-flex h-7 min-w-8 items-center justify-center rounded-md px-2 text-xs font-bold',
+                          isCode
+                            ? 'bg-sky-500/10 text-sky-600'
+                            : 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {m.specialite}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge label={m.statut} tone={statutMoniteurTone[m.statut]} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <span className="font-bold text-foreground">{m.seances}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label="Actions"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setEditId(m.id)
+                              setShowEdit(true)
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-rose-600 focus:text-rose-600"
+                            onSelect={() => setDeleteId(m.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                )
+              })}
+
+              {moniteursPage.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    Aucun moniteur ne correspond à votre recherche.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <PaginationFooter
+          pageCourante={pageCourante}
+          totalPages={totalPages}
+          total={totalMoniteurs}
+          debut={debut}
+          pageDataLength={moniteursPage.length}
+          label="moniteurs"
+          setPage={setPage}
+        />
+      </Card>
 
       <NouveauMoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
       <ModifierMoniteurDialog moniteurId={editId} open={showEdit} onOpenChange={setShowEdit} />

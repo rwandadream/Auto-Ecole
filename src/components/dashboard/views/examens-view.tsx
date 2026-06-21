@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, FileText, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Plus, FileText, MoreVertical, Pencil, Trash2, Eye, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { type ResultatExamen } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
@@ -14,6 +14,7 @@ import {
   ActionButton,
   Card,
   initials,
+  PaginationFooter,
 } from './shared'
 import { NouvelExamenDialog } from '@/components/dashboard/dialogs/nouvel-examen-dialog'
 import {
@@ -61,14 +62,99 @@ function typeExamenBadge(type: string) {
 }
 
 // --- Sub-component: Examens individuels table ---
+const RESULTAT_FILTRES: Array<'Tous' | ResultatExamen> = ['Tous', 'En attente', 'Admis', 'Échec']
+const TYPE_FILTRES = ['Tous', 'Code', 'Conduite'] as const
+
 function ExamensIndividuels() {
   const examens = useDataStore((s) => s.examens)
   const deleteExamen = useDataStore((s) => s.deleteExamen)
   const { setActiveView, setselectedEleveCode } = useNavStore()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [resultatFiltre, setResultatFiltre] = useState<'Tous' | ResultatExamen>('Tous')
+  const [typeFiltre, setTypeFiltre] = useState<(typeof TYPE_FILTRES)[number]>('Tous')
+  const [page, setPage] = useState(1)
+
+  const filtered = useMemo(() => {
+    return examens.filter((x) => {
+      const q = search.trim().toLowerCase()
+      const matchSearch =
+        !q ||
+        x.eleve.toLowerCase().includes(q) ||
+        x.eleveCode.toLowerCase().includes(q) ||
+        x.inspecteur.toLowerCase().includes(q) ||
+        x.typeExamen.toLowerCase().includes(q) ||
+        x.typePermis.toLowerCase().includes(q)
+      const matchResultat = resultatFiltre === 'Tous' || x.resultat === resultatFiltre
+      const matchType = typeFiltre === 'Tous' || x.typeExamen === typeFiltre
+      return matchSearch && matchResultat && matchType
+    })
+  }, [examens, search, resultatFiltre, typeFiltre])
+
+  const parPage = 8
+  const totalPages = Math.max(1, Math.ceil(filtered.length / parPage))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * parPage
+  const examensPage = filtered.slice(debut, debut + parPage)
 
   return (
     <>
+      {/* Toolbar */}
+      <Card className="mb-4 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+              placeholder="Rechercher un examen..."
+              aria-label="Rechercher un examen"
+              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+          </div>
+          <div className="custom-scrollbar -mx-1 flex flex-wrap items-center gap-1.5 overflow-x-auto px-1 pb-1 lg:pb-0">
+            {TYPE_FILTRES.map((t) => {
+              const actif = typeFiltre === t
+              return (
+                <button
+                  key={t}
+                  aria-pressed={actif}
+                  onClick={() => { setTypeFiltre(t); setPage(1) }}
+                  className={cn(
+                    'h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors',
+                    actif
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {t}
+                </button>
+              )
+            })}
+            <span className="mx-1 h-5 w-px bg-border" />
+            {RESULTAT_FILTRES.map((r) => {
+              const actif = resultatFiltre === r
+              return (
+                <button
+                  key={r}
+                  aria-pressed={actif}
+                  onClick={() => { setResultatFiltre(r); setPage(1) }}
+                  className={cn(
+                    'h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors',
+                    actif
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {r}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-0">
         <div className="custom-scrollbar overflow-x-auto">
           <table className="w-full min-w-[960px] border-collapse text-left">
@@ -85,7 +171,7 @@ function ExamensIndividuels() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {examens.map((x) => (
+              {examensPage.map((x) => (
                 <tr key={x.id} className="hover:bg-muted/40">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
@@ -141,7 +227,7 @@ function ExamensIndividuels() {
                           Voir la fiche élève
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => toast.info('Modification d\'examen bientôt disponible')}
+                          onSelect={() => toast.info("Modification d'examen bientôt disponible")}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Modifier
@@ -158,16 +244,25 @@ function ExamensIndividuels() {
                   </td>
                 </tr>
               ))}
-              {examens.length === 0 && (
+              {examensPage.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                    Aucun examen enregistré.
+                    Aucun examen ne correspond à votre recherche.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        <PaginationFooter
+          pageCourante={pageCourante}
+          totalPages={totalPages}
+          total={filtered.length}
+          debut={debut}
+          pageDataLength={examensPage.length}
+          label="examens"
+          setPage={setPage}
+        />
       </Card>
 
       <AlertDialog
