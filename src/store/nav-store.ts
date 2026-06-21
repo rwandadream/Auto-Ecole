@@ -4,6 +4,7 @@ export type ViewKey =
   // Admin views
   | 'dashboard'
   | 'eleves'
+  | 'eleve-detail'
   | 'scanner'
   | 'moniteurs'
   | 'vehicules'
@@ -25,13 +26,17 @@ export type ViewKey =
 interface NavState {
   activeView: ViewKey
   collapsed: boolean
+  selectedEleveCode: string | null
   setActiveView: (view: ViewKey) => void
+  setselectedEleveCode: (code: string | null) => void
   toggleCollapsed: () => void
 }
 
 export const useNavStore = create<NavState>((set) => ({
   activeView: 'dashboard',
   collapsed: false,
+  selectedEleveCode: null,
   setActiveView: (view) => set({ activeView: view }),
+  setselectedEleveCode: (code) => set({ selectedEleveCode: code }),
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
 }))

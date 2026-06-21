@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner'
 import { type StatutEleve } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
+import { useNavStore } from '@/store/nav-store'
 import {
   ViewHeader,
   StatusBadge,
@@ -28,7 +29,7 @@ import {
   initials,
 } from '@/components/dashboard/views/shared'
 import { NouvelEleveDialog } from '@/components/dashboard/dialogs/nouvel-eleve-dialog'
-import { EleveDetailDialog } from '@/components/dashboard/dialogs/eleve-detail-dialog'
+
 import { ModifierEleveDialog } from '@/components/dashboard/dialogs/modifier-eleve-dialog'
 import {
   DropdownMenu,
@@ -116,12 +117,12 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
+  const { setActiveView, setselectedEleveCode } = useNavStore()
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [page, setPage] = useState(1)
   const [showAddEleve, setShowAddEleve] = useState(false)
-  const [selectedCode, setSelectedCode] = useState<string | null>(null)
-  const [showDetail, setShowDetail] = useState(false)
+
   const [editCode, setEditCode] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
@@ -352,8 +353,8 @@ export function ElevesView() {
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
                             onSelect={() => {
-                              setSelectedCode(e.code)
-                              setShowDetail(true)
+                              setselectedEleveCode(e.code)
+                              setActiveView('eleve-detail')
                             }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -425,7 +426,6 @@ export function ElevesView() {
       </Card>
 
       <NouvelEleveDialog open={showAddEleve} onOpenChange={setShowAddEleve} />
-      <EleveDetailDialog eleveCode={selectedCode} open={showDetail} onOpenChange={setShowDetail} />
       <ModifierEleveDialog eleveCode={editCode} open={showEdit} onOpenChange={setShowEdit} />
 
       <AlertDialog

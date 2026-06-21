@@ -9,6 +9,7 @@ import { StudentSidebar } from '@/components/dashboard/student-sidebar'
 import { StudentHeader } from '@/components/dashboard/student-header'
 import { DashboardView } from '@/components/dashboard/views/dashboard-view'
 import { ElevesView } from '@/components/dashboard/views/eleves-view'
+import { EleveDetailView } from '@/components/dashboard/views/eleve-detail-view'
 import { ScannerCniView } from '@/components/dashboard/views/scanner-cni-view'
 import { MoniteursView } from '@/components/dashboard/views/moniteurs-view'
 import { VehiculesView } from '@/components/dashboard/views/vehicules-view'
@@ -26,23 +27,6 @@ import { StudentPlanningView } from '@/components/dashboard/views/student-planni
 import { StudentFacturesView } from '@/components/dashboard/views/student-factures-view'
 import { StudentProfilView } from '@/components/dashboard/views/student-profil-view'
 
-const viewMap = {
-  dashboard: DashboardView,
-  eleves: ElevesView,
-  scanner: ScannerCniView,
-  moniteurs: MoniteursView,
-  vehicules: VehiculesView,
-  inspecteurs: InspecteursView,
-  planning: PlanningView,
-  examens: ExamensView,
-  bordereaux: BordereauxView,
-  facturation: FacturationView,
-  comptabilite: ComptabiliteView,
-  parametres: ParametresView,
-  audit: AuditLogView,
-  assistance: AssistanceView,
-} as const
-
 const studentViewMap = {
   'student-dashboard': StudentDashboardView,
   'student-planning': StudentPlanningView,
@@ -53,6 +37,7 @@ const studentViewMap = {
 export default function Home() {
   const { isAuthenticated, user } = useAuthStore()
   const activeView = useNavStore((s) => s.activeView)
+  const selectedEleveCode = useNavStore((s) => s.selectedEleveCode)
 
   // Not authenticated → show login
   if (!isAuthenticated || !user) {
@@ -75,7 +60,39 @@ export default function Home() {
     )
   }
 
-  // Admin ERP
+  // Admin ERP — special case: eleve-detail page needs the selected code
+  if (activeView === 'eleve-detail' && selectedEleveCode) {
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
+            <EleveDetailView eleveCode={selectedEleveCode} />
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  // Admin ERP — standard views
+  const viewMap = {
+    dashboard: DashboardView,
+    eleves: ElevesView,
+    scanner: ScannerCniView,
+    moniteurs: MoniteursView,
+    vehicules: VehiculesView,
+    inspecteurs: InspecteursView,
+    planning: PlanningView,
+    examens: ExamensView,
+    bordereaux: BordereauxView,
+    facturation: FacturationView,
+    comptabilite: ComptabiliteView,
+    parametres: ParametresView,
+    audit: AuditLogView,
+    assistance: AssistanceView,
+  } as const
+
   const ViewComponent = viewMap[activeView as keyof typeof viewMap] ?? DashboardView
   return (
     <div className="flex h-screen overflow-hidden bg-background">
