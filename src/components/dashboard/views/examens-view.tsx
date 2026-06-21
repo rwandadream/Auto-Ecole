@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, FileText, MoreHorizontal } from 'lucide-react'
+import { Plus, FileText, MoreVertical, Pencil, Trash2, Eye } from 'lucide-react'
+import { toast } from 'sonner'
 import { type ResultatExamen } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
@@ -15,6 +16,22 @@ import {
   initials,
 } from './shared'
 import { NouvelExamenDialog } from '@/components/dashboard/dialogs/nouvel-examen-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 // --- Helpers ---
 function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
@@ -46,63 +63,142 @@ function typeExamenBadge(type: string) {
 // --- Sub-component: Examens individuels table ---
 function ExamensIndividuels() {
   const examens = useDataStore((s) => s.examens)
+  const deleteExamen = useDataStore((s) => s.deleteExamen)
+  const { setActiveView, setselectedEleveCode } = useNavStore()
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
   return (
-    <Card className="p-0">
-      <div className="custom-scrollbar overflow-x-auto">
-        <table className="w-full min-w-[860px] border-collapse text-left">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Élève</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type examen</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type permis</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inspecteur</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Résultat</th>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {examens.map((x) => (
-              <tr key={x.id} className="hover:bg-muted/40">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {initials(x.eleve)}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">{x.eleve}</div>
-                      <div className="text-xs text-muted-foreground">{x.eleveCode}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5">{typeExamenBadge(x.typeExamen)}</td>
-                <td className="px-5 py-3.5">
-                  <span className="text-sm font-medium text-foreground">{x.typePermis}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className="text-sm text-foreground">{x.dateExamen}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className="text-sm text-muted-foreground">{x.inspecteur}</span>
-                </td>
-                <td className="px-5 py-3.5">
-                  <StatusBadge label={x.resultat} tone={resultatTone(x.resultat)} />
-                </td>
-                <td className="px-5 py-3.5 max-w-[220px]">
-                  {x.notes ? (
-                    <span className="line-clamp-1 text-sm text-muted-foreground" title={x.notes}>
-                      {x.notes}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground/50">—</span>
-                  )}
-                </td>
+    <>
+      <Card className="p-0">
+        <div className="custom-scrollbar overflow-x-auto">
+          <table className="w-full min-w-[960px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Élève</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type examen</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type permis</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inspecteur</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Résultat</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</th>
+                <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {examens.map((x) => (
+                <tr key={x.id} className="hover:bg-muted/40">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {initials(x.eleve)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-foreground">{x.eleve}</div>
+                        <div className="text-xs text-muted-foreground">{x.eleveCode}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">{typeExamenBadge(x.typeExamen)}</td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-sm font-medium text-foreground">{x.typePermis}</span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-sm text-foreground">{x.dateExamen}</span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-sm text-muted-foreground">{x.inspecteur}</span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <StatusBadge label={x.resultat} tone={resultatTone(x.resultat)} />
+                  </td>
+                  <td className="px-5 py-3.5 max-w-[220px]">
+                    {x.notes ? (
+                      <span className="line-clamp-1 text-sm text-muted-foreground" title={x.notes}>
+                        {x.notes}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground/50">—</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          aria-label="Actions"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setselectedEleveCode(x.eleveCode)
+                            setActiveView('eleve-detail')
+                          }}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Voir la fiche élève
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => toast.info('Modification d\'examen bientôt disponible')}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-rose-600 focus:text-rose-600"
+                          onSelect={() => setDeleteId(x.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+              {examens.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    Aucun examen enregistré.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(v) => { if (!v) setDeleteId(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cet examen ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L&apos;examen sera définitivement retiré de l&apos;historique.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 text-white hover:bg-rose-700"
+              onClick={() => {
+                if (deleteId) {
+                  deleteExamen(deleteId)
+                  toast.success('Examen supprimé.')
+                  setDeleteId(null)
+                }
+              }}
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
