@@ -43,16 +43,11 @@ const helpTopics = [
   },
 ]
 
-export function AssistanceView() {
+export function AssistancePanel() {
   const [openItem, setOpenItem] = useState<string | undefined>(undefined)
 
   return (
-    <>
-      <ViewHeader
-        title="Assistance"
-        description="Centre d'aide et foire aux questions"
-      />
-
+    <div className="space-y-6">
       {/* Help topic cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {helpTopics.map((t) => (
@@ -148,6 +143,18 @@ export function AssistanceView() {
           </div>
         </div>
       </Card>
+    </div>
+  )
+}
+
+export function AssistanceView() {
+  return (
+    <>
+      <ViewHeader
+        title="Assistance"
+        description="Centre d'aide et foire aux questions"
+      />
+      <AssistancePanel />
     </>
   )
 }

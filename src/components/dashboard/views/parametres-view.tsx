@@ -47,6 +47,8 @@ import { type Role } from '@/lib/mock-data'
 import { NouvelUtilisateurDialog } from '@/components/dashboard/dialogs/nouvel-utilisateur-dialog'
 import { FormationDialog } from '@/components/dashboard/dialogs/formation-dialog'
 import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
+import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
+import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
 
 const roleTone: Record<Role, 'primary' | 'sky' | 'amber' | 'slate'> = {
   'Administrateur principal': 'primary',
@@ -277,6 +279,8 @@ export function ParametresView() {
           <TabsTrigger value="profil">Mon profil</TabsTrigger>
           <TabsTrigger value="equipe">Équipe</TabsTrigger>
           <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
+          <TabsTrigger value="audit">Journal d&apos;audit</TabsTrigger>
+          <TabsTrigger value="assistance">Assistance</TabsTrigger>
         </TabsList>
 
         {/* -------- Tab 1 : Mon profil -------- */}
@@ -521,6 +525,16 @@ export function ParametresView() {
               </div>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* -------- Tab 4 : Journal d'audit -------- */}
+        <TabsContent value="audit">
+          <AuditLogPanel />
+        </TabsContent>
+
+        {/* -------- Tab 5 : Assistance -------- */}
+        <TabsContent value="assistance">
+          <AssistancePanel />
         </TabsContent>
       </Tabs>
 

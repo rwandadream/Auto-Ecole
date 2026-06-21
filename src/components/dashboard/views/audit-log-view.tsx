@@ -64,7 +64,7 @@ function entityLabel(entity: string): string {
   return found ? found.label : entity
 }
 
-export function AuditLogView() {
+export function AuditLogPanel() {
   const auditLog = useDataStore((s) => s.auditLog)
   const [search, setSearch] = useState('')
   const [entityFilter, setEntityFilter] = useState<string>('Tous')
@@ -83,20 +83,19 @@ export function AuditLogView() {
   })
 
   return (
-    <div>
-      <ViewHeader
-        title="Journal d'audit"
-        description="Traçabilité de toutes les modifications"
-        actions={
-          <span className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium text-muted-foreground">
-            <History className="h-4 w-4 text-primary" />
-            {auditLog.length} entrée{auditLog.length > 1 ? 's' : ''} (max 200)
-          </span>
-        }
-      />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-foreground">
+          Journal d&apos;audit
+        </h2>
+        <span className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <History className="h-4 w-4 text-primary" />
+          {auditLog.length} entrée{auditLog.length > 1 ? 's' : ''} (max 200)
+        </span>
+      </div>
 
       {/* Filter bar */}
-      <Card className="mb-4 p-4">
+      <Card className="p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -104,15 +103,16 @@ export function AuditLogView() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              aria-label="Rechercher dans le journal"
               placeholder="Rechercher dans la description, l'utilisateur, l'entité..."
-              className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
+              className="h-9 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
             />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex">
             <select
               value={entityFilter}
               onChange={(e) => setEntityFilter(e.target.value)}
-              className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
             >
               {ENTITY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -123,7 +123,7 @@ export function AuditLogView() {
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
+              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
             >
               {ACTION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -137,7 +137,7 @@ export function AuditLogView() {
 
       {/* Table */}
       <Card className="p-0">
-        <div className="custom-scrollbar max-h-96 overflow-y-auto">
+        <div className="custom-scrollbar max-h-96 overflow-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-left">
@@ -188,6 +188,18 @@ export function AuditLogView() {
           </table>
         </div>
       </Card>
+    </div>
+  )
+}
+
+export function AuditLogView() {
+  return (
+    <div>
+      <ViewHeader
+        title="Journal d'audit"
+        description="Traçabilité de toutes les modifications"
+      />
+      <AuditLogPanel />
     </div>
   )
 }
