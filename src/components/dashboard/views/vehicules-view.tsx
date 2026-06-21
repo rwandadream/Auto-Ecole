@@ -1,16 +1,29 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Car, CheckCircle2, Wrench, CalendarClock, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  Plus,
+  Car,
+  CheckCircle2,
+  Wrench,
+  CalendarClock,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Search,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { type EtatVehicule } from '@/lib/mock-data'
 import { useDataStore } from '@/store/data-store'
+import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   StatusBadge,
   ActionButton,
   Card,
-} from '@/components/dashboard/views/shared'
+  KpiCard,
+  PaginationFooter,
+} from './shared'
 import { NouveauVehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
 import { ModifierVehiculeDialog } from '@/components/dashboard/dialogs/modifier-vehicule-dialog'
 import {
@@ -30,6 +43,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+type EtatFiltre = 'Tous' | EtatVehicule
+
+const ETAT_FILTRES: EtatFiltre[] = ['Tous', 'Disponible', 'En maintenance', 'En panne']
+
 function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (etat) {
     case 'Disponible':
@@ -43,35 +60,13 @@ function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>[
   }
 }
 
-type KpiCardProps = {
-  label: string
-  value: string
-  icon: React.ReactNode
-  tone: 'primary' | 'emerald' | 'amber'
-}
-
-function KpiCard({ label, value, icon, tone }: KpiCardProps) {
-  const toneClasses: Record<KpiCardProps['tone'], string> = {
-    primary: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-600',
-  }
-  return (
-    <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{value}</p>
-      </div>
-    </Card>
-  )
-}
-
 export function VehiculesView() {
   const vehicules = useDataStore((s) => s.vehicules)
   const deleteVehicule = useDataStore((s) => s.deleteVehicule)
+
+  const [recherche, setRecherche] = useState('')
+  const [etatFiltre, setEtatFiltre] = useState<EtatFiltre>('Tous')
+  const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -80,6 +75,24 @@ export function VehiculesView() {
   const totalVehicules = vehicules.length
   const disponibles = vehicules.filter((v) => v.etat === 'Disponible').length
   const enMaintenance = vehicules.filter((v) => v.etat === 'En maintenance').length
+
+  const vehiculesFiltres = useMemo(() => {
+    return vehicules.filter((v) => {
+      const matchEtat = etatFiltre === 'Tous' || v.etat === etatFiltre
+      const q = recherche.trim().toLowerCase()
+      const matchRecherche =
+        q === '' ||
+        `${v.marque} ${v.modele}`.toLowerCase().includes(q) ||
+        v.immatriculation.toLowerCase().includes(q)
+      return matchEtat && matchRecherche
+    })
+  }, [vehicules, recherche, etatFiltre])
+
+  const parPage = 8
+  const totalPages = Math.max(1, Math.ceil(vehiculesFiltres.length / parPage))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * parPage
+  const vehiculesPage = vehiculesFiltres.slice(debut, debut + parPage)
 
   return (
     <div>
@@ -116,88 +129,169 @@ export function VehiculesView() {
         />
       </div>
 
-      {/* Grid of vehicle cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {vehicules.map((v) => {
-          const tone = etatTone(v.etat)
-          const iconWrapClass =
-            v.etat === 'Disponible'
-              ? 'bg-emerald-500/10 text-emerald-600'
-              : v.etat === 'En maintenance'
-                ? 'bg-amber-500/10 text-amber-600'
-                : 'bg-rose-500/10 text-rose-600'
-          return (
-            <Card key={v.id} className="relative flex flex-col gap-4">
-              {/* Actions menu (top-right) */}
-              <div className="absolute right-3 top-3 z-10">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      aria-label="Actions"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem
-                      onSelect={() => {
-                        setEditId(v.id)
-                        setShowEdit(true)
-                      }}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Modifier
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-rose-600 focus:text-rose-600"
-                      onSelect={() => setDeleteId(v.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              {/* Header: icon + marque/modele + immat */}
-              <div className="flex items-start gap-3 pr-8">
-                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${iconWrapClass}`}>
-                  <Car className="h-6 w-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-base font-bold text-foreground">
-                    {v.marque} {v.modele}
-                  </h3>
-                  <span className="mt-1.5 inline-block rounded-md border border-border bg-muted/40 px-2 py-0.5 font-mono text-xs font-semibold text-foreground">
-                    {v.immatriculation}
-                  </span>
-                </div>
-              </div>
+      {/* Toolbar */}
+      <Card className="mb-4 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={recherche}
+              onChange={(e) => {
+                setRecherche(e.target.value)
+                setPage(1)
+              }}
+              placeholder="Rechercher un véhicule..."
+              aria-label="Rechercher un véhicule"
+              className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+          </div>
 
-              {/* État badge */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">État</span>
-                <StatusBadge label={v.etat} tone={tone} />
-              </div>
+          <div className="custom-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 lg:pb-0">
+            {ETAT_FILTRES.map((s) => {
+              const actif = etatFiltre === s
+              return (
+                <button
+                  key={s}
+                  aria-pressed={actif}
+                  onClick={() => {
+                    setEtatFiltre(s)
+                    setPage(1)
+                  }}
+                  className={cn(
+                    'h-8 shrink-0 rounded-full px-3 text-xs font-semibold transition-colors',
+                    actif
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                      : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </Card>
 
-              {/* Stats row */}
-              <div className="mt-auto grid grid-cols-2 gap-2 border-t border-border pt-3">
-                <div className="flex flex-col gap-0.5 rounded-lg bg-muted/40 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">Séances</span>
-                  <span className="text-sm font-bold text-foreground">{v.seances}</span>
-                </div>
-                <div className="flex flex-col gap-0.5 rounded-lg bg-muted/40 px-3 py-2">
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CalendarClock className="h-3 w-3" />
-                    Dernière dépense
-                  </span>
-                  <span className="text-sm font-bold text-foreground">{v.derniereDepense}</span>
-                </div>
-              </div>
-            </Card>
-          )
-        })}
-      </div>
+      {/* Table */}
+      <Card className="p-0">
+        <div className="custom-scrollbar overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Véhicule
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Immatriculation
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  État
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Séances
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Dernière dépense
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {vehiculesPage.map((v) => {
+                const tone = etatTone(v.etat)
+                const iconWrapClass =
+                  v.etat === 'Disponible'
+                    ? 'bg-emerald-500/10 text-emerald-600'
+                    : v.etat === 'En maintenance'
+                      ? 'bg-amber-500/10 text-amber-600'
+                      : 'bg-rose-500/10 text-rose-600'
+                return (
+                  <tr key={v.id} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconWrapClass}`}>
+                          <Car className="h-4 w-4" />
+                        </div>
+                        <p className="font-semibold text-foreground">
+                          {v.marque} {v.modele}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block rounded-md border border-border bg-muted/40 px-2 py-1 font-mono text-xs font-semibold text-foreground">
+                        {v.immatriculation}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge label={v.etat} tone={tone} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <span className="font-bold text-foreground">{v.seances}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                        {v.derniereDepense}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label="Actions"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setEditId(v.id)
+                              setShowEdit(true)
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-rose-600 focus:text-rose-600"
+                            onSelect={() => setDeleteId(v.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                )
+              })}
+
+              {vehiculesPage.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    Aucun véhicule ne correspond à votre recherche.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <PaginationFooter
+          pageCourante={pageCourante}
+          totalPages={totalPages}
+          total={totalVehicules}
+          debut={debut}
+          pageDataLength={vehiculesPage.length}
+          label="véhicules"
+          setPage={setPage}
+        />
+      </Card>
 
       <NouveauVehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
       <ModifierVehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />
