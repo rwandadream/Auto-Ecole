@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Search, Bell, HelpCircle, ChevronDown, Calendar, LogOut, User, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -35,8 +35,12 @@ export function Header() {
   const [showLogout, setShowLogout] = useState(false)
 
   // Recent audit entries for the notifications popover
-  const recentAudit = useDataStore((s) => s.auditLog.slice(0, 8))
-  const unreadCount = useDataStore((s) => s.auditLog.filter((a) => a.action === 'INSERT').length)
+  const auditLog = useDataStore((s) => s.auditLog)
+  const recentAudit = useMemo(() => auditLog.slice(0, 8), [auditLog])
+  const unreadCount = useMemo(
+    () => auditLog.filter((a) => a.action === 'INSERT').length,
+    [auditLog]
+  )
 
   const userName = user?.mode === 'admin' ? user.name : 'Utilisateur'
   const userRole = user?.mode === 'admin' ? user.role : '—'
