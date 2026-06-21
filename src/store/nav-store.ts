@@ -6,6 +6,7 @@ export type ViewKey =
   | 'eleves'
   | 'eleve-detail'
   | 'eleve-edit'
+  | 'eleve-create'
   | 'scanner'
   | 'moniteurs'
   | 'vehicules'

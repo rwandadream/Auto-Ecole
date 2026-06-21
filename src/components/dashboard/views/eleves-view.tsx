@@ -28,7 +28,6 @@ import {
   formatXOF,
   initials,
 } from '@/components/dashboard/views/shared'
-import { NouvelEleveDialog } from '@/components/dashboard/dialogs/nouvel-eleve-dialog'
 
 import {
   DropdownMenu,
@@ -120,7 +119,6 @@ export function ElevesView() {
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [page, setPage] = useState(1)
-  const [showAddEleve, setShowAddEleve] = useState(false)
 
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
@@ -159,7 +157,7 @@ export function ElevesView() {
         title="Élèves"
         description="Registre central des apprenants — du prospect à l'admis"
         actions={
-          <ActionButton variant="primary" onClick={() => setShowAddEleve(true)}>
+          <ActionButton variant="primary" onClick={() => setActiveView('eleve-create')}>
             <Plus className="h-4 w-4" />
             Ajouter un élève
           </ActionButton>
@@ -422,7 +420,6 @@ export function ElevesView() {
         </div>
       </Card>
 
-      <NouvelEleveDialog open={showAddEleve} onOpenChange={setShowAddEleve} />
 
       <AlertDialog
         open={deleteEleveId !== null}
