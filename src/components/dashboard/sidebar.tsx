@@ -19,9 +19,11 @@ import {
   Shield,
   History,
 } from 'lucide-react'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
 import { useAuthStore } from '@/store/auth-store'
+import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 
 type NavItem = {
   label: string
@@ -30,6 +32,8 @@ type NavItem = {
   badge?: string
   /** Roles allowed to see this item. If omitted, item is visible to everyone. */
   roles?: string[]
+  /** If true, clicking opens the logout dialog instead of navigating */
+  isLogout?: boolean
 }
 
 type NavSection = {
@@ -81,7 +85,7 @@ const navSections: NavSection[] = [
       { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Journal d\'audit', view: 'audit', icon: History, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Assistance', view: 'assistance', icon: HelpCircle },
-      { label: 'Déconnexion', view: 'deconnexion', icon: LogOut },
+      { label: 'Déconnexion', view: 'deconnexion', icon: LogOut, isLogout: true },
     ],
   },
 ]
@@ -89,6 +93,7 @@ const navSections: NavSection[] = [
 export function Sidebar() {
   const { activeView, setActiveView, collapsed, toggleCollapsed } = useNavStore()
   const user = useAuthStore((s) => s.user)
+  const [showLogout, setShowLogout] = useState(false)
 
   // Determine the current user's role (only for admin mode)
   const currentRole = user?.mode === 'admin' ? normalizeRole(user.role) : null
@@ -157,12 +162,20 @@ export function Sidebar() {
                 return (
                   <li key={item.label} className="relative">
                     <button
-                      onClick={() => setActiveView(item.view)}
+                      onClick={() => {
+                        if (item.isLogout) {
+                          setShowLogout(true)
+                        } else {
+                          setActiveView(item.view)
+                        }
+                      }}
                       className={cn(
                         'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        item.isLogout
+                          ? 'text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600'
+                          : isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                         collapsed && 'justify-center px-2'
                       )}
                       title={collapsed ? item.label : undefined}
@@ -194,6 +207,9 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Logout confirmation dialog */}
+      <LogoutDialog open={showLogout} onOpenChange={setShowLogout} />
     </aside>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   GraduationCap,
   LayoutGrid,
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
-import { useAuthStore } from '@/store/auth-store'
+import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 
 type NavItem = {
   label: string
@@ -31,7 +32,7 @@ export function StudentSidebar() {
   const setActiveView = useNavStore((s) => s.setActiveView)
   const collapsed = useNavStore((s) => s.collapsed)
   const toggleCollapsed = useNavStore((s) => s.toggleCollapsed)
-  const logout = useAuthStore((s) => s.logout)
+  const [showLogout, setShowLogout] = useState(false)
 
   return (
     <aside
@@ -100,7 +101,7 @@ export function StudentSidebar() {
       {/* Déconnexion */}
       <div className="border-t border-border p-3">
         <button
-          onClick={logout}
+          onClick={() => setShowLogout(true)}
           className={cn(
             'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-rose-500/10 hover:text-rose-600',
             collapsed && 'justify-center px-2'
@@ -111,6 +112,9 @@ export function StudentSidebar() {
           {!collapsed && <span className="flex-1 text-left">Déconnexion</span>}
         </button>
       </div>
+
+      {/* Logout confirmation dialog */}
+      <LogoutDialog open={showLogout} onOpenChange={setShowLogout} />
     </aside>
   )
 }
