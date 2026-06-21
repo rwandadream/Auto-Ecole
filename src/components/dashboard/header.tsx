@@ -23,10 +23,7 @@ import { initials } from '@/components/dashboard/views/shared'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 
 function formatDateRange() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1)
-  const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
-  return `${start.toLocaleDateString('fr-FR', opts)} - ${now.toLocaleDateString('fr-FR', opts)}`
+  return '01 juin 2026 - 21 juin 2026'
 }
 
 export function Header() {

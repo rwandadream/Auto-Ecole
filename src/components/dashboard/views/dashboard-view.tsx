@@ -9,10 +9,7 @@ import { CalendarRange } from 'lucide-react'
 import { ViewHeader } from './shared'
 
 export function DashboardView() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1)
-  const opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
-  const dateRange = `${start.toLocaleDateString('fr-FR', opts)} - ${now.toLocaleDateString('fr-FR', opts)}`
+  const dateRange = '01 juin 2026 - 21 juin 2026'
 
   return (
     <>
