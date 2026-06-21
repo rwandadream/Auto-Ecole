@@ -34,6 +34,7 @@ import {
 } from './shared'
 import { NouvelleFactureDialog } from '@/components/dashboard/dialogs/nouvelle-facture-dialog'
 import { NouveauPaiementDialog } from '@/components/dashboard/dialogs/nouveau-paiement-dialog'
+import { FactureDetailDialog } from '@/components/dashboard/dialogs/facture-detail-dialog'
 import {
   type StatutFacture,
   type ModePaiement,
@@ -140,6 +141,7 @@ export function FacturationView() {
   const [showNewFacture, setShowNewFacture] = useState(false)
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null)
   const [deleteFactureId, setDeleteFactureId] = useState<string | null>(null)
+  const [detailFactureId, setDetailFactureId] = useState<string | null>(null)
   const deleteFacture = useDataStore((s) => s.deleteFacture)
 
   const filteredFactures = useMemo(() => {
@@ -161,6 +163,36 @@ export function FacturationView() {
     () => factures.filter((f) => f.statut !== 'Payée').reduce((sum, f) => sum + f.reste, 0),
     [factures],
   )
+
+  const handleBulkRelanceWhatsApp = () => {
+    const cibles = filteredFactures.filter(
+      (f) => f.statut === 'Impayée' || f.statut === 'Non payée',
+    )
+    if (cibles.length === 0) {
+      toast.info('Aucune facture impayée à relancer')
+      return
+    }
+    cibles.forEach((f, idx) => {
+      const eleve = eleves.find((e) => e.code === f.eleveCode)
+      const telephone = eleve?.telephone ?? ''
+      if (!telephone) return
+      const [prenom, ...restNom] = f.eleve.split(' ')
+      const nom = restNom.join(' ')
+      setTimeout(() => {
+        relanceWhatsApp(
+          telephone,
+          messageRelanceFacture({
+            prenom,
+            nom,
+            numeroFacture: f.numero,
+            reste: f.reste,
+            telephone,
+          }),
+        )
+      }, 500 * idx)
+    })
+    toast.success(`${cibles.length} relance${cibles.length > 1 ? 's' : ''} WhatsApp envoyée${cibles.length > 1 ? 's' : ''}`)
+  }
 
   return (
     <>
@@ -220,7 +252,10 @@ export function FacturationView() {
                     </button>
                   ))}
                 </div>
-                <button className="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600">
+                <button
+                  onClick={handleBulkRelanceWhatsApp}
+                  className="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+                >
                   <MessageCircle className="h-4 w-4" />
                   Relancer WhatsApp
                 </button>
@@ -279,7 +314,11 @@ export function FacturationView() {
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.dateEmission}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <button className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Voir">
+                          <button
+                            onClick={() => setDetailFactureId(f.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title="Voir"
+                          >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
@@ -396,6 +435,11 @@ export function FacturationView() {
         factureId={paiementFactureId}
         open={!!paiementFactureId}
         onOpenChange={(v) => { if (!v) setPaiementFactureId(null) }}
+      />
+      <FactureDetailDialog
+        factureId={detailFactureId}
+        open={!!detailFactureId}
+        onOpenChange={(v) => { if (!v) setDetailFactureId(null) }}
       />
 
       <AlertDialog

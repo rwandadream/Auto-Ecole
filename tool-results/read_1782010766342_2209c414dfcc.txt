@@ -1,0 +1,635 @@
+     1→'use client'
+     2→
+     3→import { useState } from 'react'
+     4→import {
+     5→  Plus,
+     6→  Mail,
+     7→  Phone,
+     8→  MapPin,
+     9→  Building2,
+    10→  Pencil,
+    11→  MoreHorizontal,
+    12→  UserPlus,
+    13→  Trash2,
+    14→  Save,
+    15→} from 'lucide-react'
+    16→import { toast } from 'sonner'
+    17→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+    18→import {
+    19→  ViewHeader,
+    20→  StatusBadge,
+    21→  ActionButton,
+    22→  Card,
+    23→  formatXOF,
+    24→  initials,
+    25→} from './shared'
+    26→import { Modal, Field as ModalField, FormInput, FormSelect } from '@/components/dashboard/modal'
+    27→import { Switch } from '@/components/ui/switch'
+    28→import {
+    29→  DropdownMenu,
+    30→  DropdownMenuTrigger,
+    31→  DropdownMenuContent,
+    32→  DropdownMenuItem,
+    33→} from '@/components/ui/dropdown-menu'
+    34→import {
+    35→  AlertDialog,
+    36→  AlertDialogContent,
+    37→  AlertDialogHeader,
+    38→  AlertDialogFooter,
+    39→  AlertDialogTitle,
+    40→  AlertDialogDescription,
+    41→  AlertDialogAction,
+    42→  AlertDialogCancel,
+    43→} from '@/components/ui/alert-dialog'
+    44→import { useDataStore } from '@/store/data-store'
+    45→import { useAuthStore } from '@/store/auth-store'
+    46→import { type Role } from '@/lib/mock-data'
+    47→import { NouvelUtilisateurDialog } from '@/components/dashboard/dialogs/nouvel-utilisateur-dialog'
+    48→import { FormationDialog } from '@/components/dashboard/dialogs/formation-dialog'
+    49→import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
+    50→
+    51→const roleTone: Record<Role, 'primary' | 'sky' | 'amber' | 'slate'> = {
+    52→  'Administrateur principal': 'primary',
+    53→  'Administrateur secondaire': 'primary',
+    54→  Comptable: 'sky',
+    55→  Moniteur: 'amber',
+    56→  Conseiller: 'slate',
+    57→}
+    58→
+    59→const ROLES: Role[] = [
+    60→  'Administrateur principal',
+    61→  'Administrateur secondaire',
+    62→  'Comptable',
+    63→  'Moniteur',
+    64→  'Conseiller',
+    65→]
+    66→
+    67→function ReadOnlyField({
+    68→  label,
+    69→  value,
+    70→  icon,
+    71→}: {
+    72→  label: string
+    73→  value: string
+    74→  icon?: React.ReactNode
+    75→}) {
+    76→  return (
+    77→    <div className="space-y-1.5">
+    78→      <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    79→        {label}
+    80→      </label>
+    81→      <div className="flex h-10 items-center gap-2.5 rounded-lg border border-input bg-muted/40 px-3 text-sm text-foreground">
+    82→        {icon && <span className="text-muted-foreground">{icon}</span>}
+    83→        <span className="font-medium">{value}</span>
+    84→      </div>
+    85→    </div>
+    86→  )
+    87→}
+    88→
+    89→/**
+    90→ * Inline dialog for editing "Mon profil" — current admin user.
+    91→ * Looks up the matching profile in the data store by email. If found,
+    92→ * calls updateProfile; if not found, calls addProfile to create one.
+    93→ */
+    94→function ProfileEditDialog({
+    95→  open,
+    96→  onOpenChange,
+    97→}: {
+    98→  open: boolean
+    99→  onOpenChange: (v: boolean) => void
+   100→}) {
+   101→  const user = useAuthStore((s) => s.user)
+   102→  const profiles = useDataStore((s) => s.profiles)
+   103→  const addProfile = useDataStore((s) => s.addProfile)
+   104→  const updateProfile = useDataStore((s) => s.updateProfile)
+   105→
+   106→  const [name, setName] = useState('')
+   107→  const [email, setEmail] = useState('')
+   108→  const [role, setRole] = useState<Role>('Administrateur principal')
+   109→  const [actif, setActif] = useState(true)
+   110→
+   111→  // Seed from auth user when dialog opens
+   112→  const [prevOpen, setPrevOpen] = useState(false)
+   113→  if (open !== prevOpen) {
+   114→    setPrevOpen(open)
+   115→    if (open && user && user.mode === 'admin') {
+   116→      setName(user.name)
+   117→      setEmail(user.email)
+   118→      setRole((user.role as Role) || 'Administrateur principal')
+   119→      setActif(true)
+   120→    }
+   121→  }
+   122→
+   123→  const handleCancel = () => {
+   124→    onOpenChange(false)
+   125→  }
+   126→
+   127→  const handleSubmit = () => {
+   128→    if (!name.trim() || !email.trim()) {
+   129→      toast.error('Veuillez renseigner le nom et l\'email.')
+   130→      return
+   131→    }
+   132→    const existing = profiles.find(
+   133→      (p) => p.email.toLowerCase() === (user?.mode === 'admin' ? user.email.toLowerCase() : '')
+   134→    )
+   135→    const payload = {
+   136→      name: name.trim(),
+   137→      email: email.trim().toLowerCase(),
+   138→      role,
+   139→      actif,
+   140→    }
+   141→    if (existing) {
+   142→      updateProfile(existing.id, payload)
+   143→      toast.success('Votre profil a été mis à jour.')
+   144→    } else {
+   145→      addProfile(payload)
+   146→      toast.success('Profil équipe créé avec vos informations.')
+   147→    }
+   148→    onOpenChange(false)
+   149→  }
+   150→
+   151→  if (!user || user.mode !== 'admin') return null
+   152→
+   153→  return (
+   154→    <Modal
+   155→      open={open}
+   156→      onOpenChange={onOpenChange}
+   157→      title="Modifier mon profil"
+   158→      description="Mettez à jour vos informations personnelles"
+   159→      size="md"
+   160→      footer={
+   161→        <>
+   162→          <button
+   163→            onClick={handleCancel}
+   164→            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   165→          >
+   166→            Annuler
+   167→          </button>
+   168→          <button
+   169→            onClick={handleSubmit}
+   170→            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+   171→          >
+   172→            <Save className="h-4 w-4" />
+   173→            Enregistrer
+   174→          </button>
+   175→        </>
+   176→      }
+   177→    >
+   178→      <div className="space-y-4">
+   179→        <ModalField label="Nom complet">
+   180→          <FormInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" />
+   181→        </ModalField>
+   182→        <ModalField label="Email">
+   183→          <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@sarahauto.ci" />
+   184→        </ModalField>
+   185→        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   186→          <ModalField label="Rôle">
+   187→            <FormSelect value={role} onChange={(e) => setRole(e.target.value as Role)} disabled>
+   188→              {ROLES.map((r) => (
+   189→                <option key={r} value={r}>
+   190→                  {r}
+   191→                </option>
+   192→              ))}
+   193→            </FormSelect>
+   194→          </ModalField>
+   195→          <div className="space-y-1.5">
+   196→            <label className="text-sm font-medium text-foreground">Statut</label>
+   197→            <div className="flex h-10 items-center gap-3 rounded-lg border border-input bg-background px-3">
+   198→              <Switch checked={actif} onCheckedChange={setActif} />
+   199→              <span className="text-sm font-medium text-foreground">
+   200→                {actif ? 'Actif' : 'Inactif'}
+   201→              </span>
+   202→            </div>
+   203→          </div>
+   204→        </div>
+   205→        <p className="text-xs text-muted-foreground">
+   206→          Le rôle est défini par l'administrateur principal et ne peut pas être modifié depuis ce formulaire.
+   207→        </p>
+   208→      </div>
+   209→    </Modal>
+   210→  )
+   211→}
+   212→
+   213→export function ParametresView() {
+   214→  const profiles = useDataStore((s) => s.profiles)
+   215→  const permis = useDataStore((s) => s.permis)
+   216→  const formations = useDataStore((s) => s.formations)
+   217→  const deleteProfile = useDataStore((s) => s.deleteProfile)
+   218→  const deleteFormation = useDataStore((s) => s.deleteFormation)
+   219→  const deletePermis = useDataStore((s) => s.deletePermis)
+   220→
+   221→  const user = useAuthStore((s) => s.user)
+   222→
+   223→  // Dialog state
+   224→  const [showProfileEdit, setShowProfileEdit] = useState(false)
+   225→  const [showUserDialog, setShowUserDialog] = useState(false)
+   226→  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+   227→  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+   228→
+   229→  const [showFormationDialog, setShowFormationDialog] = useState(false)
+   230→  const [editingFormationId, setEditingFormationId] = useState<string | null>(null)
+   231→  const [deletingFormationId, setDeletingFormationId] = useState<string | null>(null)
+   232→
+   233→  const [showPermisDialog, setShowPermisDialog] = useState(false)
+   234→  const [editingPermisId, setEditingPermisId] = useState<string | null>(null)
+   235→  const [deletingPermisId, setDeletingPermisId] = useState<string | null>(null)
+   236→
+   237→  // Current user info for "Mon profil" tab
+   238→  const userName = user?.mode === 'admin' ? user.name : 'Utilisateur'
+   239→  const userEmail = user?.mode === 'admin' ? user.email : '—'
+   240→  const userRole = user?.mode === 'admin' ? user.role : '—'
+   241→  const userInitials = initials(userName || 'U')
+   242→
+   243→  // Handlers
+   244→  const handleConfirmDeleteUser = () => {
+   245→    if (!deletingUserId) return
+   246→    const target = profiles.find((p) => p.id === deletingUserId)
+   247→    deleteProfile(deletingUserId)
+   248→    toast.success(`Utilisateur ${target?.name ?? ''} supprimé de l'équipe.`)
+   249→    setDeletingUserId(null)
+   250→  }
+   251→
+   252→  const handleConfirmDeleteFormation = () => {
+   253→    if (!deletingFormationId) return
+   254→    const target = formations.find((f) => f.id === deletingFormationId)
+   255→    deleteFormation(deletingFormationId)
+   256→    toast.success(`Formation "${target?.nom ?? ''}" supprimée du catalogue.`)
+   257→    setDeletingFormationId(null)
+   258→  }
+   259→
+   260→  const handleConfirmDeletePermis = () => {
+   261→    if (!deletingPermisId) return
+   262→    const target = permis.find((p) => p.id === deletingPermisId)
+   263→    deletePermis(deletingPermisId)
+   264→    toast.success(`Permis ${target?.code ?? ''} supprimé du catalogue.`)
+   265→    setDeletingPermisId(null)
+   266→  }
+   267→
+   268→  return (
+   269→    <>
+   270→      <ViewHeader
+   271→        title="Paramètres"
+   272→        description="Configuration de l'ERP et gestion de l'équipe"
+   273→      />
+   274→
+   275→      <Tabs defaultValue="profil" className="mt-2">
+   276→        <TabsList>
+   277→          <TabsTrigger value="profil">Mon profil</TabsTrigger>
+   278→          <TabsTrigger value="equipe">Équipe</TabsTrigger>
+   279→          <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
+   280→        </TabsList>
+   281→
+   282→        {/* -------- Tab 1 : Mon profil -------- */}
+   283→        <TabsContent value="profil">
+   284→          <Card>
+   285→            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+   286→              {/* Avatar */}
+   287→              <div className="flex flex-col items-center gap-3 sm:w-48">
+   288→                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-3xl font-bold text-primary">
+   289→                  {userInitials}
+   290→                </div>
+   291→                <div className="text-center">
+   292→                  <p className="text-sm font-semibold text-foreground">{userName}</p>
+   293→                  <p className="text-xs text-muted-foreground">{userEmail}</p>
+   294→                </div>
+   295→                <StatusBadge label={userRole} tone="primary" />
+   296→              </div>
+   297→
+   298→              {/* Form */}
+   299→              <div className="flex-1 space-y-4">
+   300→                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   301→                  <ReadOnlyField label="Nom complet" value={userName} />
+   302→                  <ReadOnlyField label="Email" value={userEmail} icon={<Mail className="h-4 w-4" />} />
+   303→                  <ReadOnlyField label="Rôle" value={userRole} />
+   304→                  <ReadOnlyField label="Téléphone" value="+225 07 00 00 00" icon={<Phone className="h-4 w-4" />} />
+   305→                  <ReadOnlyField label="Auto-école" value="SARAH AUTO" icon={<Building2 className="h-4 w-4" />} />
+   306→                  <ReadOnlyField
+   307→                    label="Adresse"
+   308→                    value="Cocody, Abidjan, Côte d'Ivoire"
+   309→                    icon={<MapPin className="h-4 w-4" />}
+   310→                  />
+   311→                </div>
+   312→
+   313→                <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
+   314→                  <ActionButton variant="primary" onClick={() => setShowProfileEdit(true)}>
+   315→                    <Pencil className="h-4 w-4" />
+   316→                    Modifier
+   317→                  </ActionButton>
+   318→                </div>
+   319→              </div>
+   320→            </div>
+   321→          </Card>
+   322→        </TabsContent>
+   323→
+   324→        {/* -------- Tab 2 : Équipe -------- */}
+   325→        <TabsContent value="equipe">
+   326→          <Card className="p-0">
+   327→            <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+   328→              <div>
+   329→                <h2 className="text-base font-semibold text-foreground">Utilisateurs de l'équipe</h2>
+   330→                <p className="text-sm text-muted-foreground">
+   331→                  {profiles.length} membres — {profiles.filter((p) => p.actif).length} actifs
+   332→                </p>
+   333→              </div>
+   334→              <ActionButton variant="primary" onClick={() => { setEditingUserId(null); setShowUserDialog(true) }}>
+   335→                <UserPlus className="h-4 w-4" />
+   336→                Ajouter un utilisateur
+   337→              </ActionButton>
+   338→            </div>
+   339→
+   340→            <div className="custom-scrollbar overflow-x-auto">
+   341→              <table className="w-full min-w-[800px] text-sm">
+   342→                <thead>
+   343→                  <tr className="border-b border-border text-left">
+   344→                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateur</th>
+   345→                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</th>
+   346→                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rôle</th>
+   347→                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
+   348→                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
+   349→                  </tr>
+   350→                </thead>
+   351→                <tbody className="divide-y divide-border">
+   352→                  {profiles.map((p) => (
+   353→                    <tr key={p.id} className="hover:bg-muted/40">
+   354→                      <td className="px-4 py-3">
+   355→                        <div className="flex items-center gap-2.5">
+   356→                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+   357→                            {initials(p.name)}
+   358→                          </div>
+   359→                          <span className="text-sm font-medium text-foreground">{p.name}</span>
+   360→                        </div>
+   361→                      </td>
+   362→                      <td className="px-4 py-3 text-sm text-muted-foreground">{p.email}</td>
+   363→                      <td className="px-4 py-3">
+   364→                        <StatusBadge label={p.role} tone={roleTone[p.role]} />
+   365→                      </td>
+   366→                      <td className="px-4 py-3">
+   367→                        <StatusBadge
+   368→                          label={p.actif ? 'Actif' : 'Inactif'}
+   369→                          tone={p.actif ? 'emerald' : 'slate'}
+   370→                        />
+   371→                      </td>
+   372→                      <td className="px-4 py-3">
+   373→                        <div className="flex items-center justify-end">
+   374→                          <DropdownMenu>
+   375→                            <DropdownMenuTrigger asChild>
+   376→                              <button
+   377→                                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   378→                                aria-label="Actions"
+   379→                              >
+   380→                                <MoreHorizontal className="h-4 w-4" />
+   381→                              </button>
+   382→                            </DropdownMenuTrigger>
+   383→                            <DropdownMenuContent align="end" className="w-44">
+   384→                              <DropdownMenuItem
+   385→                                onClick={() => { setEditingUserId(p.id); setShowUserDialog(true) }}
+   386→                              >
+   387→                                <Pencil className="mr-2 h-4 w-4" />
+   388→                                Modifier
+   389→                              </DropdownMenuItem>
+   390→                              <DropdownMenuItem
+   391→                                className="text-rose-600 focus:text-rose-600"
+   392→                                onClick={() => setDeletingUserId(p.id)}
+   393→                              >
+   394→                                <Trash2 className="mr-2 h-4 w-4" />
+   395→                                Supprimer
+   396→                              </DropdownMenuItem>
+   397→                            </DropdownMenuContent>
+   398→                          </DropdownMenu>
+   399→                        </div>
+   400→                      </td>
+   401→                    </tr>
+   402→                  ))}
+   403→                </tbody>
+   404→              </table>
+   405→            </div>
+   406→          </Card>
+   407→        </TabsContent>
+   408→
+   409→        {/* -------- Tab 3 : Catalogue -------- */}
+   410→        <TabsContent value="catalogue">
+   411→          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+   412→            {/* Types de permis */}
+   413→            <Card className="xl:col-span-1">
+   414→              <div className="mb-4 flex items-start justify-between gap-2">
+   415→                <div>
+   416→                  <h2 className="text-base font-semibold text-foreground">Types de permis</h2>
+   417→                  <p className="text-sm text-muted-foreground">{permis.length} types disponibles</p>
+   418→                </div>
+   419→                <ActionButton
+   420→                  variant="primary"
+   421→                  onClick={() => { setEditingPermisId(null); setShowPermisDialog(true) }}
+   422→                >
+   423→                  <Plus className="h-4 w-4" />
+   424→                  Nouveau
+   425→                </ActionButton>
+   426→              </div>
+   427→              <div className="grid grid-cols-2 gap-3">
+   428→                {permis.map((p) => (
+   429→                  <div
+   430→                    key={p.id}
+   431→                    className="group relative flex flex-col items-start gap-2 rounded-lg border border-border bg-background p-3"
+   432→                  >
+   433→                    <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-md bg-primary/10 px-2 text-base font-bold text-primary">
+   434→                      {p.code}
+   435→                    </span>
+   436→                    <span className="text-sm font-medium text-foreground">{p.libelle}</span>
+   437→                    <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+   438→                      <button
+   439→                        onClick={() => { setEditingPermisId(p.id); setShowPermisDialog(true) }}
+   440→                        className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm border border-border hover:bg-muted hover:text-foreground"
+   441→                        title="Modifier"
+   442→                      >
+   443→                        <Pencil className="h-3.5 w-3.5" />
+   444→                      </button>
+   445→                      <button
+   446→                        onClick={() => setDeletingPermisId(p.id)}
+   447→                        className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-rose-600 shadow-sm border border-border hover:bg-rose-50"
+   448→                        title="Supprimer"
+   449→                      >
+   450→                        <Trash2 className="h-3.5 w-3.5" />
+   451→                      </button>
+   452→                    </div>
+   453→                  </div>
+   454→                ))}
+   455→              </div>
+   456→            </Card>
+   457→
+   458→            {/* Formations */}
+   459→            <Card className="p-0 xl:col-span-2">
+   460→              <div className="flex items-center justify-between border-b border-border p-4">
+   461→                <div>
+   462→                  <h2 className="text-base font-semibold text-foreground">Formations</h2>
+   463→                  <p className="text-sm text-muted-foreground">Catalogue des packs proposés</p>
+   464→                </div>
+   465→                <ActionButton
+   466→                  variant="primary"
+   467→                  onClick={() => { setEditingFormationId(null); setShowFormationDialog(true) }}
+   468→                >
+   469→                  <Plus className="h-4 w-4" />
+   470→                  Nouvelle formation
+   471→                </ActionButton>
+   472→              </div>
+   473→
+   474→              <div className="custom-scrollbar overflow-x-auto">
+   475→                <table className="w-full min-w-[600px] text-sm">
+   476→                  <thead>
+   477→                    <tr className="border-b border-border text-left">
+   478→                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Formation</th>
+   479→                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</th>
+   480→                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prix</th>
+   481→                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
+   482→                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
+   483→                    </tr>
+   484→                  </thead>
+   485→                  <tbody className="divide-y divide-border">
+   486→                    {formations.map((f) => (
+   487→                      <tr key={f.id} className="hover:bg-muted/40">
+   488→                        <td className="px-4 py-3 text-sm font-semibold text-foreground">{f.nom}</td>
+   489→                        <td className="px-4 py-3 text-sm text-muted-foreground">{f.description}</td>
+   490→                        <td className="px-4 py-3 text-right text-sm font-bold text-primary">
+   491→                          {formatXOF(f.prix)}
+   492→                        </td>
+   493→                        <td className="px-4 py-3">
+   494→                          <StatusBadge
+   495→                            label={f.actif ? 'Actif' : 'Inactif'}
+   496→                            tone={f.actif ? 'emerald' : 'slate'}
+   497→                          />
+   498→                        </td>
+   499→                        <td className="px-4 py-3">
+   500→                          <div className="flex items-center justify-end gap-1">
+   501→                            <button
+   502→                              onClick={() => { setEditingFormationId(f.id); setShowFormationDialog(true) }}
+   503→                              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   504→                              title="Modifier"
+   505→                            >
+   506→                              <Pencil className="h-4 w-4" />
+   507→                            </button>
+   508→                            <button
+   509→                              onClick={() => setDeletingFormationId(f.id)}
+   510→                              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
+   511→                              title="Supprimer"
+   512→                            >
+   513→                              <Trash2 className="h-4 w-4" />
+   514→                            </button>
+   515→                          </div>
+   516→                        </td>
+   517→                      </tr>
+   518→                    ))}
+   519→                  </tbody>
+   520→                </table>
+   521→              </div>
+   522→            </Card>
+   523→          </div>
+   524→        </TabsContent>
+   525→      </Tabs>
+   526→
+   527→      {/* -------- Dialogs -------- */}
+   528→      <ProfileEditDialog open={showProfileEdit} onOpenChange={setShowProfileEdit} />
+   529→
+   530→      <NouvelUtilisateurDialog
+   531→        open={showUserDialog}
+   532→        onOpenChange={(v) => { setShowUserDialog(v); if (!v) setEditingUserId(null) }}
+   533→        profileId={editingUserId}
+   534→      />
+   535→
+   536→      <FormationDialog
+   537→        open={showFormationDialog}
+   538→        onOpenChange={(v) => { setShowFormationDialog(v); if (!v) setEditingFormationId(null) }}
+   539→        formationId={editingFormationId}
+   540→      />
+   541→
+   542→      <PermisDialog
+   543→        open={showPermisDialog}
+   544→        onOpenChange={(v) => { setShowPermisDialog(v); if (!v) setEditingPermisId(null) }}
+   545→        permisId={editingPermisId}
+   546→      />
+   547→
+   548→      {/* Delete confirmations */}
+   549→      <AlertDialog open={!!deletingUserId} onOpenChange={(v) => { if (!v) setDeletingUserId(null) }}>
+   550→        <AlertDialogContent>
+   551→          <AlertDialogHeader>
+   552→            <AlertDialogTitle>Supprimer l'utilisateur ?</AlertDialogTitle>
+   553→            <AlertDialogDescription>
+   554→              {(() => {
+   555→                const t = profiles.find((p) => p.id === deletingUserId)
+   556→                return t ? (
+   557→                  <>
+   558→                    Vous êtes sur le point de supprimer <strong>{t.name}</strong> ({t.email}) de l'équipe.
+   559→                    Cette action est irréversible et sera tracée dans le journal d'audit.
+   560→                  </>
+   561→                ) : 'Cette action est irréversible.'
+   562→              })()}
+   563→            </AlertDialogDescription>
+   564→          </AlertDialogHeader>
+   565→          <AlertDialogFooter>
+   566→            <AlertDialogCancel>Annuler</AlertDialogCancel>
+   567→            <AlertDialogAction
+   568→              onClick={handleConfirmDeleteUser}
+   569→              className="bg-rose-600 text-white hover:bg-rose-700"
+   570→            >
+   571→              Supprimer
+   572→            </AlertDialogAction>
+   573→          </AlertDialogFooter>
+   574→        </AlertDialogContent>
+   575→      </AlertDialog>
+   576→
+   577→      <AlertDialog open={!!deletingFormationId} onOpenChange={(v) => { if (!v) setDeletingFormationId(null) }}>
+   578→        <AlertDialogContent>
+   579→          <AlertDialogHeader>
+   580→            <AlertDialogTitle>Supprimer la formation ?</AlertDialogTitle>
+   581→            <AlertDialogDescription>
+   582→              {(() => {
+   583→                const t = formations.find((f) => f.id === deletingFormationId)
+   584→                return t ? (
+   585→                  <>
+   586→                    Vous êtes sur le point de supprimer la formation <strong>{t.nom}</strong>.
+   587→                    Cette action est irréversible.
+   588→                  </>
+   589→                ) : 'Cette action est irréversible.'
+   590→              })()}
+   591→            </AlertDialogDescription>
+   592→          </AlertDialogHeader>
+   593→          <AlertDialogFooter>
+   594→            <AlertDialogCancel>Annuler</AlertDialogCancel>
+   595→            <AlertDialogAction
+   596→              onClick={handleConfirmDeleteFormation}
+   597→              className="bg-rose-600 text-white hover:bg-rose-700"
+   598→            >
+   599→              Supprimer
+   600→            </AlertDialogAction>
+   601→          </AlertDialogFooter>
+   602→        </AlertDialogContent>
+   603→      </AlertDialog>
+   604→
+   605→      <AlertDialog open={!!deletingPermisId} onOpenChange={(v) => { if (!v) setDeletingPermisId(null) }}>
+   606→        <AlertDialogContent>
+   607→          <AlertDialogHeader>
+   608→            <AlertDialogTitle>Supprimer le permis ?</AlertDialogTitle>
+   609→            <AlertDialogDescription>
+   610→              {(() => {
+   611→                const t = permis.find((p) => p.id === deletingPermisId)
+   612→                return t ? (
+   613→                  <>
+   614→                    Vous êtes sur le point de supprimer le permis <strong>{t.code} — {t.libelle}</strong>.
+   615→                    Cette action est irréversible.
+   616→                  </>
+   617→                ) : 'Cette action est irréversible.'
+   618→              })()}
+   619→            </AlertDialogDescription>
+   620→          </AlertDialogHeader>
+   621→          <AlertDialogFooter>
+   622→            <AlertDialogCancel>Annuler</AlertDialogCancel>
+   623→            <AlertDialogAction
+   624→              onClick={handleConfirmDeletePermis}
+   625→              className="bg-rose-600 text-white hover:bg-rose-700"
+   626→            >
+   627→              Supprimer
+   628→            </AlertDialogAction>
+   629→          </AlertDialogFooter>
+   630→        </AlertDialogContent>
+   631→      </AlertDialog>
+   632→    </>
+   633→  )
+   634→}
+   635→

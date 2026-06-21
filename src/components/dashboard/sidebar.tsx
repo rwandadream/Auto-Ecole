@@ -23,11 +23,12 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
 import { useAuthStore } from '@/store/auth-store'
+import { useDataStore } from '@/store/data-store'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 
 type NavItem = {
   label: string
-  view: ViewKey
+  view?: ViewKey
   icon: React.ComponentType<{ className?: string }>
   badge?: string
   /** Roles allowed to see this item. If omitted, item is visible to everyone. */
@@ -62,7 +63,7 @@ const navSections: NavSection[] = [
     title: 'Pilotage',
     items: [
       { label: 'Tableau de bord', view: 'dashboard', icon: LayoutGrid },
-      { label: 'Élèves', view: 'eleves', icon: Users, badge: '20', roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
+      { label: 'Élèves', view: 'eleves', icon: Users, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
       { label: 'Scanner CNI', view: 'scanner', icon: ScanLine, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
       { label: 'Moniteurs', view: 'moniteurs', icon: UserCog, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
       { label: 'Véhicules', view: 'vehicules', icon: Car, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
@@ -72,7 +73,7 @@ const navSections: NavSection[] = [
   {
     title: 'Activité',
     items: [
-      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, badge: '2', roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
       { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
       { label: 'Facturation', view: 'facturation', icon: Receipt, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
       { label: 'Comptabilité', view: 'comptabilite', icon: Wallet, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
@@ -85,7 +86,7 @@ const navSections: NavSection[] = [
       { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Journal d\'audit', view: 'audit', icon: History, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Assistance', view: 'assistance', icon: HelpCircle },
-      { label: 'Déconnexion', view: 'deconnexion', icon: LogOut, isLogout: true },
+      { label: 'Déconnexion', icon: LogOut, isLogout: true },
     ],
   },
 ]
@@ -94,6 +95,18 @@ export function Sidebar() {
   const { activeView, setActiveView, collapsed, toggleCollapsed } = useNavStore()
   const user = useAuthStore((s) => s.user)
   const [showLogout, setShowLogout] = useState(false)
+
+  // Dynamic badges from the store
+  const elevesCount = useDataStore((s) => s.eleves.length)
+  const seancesPlanifiees = useDataStore(
+    (s) => s.seances.filter((se) => se.statut === 'Planifié').length
+  )
+
+  // Build a lookup for dynamic badges
+  const dynamicBadges: Partial<Record<ViewKey, string>> = {
+    eleves: String(elevesCount),
+    planning: String(seancesPlanifiees),
+  }
 
   // Determine the current user's role (only for admin mode)
   const currentRole = user?.mode === 'admin' ? normalizeRole(user.role) : null
@@ -159,6 +172,7 @@ export function Sidebar() {
               {section.items.map((item) => {
                 const Icon = item.icon
                 const isActive = activeView === item.view
+                const badge = item.view ? dynamicBadges[item.view] : undefined
                 return (
                   <li key={item.label} className="relative">
                     <button
@@ -184,7 +198,7 @@ export function Sidebar() {
                       {!collapsed && (
                         <span className="flex-1 text-left">{item.label}</span>
                       )}
-                      {!collapsed && item.badge && (
+                      {!collapsed && badge && (
                         <span
                           className={cn(
                             'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold',
@@ -193,10 +207,10 @@ export function Sidebar() {
                               : 'bg-primary/10 text-primary'
                           )}
                         >
-                          {item.badge}
+                          {badge}
                         </span>
                       )}
-                      {collapsed && item.badge && (
+                      {collapsed && badge && (
                         <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
                       )}
                     </button>

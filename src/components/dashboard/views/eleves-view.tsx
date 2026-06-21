@@ -115,6 +115,7 @@ function KpiCard({ label, value, icon, tone }: KpiCardProps) {
 
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
+  const examens = useDataStore((s) => s.examens)
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [page, setPage] = useState(1)
@@ -144,6 +145,10 @@ export function ElevesView() {
   const totalEleves = eleves.length
   const enFormation = eleves.filter((e) => e.statut === 'En formation').length
   const admis = eleves.filter((e) => e.statut === 'Admis').length
+  const examensTermines = examens.filter((x) => x.resultat !== 'En attente')
+  const tauxReussite = examensTermines.length > 0
+    ? Math.round((examensTermines.filter((x) => x.resultat === 'Admis').length / examensTermines.length) * 1000) / 10
+    : null
   const parPage = 8
   const totalPages = Math.max(1, Math.ceil(elevesFiltres.length / parPage))
   const pageCourante = Math.min(page, totalPages)
@@ -185,7 +190,7 @@ export function ElevesView() {
         />
         <KpiCard
           label="Taux réussite"
-          value="78,5 %"
+          value={tauxReussite !== null ? `${tauxReussite.toString().replace('.', ',')} %` : '—'}
           icon={<TrendingUp className="h-5 w-5" />}
           tone="amber"
         />

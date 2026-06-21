@@ -823,3 +823,47 @@ Work Log:
 
 Stage Summary:
 - 10 files fixed
+
+---
+Task ID: 6-a
+Agent: full-stack-developer (planning pagination + facturation fixes)
+Task: Fix planning pagination + wire WhatsApp bulk + facture detail dialog
+
+Work Log:
+- Lu `/home/z/my-project/worklog.md` (sections Task 1/3/4-c/5) pour confirmer l'API du data-store Zustand (`useDataStore(s => s.factures/paiements/eleves/seances)` + `deleteFacture`), les utilitaires (`relanceWhatsApp`, `messageRelanceFacture`, `generateFacturePdf` depuis `@/lib/utils-docs`) et les types (Facture avec numero/eleve/eleveCode/formation/montant/paye/reste/statut/dateEmission, Paiement avec facture/factureId/eleve/montant/modePaiement/reference/datePaiement, Eleve avec code/telephone).
+- Lu `/src/components/dashboard/views/eleves-view.tsx` pour répliquer le pattern de pagination existant (useState page, parPage=8, totalPages=Math.max(1, Math.ceil(len/parPage)), pageCourante=Math.min(page, totalPages), debut=(pageCourante-1)*parPage, slice(debut, debut+parPage), reset page=1 sur changement de filtre).
+- Lu `/src/components/dashboard/modal.tsx` (Modal size 'sm'|'md'|'lg'|'xl', footer ReactNode) et `/src/components/dashboard/views/shared.tsx` (StatusBadge + formatXOF + initials).
+
+Fix 1 — Planning-view pagination (`/src/components/dashboard/views/planning-view.tsx`) :
+- Ajouté imports `ChevronLeft, ChevronRight` depuis lucide-react.
+- Ajouté state `const [page, setPage] = useState(1)` dans PlanningView.
+- Ajouté constantes `parPage = 8`, `totalPages = Math.max(1, Math.ceil(seancesFiltrees.length / parPage))`, `pageCourante = Math.min(page, totalPages)`, `debut = (pageCourante - 1) * parPage`, `seancesPage = seancesFiltrees.slice(debut, debut + parPage)`.
+- Créé handler `changeFiltre(f)` qui appelle `setFiltre(f)` + `setPage(1)` ; boutons de filtre câblés sur `changeFiltre(f)` (au lieu de `setFiltre(f)` direct) pour reset la page à chaque changement.
+- Rendu `seancesPage.map(...)` au lieu de `seancesFiltrees.map(...)` dans le tbody ; idem pour l'empty-state (`seancesPage.length === 0`).
+- Footer refait : texte "Affichage de X à Y sur Z séance(s)" (X=debut+1 ou 0 si vide, Y=debut+seancesPage.length, Z=seancesFiltrees.length), bouton Précédent `onClick={() => setPage(p => Math.max(1, p-1))}` + `disabled={pageCourante <= 1}`, badge page courante `{pageCourante}`, span `/ {totalPages}`, bouton Suivant `onClick={() => setPage(p => Math.min(totalPages, p+1))}` + `disabled={pageCourante >= totalPages}`. ChevronLeft/ChevronRight ajoutés.
+
+Fix 2 — Facturation "Relancer WhatsApp" bulk (`/src/components/dashboard/views/facturation-view.tsx`) :
+- Imports `relanceWhatsApp, messageRelanceFacture` déjà présents (depuis `@/lib/utils-docs`) ; `toast` déjà importé depuis `sonner`.
+- Ajouté handler `handleBulkRelanceWhatsApp` : filtre `filteredFactures.filter(f => f.statut === 'Impayée' || f.statut === 'Non payée')`. Si tableau vide → `toast.info('Aucune facture impayée à relancer')` + return. Sinon pour chaque facture : lookup `eleve = eleves.find(e => e.code === f.eleveCode)` pour résoudre `telephone` (skip si vide) ; split `f.eleve` en prenom/nom ; `setTimeout(() => relanceWhatsApp(telephone, messageRelanceFacture({...})), 500 * idx)` pour éviter le blocage de popups ; puis `toast.success('${count} relance(s) WhatsApp envoyée(s)')` après planification.
+- Bouton vert "Relancer WhatsApp" câblé `onClick={handleBulkRelanceWhatsApp}`.
+
+Fix 3 — Facturation "Eye / Voir" → FactureDetailDialog :
+- Créé `/src/components/dashboard/dialogs/facture-detail-dialog.tsx` : `export function FactureDetailDialog({ factureId, open, onOpenChange })`.
+  - Lit depuis le store : `facture = useDataStore(s => s.factures.find(f => f.id === factureId))`, `paiements = useDataStore(s => s.paiements.filter(p => p.factureId === factureId || (facture ? p.facture === facture.numero : false)))` (filtre dual pour fonctionner avec les paiements seed — qui n'ont que le numero dans `facture` — et les paiements créés via addPaiement qui ont `factureId`), `eleve = useDataStore(s => s.eleves.find(e => e.code === facture?.eleveCode))`.
+  - Guard `if (!facture) return <Modal>…Aucune facture sélectionnée…</Modal>`.
+  - Modal size 'lg', title `Facture {numero}`, description `Émise le {dateEmission}`.
+  - En-tête : avatar initials(eleve) + nom + code + telephone (si eleve trouvé) ; à droite numéro facture + StatusBadge (statut tone rose/amber/emerald).
+  - Grid 3 colonnes d'InfoRow : Formation / Date d'émission / Téléphone élève.
+  - Bloc Montants (grid 3 colonnes) : Montant (foreground), Payé (emerald), Reste (rose si >0).
+  - Mini-table des paiements liés (Date, Montant emerald, Mode, Référence) avec compteur dans le header + empty-state "Aucun paiement encaissé".
+  - Footer : "Fermer" (outline) + "Télécharger PDF" (primary, icône Download) → `generateFacturePdf(facture)` + `toast.success('Facture XXX générée.')` ou `toast.error` en cas d'échec.
+- Dans `facturation-view.tsx` : importé `FactureDetailDialog`, ajouté state `const [detailFactureId, setDetailFactureId] = useState<string | null>(null)`, bouton Eye câblé `onClick={() => setDetailFactureId(f.id)}`, et rendu `<FactureDetailDialog factureId={detailFactureId} open={!!detailFactureId} onOpenChange={(v) => { if (!v) setDetailFactureId(null) }} />` à la fin du composant.
+- Vérifié dev.log après chaque batch d'édition : compilations propres (✓ Compiled multiples), GET / 200 OK, aucun message d'erreur/warning.
+
+Stage Summary:
+- Files modified (2):
+  - `/src/components/dashboard/views/planning-view.tsx` (pagination réelle : useState page + parPage=8 + slice + boutons Précédent/Suivant câblés + reset page sur changement de filtre + footer "Affichage de X à Y sur Z")
+  - `/src/components/dashboard/views/facturation-view.tsx` (bouton "Relancer WhatsApp" bulk câblé + bouton Eye câblé → FactureDetailDialog + state detailFactureId)
+- Files created (1):
+  - `/src/components/dashboard/dialogs/facture-detail-dialog.tsx` (Modal 'lg' read-only : en-tête élève + badge statut + grid infos + bloc montants + mini-table paiements + footer Fermer/Télécharger PDF)
+- Aucun lint/build lancé conformément aux consignes. Dev server compile proprement (vérifié dans dev.log).

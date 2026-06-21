@@ -314,6 +314,7 @@ export function ComptabiliteView() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
+                        onClick={() => toast.info('Aucun justificatif téléversé pour cette dépense')}
                         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         title="Voir le justificatif"
                       >

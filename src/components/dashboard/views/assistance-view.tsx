@@ -13,6 +13,7 @@ import {
   ViewHeader,
   Card,
 } from './shared'
+import { toast } from 'sonner'
 import {
   Accordion,
   AccordionContent,
@@ -57,6 +58,7 @@ export function AssistanceView() {
         {helpTopics.map((t) => (
           <Card
             key={t.title}
+            onClick={() => toast.info(`« ${t.title} » — documentation détaillée bientôt disponible`)}
             className="flex cursor-pointer flex-col gap-3 transition-colors hover:border-primary/40"
           >
             <div className={`inline-flex h-12 w-12 items-center justify-center rounded-lg ${t.tone}`}>

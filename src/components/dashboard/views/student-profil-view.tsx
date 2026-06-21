@@ -168,6 +168,7 @@ export function StudentProfilView() {
                 {initials(user.nomComplet)}
               </div>
               <button
+                onClick={() => toast.info('Téléversement de photo bientôt disponible')}
                 className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 aria-label="Changer la photo"
                 title="Changer la photo"

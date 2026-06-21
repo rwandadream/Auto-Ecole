@@ -76,9 +76,9 @@ export function ActionButton({
 }
 
 // Shared card wrapper
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Card({ children, className, onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) {
   return (
-    <div className={cn('rounded-xl border border-border bg-card p-5', className)}>{children}</div>
+    <div onClick={onClick} className={cn('rounded-xl border border-border bg-card p-5', className)}>{children}</div>
   )
 }
 

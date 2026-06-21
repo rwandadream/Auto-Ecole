@@ -16,7 +16,6 @@ export type ViewKey =
   | 'parametres'
   | 'audit'
   | 'assistance'
-  | 'deconnexion'
   // Student portal views
   | 'student-dashboard'
   | 'student-planning'

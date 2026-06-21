@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, MoreHorizontal, CalendarDays, CheckCircle2, Clock, XCircle, ClipboardCheck, Trash2 } from 'lucide-react'
+import { Plus, MoreHorizontal, CalendarDays, CheckCircle2, Clock, XCircle, ClipboardCheck, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { type StatutSeance } from '@/lib/mock-data'
 import type { Seance } from '@/store/data-store'
 import { useDataStore } from '@/store/data-store'
@@ -88,6 +88,7 @@ type Kpi = {
 // --- Component ---
 export function PlanningView() {
   const [filtre, setFiltre] = useState<'Tous' | StatutSeance>('Tous')
+  const [page, setPage] = useState(1)
   const [showNewSeance, setShowNewSeance] = useState(false)
   const [suiviSeance, setSuiviSeance] = useState<Seance | null>(null)
   const [showSuivi, setShowSuivi] = useState(false)
@@ -133,6 +134,17 @@ export function PlanningView() {
 
   const seancesFiltrees =
     filtre === 'Tous' ? seances : seances.filter((s) => s.statut === filtre)
+
+  const parPage = 8
+  const totalPages = Math.max(1, Math.ceil(seancesFiltrees.length / parPage))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * parPage
+  const seancesPage = seancesFiltrees.slice(debut, debut + parPage)
+
+  const changeFiltre = (f: 'Tous' | StatutSeance) => {
+    setFiltre(f)
+    setPage(1)
+  }
 
   const openSuivi = (s: Seance) => {
     setSuiviSeance(s)
@@ -180,7 +192,7 @@ export function PlanningView() {
           return (
             <button
               key={f}
-              onClick={() => setFiltre(f)}
+              onClick={() => changeFiltre(f)}
               className={cn(
                 'h-9 rounded-lg px-3.5 text-sm font-medium transition-colors',
                 active
@@ -211,7 +223,7 @@ export function PlanningView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {seancesFiltrees.map((s) => (
+              {seancesPage.map((s) => (
                 <tr key={s.id} className="hover:bg-muted/40">
                   <td className="px-5 py-3.5">
                     <div className="text-sm font-semibold text-foreground">{formatDateFr(s.date)}</div>
@@ -285,7 +297,7 @@ export function PlanningView() {
                   </td>
                 </tr>
               ))}
-              {seancesFiltrees.length === 0 && (
+              {seancesPage.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
                     Aucune séance ne correspond à ce filtre.
@@ -299,23 +311,32 @@ export function PlanningView() {
         {/* Footer */}
         <div className="flex flex-col gap-3 border-t border-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs font-medium text-muted-foreground">
-            {seancesFiltrees.length} séance{seancesFiltrees.length > 1 ? 's' : ''} affichée{seancesFiltrees.length > 1 ? 's' : ''} sur {seances.length}
+            Affichage de <span className="font-semibold text-foreground">{seancesFiltrees.length === 0 ? 0 : debut + 1}</span> à{' '}
+            <span className="font-semibold text-foreground">{debut + seancesPage.length}</span> sur{' '}
+            <span className="font-semibold text-foreground">{seancesFiltrees.length}</span> séance{seancesFiltrees.length > 1 ? 's' : ''}
           </span>
           <div className="flex items-center gap-1">
             <button
-              disabled
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground opacity-50"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pageCourante <= 1}
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
             >
+              <ChevronLeft className="h-4 w-4" />
               Précédent
             </button>
             <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground">
-              1
+              {pageCourante}
+            </span>
+            <span className="px-1 text-xs font-medium text-muted-foreground">
+              / {totalPages}
             </span>
             <button
-              disabled
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground opacity-50"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={pageCourante >= totalPages}
+              className="inline-flex h-8 items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
             >
               Suivant
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
