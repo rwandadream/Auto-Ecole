@@ -32,6 +32,11 @@ import {
   KpiCard,
   statutEleveTone,
 } from '@/components/dashboard/views/shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 
 import {
   DropdownMenu,
@@ -187,10 +192,93 @@ export function ElevesView() {
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Table / cartes mobile */}
       <Card className="p-0">
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[1100px] border-collapse text-sm">
+        <ResponsiveDataView
+          empty={elevesPage.length === 0}
+          emptyState={
+            <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+              Aucun élève ne correspond à votre recherche.
+            </p>
+          }
+          mobile={elevesPage.map((e) => {
+            const nomComplet = `${e.prenom} ${e.nom}`
+            const progres = Math.round((e.seancesFaites / e.seancesTotales) * 100)
+            return (
+              <MobileListCard key={e.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {initials(nomComplet)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-foreground">{nomComplet}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{e.code}</p>
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label="Actions"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setselectedEleveCode(e.code)
+                          setActiveView('eleve-detail')
+                        }}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Voir le détail
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setselectedEleveCode(e.code)
+                          setActiveView('eleve-edit')
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Modifier
+                      </DropdownMenuItem>
+                      {canDeleteEleve && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleteEleveId(e.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <MobileListCardRow label="Statut">
+                    <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Permis">{e.typePermis}</MobileListCardRow>
+                  <MobileListCardRow label="Séances">
+                    {e.seancesFaites}/{e.seancesTotales} ({progres}%)
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Solde">
+                    {e.solde > 0 ? (
+                      <span className="font-semibold text-destructive">{formatXOF(e.solde)}</span>
+                    ) : (
+                      <span className="text-success">Soldé</span>
+                    )}
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Téléphone">{e.telephone}</MobileListCardRow>
+                </div>
+              </MobileListCard>
+            )
+          })}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[1100px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -343,7 +431,9 @@ export function ElevesView() {
               )}
             </tbody>
           </table>
-        </div>
+            </div>
+          }
+        />
 
         {/* Footer / pagination */}
         <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

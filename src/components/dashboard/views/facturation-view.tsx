@@ -33,6 +33,11 @@ import {
   ModePaiementBadge,
   KpiCardMinimal,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { NouvelleFactureDialog } from '@/components/dashboard/dialogs/nouvelle-facture-dialog'
 import { NouveauPaiementDialog } from '@/components/dashboard/dialogs/nouveau-paiement-dialog'
 import { FactureDetailDialog } from '@/components/dashboard/dialogs/facture-detail-dialog'
@@ -197,9 +202,109 @@ export function FacturationView() {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="custom-scrollbar overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
+            {/* Table / cartes mobile */}
+            <ResponsiveDataView
+              empty={filteredFactures.length === 0}
+              emptyState={
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Aucune facture trouvée.
+                </p>
+              }
+              mobile={filteredFactures.map((f) => {
+                const eleve = eleves.find((e) => e.code === f.eleveCode)
+                const telephone = eleve?.telephone ?? ''
+                const [prenom, ...restNom] = f.eleve.split(' ')
+                const nom = restNom.join(' ')
+                return (
+                  <MobileListCard key={f.id}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {initials(f.eleve)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-mono text-xs font-bold text-foreground">{f.numero}</p>
+                          <p className="truncate font-semibold text-foreground">{f.eleve}</p>
+                        </div>
+                      </div>
+                      <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
+                    </div>
+                    <div className="mt-3 space-y-1 border-t border-border pt-3">
+                      <MobileListCardRow label="Formation">{f.formation}</MobileListCardRow>
+                      <MobileListCardRow label="Montant">{formatXOF(f.montant)}</MobileListCardRow>
+                      <MobileListCardRow label="Payé">
+                        <span className="text-success">{formatXOF(f.paye)}</span>
+                      </MobileListCardRow>
+                      <MobileListCardRow label="Reste">
+                        <span className={f.reste > 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
+                          {formatXOF(f.reste)}
+                        </span>
+                      </MobileListCardRow>
+                      <MobileListCardRow label="Date émission">{f.dateEmission}</MobileListCardRow>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-end gap-1 border-t border-border pt-3">
+                      <button
+                        onClick={() => setDetailFactureId(f.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        title="Voir"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          void generateFacturePdf(f)
+                          toast.success(`Facture ${f.numero} générée.`)
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        title="Télécharger PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      {f.statut !== 'Payée' && (
+                        <button
+                          onClick={() => setPaiementFactureId(f.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-success transition-colors hover:bg-success/10"
+                          title="Encaisser"
+                        >
+                          <Banknote className="h-4 w-4" />
+                        </button>
+                      )}
+                      {f.statut === 'Impayée' && telephone && (
+                        <button
+                          onClick={() =>
+                            relanceWhatsApp(
+                              telephone,
+                              messageRelanceFacture({
+                                prenom,
+                                nom,
+                                numeroFacture: f.numero,
+                                reste: f.reste,
+                                telephone,
+                              }),
+                            )
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-success transition-colors hover:bg-success/10"
+                          title="Relancer WhatsApp"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canDeleteFacture && (
+                        <button
+                          onClick={() => setDeleteFactureId(f.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </MobileListCard>
+                )
+              })}
+              desktop={
+                <div className="custom-scrollbar overflow-x-auto">
+                  <table className="w-full min-w-[1100px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Numéro</th>
@@ -318,15 +423,45 @@ export function FacturationView() {
                   )}
                 </tbody>
               </table>
-            </div>
+                </div>
+              }
+            />
           </Card>
         </TabsContent>
 
         {/* -------- Tab 2 : Paiements -------- */}
         <TabsContent value="paiements">
           <Card className="p-0">
-            <div className="custom-scrollbar overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+            <ResponsiveDataView
+              empty={paiements.length === 0}
+              emptyState={
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Aucun paiement enregistré.
+                </p>
+              }
+              mobile={paiements.map((p) => (
+                <MobileListCard key={p.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-bold text-foreground">{p.facture}</p>
+                      <p className="mt-1 truncate font-semibold text-foreground">{p.eleve}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-success">{formatXOF(p.montant)}</span>
+                  </div>
+                  <div className="mt-3 space-y-1 border-t border-border pt-3">
+                    <MobileListCardRow label="Mode paiement">
+                      <ModePaiementBadge mode={p.modePaiement} />
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Référence">
+                      <span className="font-mono text-xs">{p.reference}</span>
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Date">{p.datePaiement}</MobileListCardRow>
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
+                <div className="custom-scrollbar overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Facture</th>
@@ -358,9 +493,18 @@ export function FacturationView() {
                         <td className="px-4 py-3 text-sm text-muted-foreground">{p.datePaiement}</td>
                       </tr>
                     ))}
+                  {paiements.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                        Aucun paiement enregistré.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
-            </div>
+                </div>
+              }
+            />
           </Card>
         </TabsContent>
       </Tabs>

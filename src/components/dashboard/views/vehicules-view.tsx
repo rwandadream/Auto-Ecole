@@ -26,6 +26,11 @@ import {
   KpiCard,
   PaginationFooter,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { VehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
 import {
   DropdownMenu,
@@ -176,10 +181,90 @@ export function VehiculesView() {
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Table / cartes mobile */}
       <Card className="p-0">
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-sm">
+        <ResponsiveDataView
+          empty={vehiculesPage.length === 0}
+          emptyState={
+            <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+              Aucun véhicule ne correspond à votre recherche.
+            </p>
+          }
+          mobile={vehiculesPage.map((v) => {
+            const tone = etatTone(v.etat)
+            const iconWrapClass =
+              v.etat === 'Disponible'
+                ? 'bg-success/10 text-success'
+                : v.etat === 'En maintenance'
+                  ? 'bg-warning/10 text-warning'
+                  : 'bg-destructive/10 text-destructive'
+            return (
+              <MobileListCard key={v.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${iconWrapClass}`}>
+                      <Car className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-foreground">
+                        {v.marque} {v.modele}
+                      </p>
+                      <span className="mt-1 inline-block rounded-md border border-border bg-muted/40 px-2 py-0.5 font-mono text-xs font-semibold text-foreground">
+                        {v.immatriculation}
+                      </span>
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label="Actions"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          setEditId(v.id)
+                          setShowEdit(true)
+                        }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Modifier
+                      </DropdownMenuItem>
+                      {canDeleteVehicule && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleteId(v.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <MobileListCardRow label="État">
+                    <StatusBadge label={v.etat} tone={tone} />
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Séances">
+                    <span className="font-bold">{v.seances}</span>
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Dernière dépense">
+                    <span className="flex items-center justify-end gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                      {v.derniereDepense}
+                    </span>
+                  </MobileListCardRow>
+                </div>
+              </MobileListCard>
+            )
+          })}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -285,7 +370,9 @@ export function VehiculesView() {
               )}
             </tbody>
           </table>
-        </div>
+            </div>
+          }
+        />
 
         <PaginationFooter
           pageCourante={pageCourante}

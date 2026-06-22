@@ -18,6 +18,11 @@ import {
   resultatExamenTone,
   TypeExamenBadge,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { NouvelExamenDialog } from '@/components/dashboard/dialogs/nouvel-examen-dialog'
 import { ModifierExamenDialog } from '@/components/dashboard/dialogs/modifier-examen-dialog'
 import {
@@ -134,8 +139,84 @@ function ExamensIndividuels() {
       </Card>
 
       <Card className="p-0">
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[960px] border-collapse text-left">
+        <ResponsiveDataView
+          empty={examensPage.length === 0}
+          emptyState={
+            <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+              Aucun examen ne correspond à votre recherche.
+            </p>
+          }
+          mobile={examensPage.map((x) => (
+            <MobileListCard key={x.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {initials(x.eleve)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-foreground">{x.eleve}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{x.eleveCode}</p>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      aria-label="Actions"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setselectedEleveCode(x.eleveCode)
+                        setActiveView('eleve-detail')
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Voir la fiche élève
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setEditExamen(x)
+                        setShowEdit(true)
+                      }}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onSelect={() => setDeleteId(x.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="mt-3 space-y-1 border-t border-border pt-3">
+                <MobileListCardRow label="Type examen">
+                  <TypeExamenBadge type={x.typeExamen} />
+                </MobileListCardRow>
+                <MobileListCardRow label="Type permis">{x.typePermis}</MobileListCardRow>
+                <MobileListCardRow label="Date">{x.dateExamen}</MobileListCardRow>
+                <MobileListCardRow label="Inspecteur">{x.inspecteur}</MobileListCardRow>
+                <MobileListCardRow label="Résultat">
+                  <StatusBadge label={x.resultat} tone={resultatExamenTone[x.resultat]} />
+                </MobileListCardRow>
+                {x.notes && (
+                  <MobileListCardRow label="Notes">
+                    <span className="line-clamp-2 text-left">{x.notes}</span>
+                  </MobileListCardRow>
+                )}
+              </div>
+            </MobileListCard>
+          ))}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[960px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border">
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Élève</th>
@@ -234,7 +315,9 @@ function ExamensIndividuels() {
               )}
             </tbody>
           </table>
-        </div>
+            </div>
+          }
+        />
         <PaginationFooter
           pageCourante={pageCourante}
           totalPages={totalPages}

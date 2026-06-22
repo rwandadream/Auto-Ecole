@@ -26,6 +26,11 @@ import {
   formatXOF,
   type KpiTone,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { type CategorieDepense, type ModePaiement } from '@/lib/domain/types'
 import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
@@ -300,8 +305,85 @@ export function ComptabiliteView() {
           </div>
         </div>
 
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[1000px] text-sm">
+        <ResponsiveDataView
+          empty={filteredDepenses.length === 0}
+          emptyState={
+            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+              Aucune dépense trouvée.
+            </p>
+          }
+          mobile={filteredDepenses.map((d) => {
+            const cfg = categorieConfig[d.categorie]
+            const mp = modePaiementBadge[d.modePaiement]
+            return (
+              <MobileListCard key={d.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.badge}`}>
+                      {cfg.icon}
+                      {d.categorie}
+                    </span>
+                    <p className="mt-2 font-semibold text-foreground">{d.description}</p>
+                    <p className="text-xs text-muted-foreground">{d.date}</p>
+                  </div>
+                  <p className="shrink-0 text-sm font-bold text-foreground">{formatXOF(d.montant)}</p>
+                </div>
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <MobileListCardRow label="Véhicule">
+                    {d.vehicule === '—' ? '—' : d.vehicule}
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Mode">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${mp.bg} ${mp.fg}`}>
+                      {mp.icon}
+                      {d.modePaiement}
+                    </span>
+                  </MobileListCardRow>
+                </div>
+                <div className="mt-3 flex items-center justify-end gap-1 border-t border-border pt-3">
+                  <button
+                    onClick={() => {
+                      if (d.justificatif) setPreviewJustificatif(d.justificatif)
+                      else toast.info('Aucun justificatif téléversé pour cette dépense')
+                    }}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Voir le justificatif"
+                  >
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Justificatif
+                  </button>
+                  <button
+                    onClick={() => setDetailId(d.id)}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Voir"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditId(d.id)
+                      setShowEdit(true)
+                    }}
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title="Modifier"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  {canDeleteDepense && (
+                    <button
+                      onClick={() => setDeleteId(d.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </MobileListCard>
+            )
+          })}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[1000px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
@@ -395,7 +477,9 @@ export function ComptabiliteView() {
               )}
             </tbody>
           </table>
-        </div>
+            </div>
+          }
+        />
       </Card>
 
       <DepenseDialog open={showAdd} onOpenChange={setShowAdd} />

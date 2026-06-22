@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
 import { formatXOFFcfa } from '@/lib/format'
 import { initials, StatusBadge, statutEleveTone } from '@/components/dashboard/views/shared'
+import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
@@ -95,7 +96,8 @@ export function StudentHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 min-w-0 items-center gap-2 border-b border-border bg-card px-4 sm:gap-4 sm:px-6">
+      <MobileMenuButton />
       {/* Greeting */}
       <div className="min-w-0">
         <p className="truncate text-sm font-bold text-foreground sm:text-base">

@@ -19,6 +19,11 @@ import {
 import { NouvelleSeanceDialog } from '@/components/dashboard/dialogs/nouvelle-seance-dialog'
 import { SuiviSeanceDialog } from '@/components/dashboard/dialogs/suivi-seance-dialog'
 import { PlanningCalendar } from '@/components/dashboard/views/planning-calendar'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
@@ -162,7 +167,9 @@ export function PlanningView() {
       <Tabs value={vue} onValueChange={(v) => setVue(v as 'liste' | 'calendrier')} className="mt-6">
         <TabsList>
           <TabsTrigger value="liste">Liste</TabsTrigger>
-          <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
+          <TabsTrigger value="calendrier" className="hidden lg:inline-flex">
+            Calendrier
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="liste" className="mt-4">
@@ -189,6 +196,80 @@ export function PlanningView() {
 
       {/* Table */}
       <Card className="mt-4 p-0">
+        <ResponsiveDataView
+          empty={seancesPage.length === 0}
+          emptyState={
+            <p className="px-5 py-12 text-center text-sm text-muted-foreground">
+              Aucune séance ne correspond à ce filtre.
+            </p>
+          }
+          mobile={seancesPage.map((s) => (
+            <MobileListCard key={s.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{formatPlanningDate(s.date)}</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {s.heureDebut} – {s.heureFin}
+                    <span className="ml-2 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                      {dureeLabel(s.duree)}
+                    </span>
+                  </p>
+                </div>
+                <StatusBadge label={s.statut} tone={statutSeanceTone[s.statut]} />
+              </div>
+              <div className="mt-3 space-y-1 border-t border-border pt-3">
+                <MobileListCardRow label="Élève">
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                      {initials(s.eleve)}
+                    </div>
+                    <div className="min-w-0 text-right">
+                      <div className="truncate text-sm font-medium">{s.eleve}</div>
+                      <div className="text-xs text-muted-foreground">{s.eleveCode}</div>
+                    </div>
+                  </div>
+                </MobileListCardRow>
+                <MobileListCardRow label="Moniteur">{s.moniteur}</MobileListCardRow>
+                <MobileListCardRow label="Véhicule">{s.vehicule}</MobileListCardRow>
+                <MobileListCardRow label="Lieu RDV">{s.lieuRdv || '—'}</MobileListCardRow>
+                {s.notes && (
+                  <MobileListCardRow label="Notes">
+                    <span className="line-clamp-2 text-left">{s.notes}</span>
+                  </MobileListCardRow>
+                )}
+              </div>
+              <div className="mt-3 flex justify-end border-t border-border pt-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label="Actions"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                      Actions
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onSelect={() => openSuivi(s)}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <ClipboardCheck className="h-4 w-4 text-primary" />
+                      Suivi pédagogique
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => setToDelete(s)}
+                      className="flex items-center gap-2 text-sm text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </MobileListCard>
+          ))}
+          desktop={
         <div className="custom-scrollbar overflow-x-auto">
           <table className="w-full min-w-[1100px] border-collapse text-left">
             <thead>
@@ -284,16 +365,11 @@ export function PlanningView() {
                   </td>
                 </tr>
               ))}
-              {seancesPage.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-sm text-muted-foreground">
-                    Aucune séance ne correspond à ce filtre.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+          }
+        />
 
         {/* Footer */}
         <div className="flex flex-col gap-3 border-t border-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
@@ -330,7 +406,49 @@ export function PlanningView() {
       </Card>
         </TabsContent>
         <TabsContent value="calendrier" className="mt-4">
-          <PlanningCalendar seances={seancesFiltrees} onSelect={openSuivi} />
+          <div className="hidden lg:block">
+            <PlanningCalendar seances={seancesFiltrees} onSelect={openSuivi} />
+          </div>
+          <div className="space-y-4 lg:hidden">
+            {seancesFiltrees.length === 0 ? (
+              <p className="rounded-lg border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                Aucune séance pour ce filtre.
+              </p>
+            ) : (
+              [...seancesFiltrees]
+                .sort((a, b) => a.date.localeCompare(b.date) || a.heureDebut.localeCompare(b.heureDebut))
+                .reduce<Array<{ date: string; items: typeof seancesFiltrees }>>((acc, s) => {
+                  const last = acc[acc.length - 1]
+                  if (last?.date === s.date) last.items.push(s)
+                  else acc.push({ date: s.date, items: [s] })
+                  return acc
+                }, [])
+                .map(({ date, items }) => (
+                  <div key={date}>
+                    <h3 className="mb-2 text-sm font-semibold text-foreground">{formatPlanningDate(date)}</h3>
+                    <div className="space-y-3">
+                      {items.map((s) => (
+                        <MobileListCard key={s.id} onClick={() => openSuivi(s)}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">
+                                {s.heureDebut} – {s.heureFin}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{dureeLabel(s.duree)}</p>
+                            </div>
+                            <StatusBadge label={s.statut} tone={statutSeanceTone[s.statut]} />
+                          </div>
+                          <div className="mt-2 space-y-1">
+                            <MobileListCardRow label="Élève">{s.eleve}</MobileListCardRow>
+                            <MobileListCardRow label="Moniteur">{s.moniteur}</MobileListCardRow>
+                          </div>
+                        </MobileListCard>
+                      ))}
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

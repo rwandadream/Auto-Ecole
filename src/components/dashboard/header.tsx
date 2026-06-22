@@ -23,6 +23,7 @@ import { initials } from '@/components/dashboard/views/shared'
 import { currentMonthRange } from '@/lib/format'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
+import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
 
 export function Header() {
   const user = useAuthStore((s) => s.user)
@@ -49,7 +50,8 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card px-6">
+    <header className="sticky top-0 z-30 flex h-16 min-w-0 items-center gap-2 border-b border-border bg-card px-4 sm:gap-4 sm:px-6">
+      <MobileMenuButton />
       <GlobalSearch />
 
       {/* Dynamic Date Range */}

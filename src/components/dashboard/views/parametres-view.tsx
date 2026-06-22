@@ -25,8 +25,14 @@ import {
   Card,
   formatXOF,
   initials,
+  ScrollableTabs,
   type BadgeTone,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field as ModalField, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -307,9 +313,9 @@ export function ParametresView() {
       />
 
       <Tabs defaultValue="profil" className="flex flex-col gap-6 lg:flex-row">
-        {/* Barre latérale couvrant le layout */}
-        <div className="lg:w-64 lg:shrink-0">
-          <TabsList className="flex h-auto w-full flex-col gap-1 rounded-xl border border-border bg-card p-2">
+        <div className="w-full lg:w-64 lg:shrink-0">
+          <ScrollableTabs className="lg:overflow-visible">
+            <TabsList className="inline-flex h-auto w-max min-w-full flex-row gap-1 rounded-xl border border-border bg-card p-2 lg:flex lg:w-full lg:flex-col">
             <TabsTrigger
               value="profil"
               className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -332,6 +338,7 @@ export function ParametresView() {
               Catalogue
             </TabsTrigger>
           </TabsList>
+          </ScrollableTabs>
         </div>
 
         {/* Contenu des tabs */}
@@ -395,6 +402,60 @@ export function ParametresView() {
               )}
             </div>
 
+            <ResponsiveDataView
+              empty={profiles.length === 0}
+              emptyState={
+                <p className="p-6 text-center text-sm text-muted-foreground">Aucun utilisateur enregistré.</p>
+              }
+              mobile={profiles.map((p) => (
+                <MobileListCard key={p.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                        {initials(p.name)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">{p.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                      </div>
+                    </div>
+                    {canManageUsers && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            aria-label="Actions"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          <DropdownMenuItem onClick={() => { setEditingUserId(p.id); setShowUserDialog(true) }}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeletingUserId(p.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <MobileListCardRow label="Rôle">
+                      <StatusBadge label={p.role} tone={roleTone[p.role]} />
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Statut">
+                      <StatusBadge label={p.actif ? 'Actif' : 'Inactif'} tone={p.actif ? 'success' : 'neutral'} />
+                    </MobileListCardRow>
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar overflow-x-auto">
               <table className="w-full min-w-[800px] text-sm">
                 <thead>
@@ -465,6 +526,8 @@ export function ParametresView() {
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
 
@@ -535,6 +598,46 @@ export function ParametresView() {
                 )}
               </div>
 
+              <ResponsiveDataView
+                empty={formations.length === 0}
+                emptyState={
+                  <p className="p-6 text-center text-sm text-muted-foreground">Aucune formation enregistrée.</p>
+                }
+                mobile={formations.map((f) => (
+                  <MobileListCard key={f.id}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{f.nom}</p>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>
+                      </div>
+                      <StatusBadge label={f.actif ? 'Actif' : 'Inactif'} tone={f.actif ? 'success' : 'neutral'} />
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <MobileListCardRow label="Prix">
+                        <span className="font-bold text-primary">{formatXOF(f.prix)}</span>
+                      </MobileListCardRow>
+                    </div>
+                    {canManageFormations && (
+                      <div className="mt-3 flex justify-end gap-1 border-t border-border pt-3">
+                        <button
+                          onClick={() => { setEditingFormationId(f.id); setShowFormationDialog(true) }}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => setDeletingFormationId(f.id)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Supprimer
+                        </button>
+                      </div>
+                    )}
+                  </MobileListCard>
+                ))}
+                desktop={
               <div className="custom-scrollbar overflow-x-auto">
                 <table className="w-full min-w-[600px] text-sm">
                   <thead>
@@ -587,6 +690,8 @@ export function ParametresView() {
                   </tbody>
                 </table>
               </div>
+                }
+              />
             </Card>
           </div>
           {canManageUsers && <MediaMigrationPanel />}

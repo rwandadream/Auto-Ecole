@@ -24,6 +24,11 @@ import {
   PaginationFooter,
   KpiCard,
 } from '@/components/dashboard/views/shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { NouvelInspecteurDialog } from '@/components/dashboard/dialogs/nouvel-inspecteur-dialog'
 import {
   DropdownMenu,
@@ -156,10 +161,75 @@ export function InspecteursView() {
         </div>
       </Card>
 
-      {/* Table */}
+      {/* Table / cartes mobile */}
       <Card className="p-0">
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+        <ResponsiveDataView
+          empty={inspecteursPage.length === 0}
+          emptyState={
+            <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+              Aucun inspecteur ne correspond à votre recherche.
+            </p>
+          }
+          mobile={inspecteursPage.map((i) => {
+            const nomComplet = `${i.prenom} ${i.nom}`
+            return (
+              <MobileListCard key={i.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {initials(nomComplet)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-foreground">{nomComplet}</p>
+                      <StatusBadge
+                        label={i.actif ? 'Actif' : 'Inactif'}
+                        tone={i.actif ? 'success' : 'neutral'}
+                      />
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        aria-label="Actions"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem
+                        onClick={() => { setEditingId(i.id); setShowAdd(true) }}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setDeletingId(i.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <MobileListCardRow label="Téléphone">
+                    <span className="flex items-center justify-end gap-1.5">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      {i.telephone}
+                    </span>
+                  </MobileListCardRow>
+                  <MobileListCardRow label="Email">
+                    <span className="truncate">{i.email || '—'}</span>
+                  </MobileListCardRow>
+                </div>
+              </MobileListCard>
+            )
+          })}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom complet</th>
@@ -241,7 +311,9 @@ export function InspecteursView() {
               })}
             </tbody>
           </table>
-        </div>
+            </div>
+          }
+        />
         <PaginationFooter
           pageCourante={pageCourante}
           totalPages={totalPages}

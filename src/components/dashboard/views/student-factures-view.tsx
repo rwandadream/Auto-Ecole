@@ -21,6 +21,11 @@ import {
   ModePaiementBadge,
   type KpiTone,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 
 // KPI mini card
 function SummaryCard({
@@ -169,6 +174,40 @@ export function StudentFacturesView() {
         {/* -------- Tab 1 : Factures -------- */}
         <TabsContent value="factures">
           <Card className="p-0">
+            <ResponsiveDataView
+              empty={myFactures.length === 0}
+              emptyState={
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Aucune facture à afficher.
+                </p>
+              }
+              mobile={myFactures.map((f) => (
+                <MobileListCard key={f.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-bold text-foreground">{f.numero}</p>
+                      <p className="mt-1 truncate text-sm text-muted-foreground">{f.formation}</p>
+                    </div>
+                    <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
+                  </div>
+                  <div className="mt-3 space-y-1 border-t border-border pt-3">
+                    <MobileListCardRow label="Montant">{formatXOF(f.montant)}</MobileListCardRow>
+                    <MobileListCardRow label="Payé">
+                      <span className="text-success">{formatXOF(f.paye)}</span>
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Reste">
+                      <span className={f.reste > 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
+                        {formatXOF(f.reste)}
+                      </span>
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Date">{f.dateEmission}</MobileListCardRow>
+                  </div>
+                  <div className="mt-3 flex justify-end border-t border-border pt-3">
+                    <DownloadButton label="Télécharger PDF" document={f} type="facture" />
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
                 <thead>
@@ -208,22 +247,47 @@ export function StudentFacturesView() {
                       </td>
                     </tr>
                   ))}
-                  {myFactures.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                        Aucune facture à afficher.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
 
         {/* -------- Tab 2 : Reçus -------- */}
         <TabsContent value="recus">
           <Card className="p-0">
+            <ResponsiveDataView
+              empty={myPaiements.length === 0}
+              emptyState={
+                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Aucun reçu de paiement à afficher.
+                </p>
+              }
+              mobile={myPaiements.map((p) => (
+                <MobileListCard key={p.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-bold text-foreground">{p.facture}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-success">{formatXOF(p.montant)}</span>
+                  </div>
+                  <div className="mt-3 space-y-1 border-t border-border pt-3">
+                    <MobileListCardRow label="Mode paiement">
+                      <ModePaiementBadge mode={p.modePaiement} />
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Référence">
+                      <span className="font-mono text-xs">{p.reference}</span>
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Date">{p.datePaiement}</MobileListCardRow>
+                  </div>
+                  <div className="mt-3 flex justify-end border-t border-border pt-3">
+                    <DownloadButton label="Télécharger le reçu" document={p} type="recu" />
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar overflow-x-auto">
               <table className="w-full min-w-[800px] text-sm">
                 <thead>
@@ -259,16 +323,11 @@ export function StudentFacturesView() {
                       </td>
                     </tr>
                   ))}
-                  {myPaiements.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                        Aucun reçu de paiement à afficher.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
       </Tabs>

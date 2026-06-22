@@ -13,7 +13,9 @@ import {
   resultatExamenTone,
   statutFactureTone,
   formatDateFr,
+  ScrollableTabs,
 } from './shared'
+import { ResponsiveDataView, MobileListCard, MobileListCardRow } from '@/components/dashboard/responsive-data-view'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActionButton } from './shared'
 import { formatDateLongFr } from '@/lib/format'
@@ -70,7 +72,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
   return (
     <div>
       {/* Back button + actions */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <button
           onClick={() => setActiveView('eleves')}
           className="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -147,12 +149,14 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
 
       {/* Tabs */}
       <Tabs defaultValue="infos" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="infos">Informations</TabsTrigger>
-          <TabsTrigger value="seances">Séances ({eleveSeances.length})</TabsTrigger>
-          <TabsTrigger value="examens">Examens ({eleveExamens.length})</TabsTrigger>
-          <TabsTrigger value="factures">Factures ({eleveFactures.length})</TabsTrigger>
-        </TabsList>
+        <ScrollableTabs>
+          <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap gap-1 bg-muted p-1 lg:grid lg:w-full lg:grid-cols-4">
+            <TabsTrigger value="infos" className="shrink-0">Informations</TabsTrigger>
+            <TabsTrigger value="seances" className="shrink-0">Séances ({eleveSeances.length})</TabsTrigger>
+            <TabsTrigger value="examens" className="shrink-0">Examens ({eleveExamens.length})</TabsTrigger>
+            <TabsTrigger value="factures" className="shrink-0">Factures ({eleveFactures.length})</TabsTrigger>
+          </TabsList>
+        </ScrollableTabs>
 
         {/* Tab Informations */}
         <TabsContent value="infos" className="mt-4">
@@ -196,6 +200,27 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
         {/* Tab Séances */}
         <TabsContent value="seances" className="mt-4">
           <Card className="p-0">
+            <ResponsiveDataView
+              empty={eleveSeances.length === 0}
+              emptyState={
+                <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  Aucune séance enregistrée.
+                </p>
+              }
+              mobile={eleveSeances.map((s) => (
+                <MobileListCard key={s.id}>
+                  <p className="font-medium text-foreground">{formatDateFr(s.date, { withYear: true })}</p>
+                  <p className="text-xs text-muted-foreground">{s.heureDebut} – {s.heureFin}</p>
+                  <div className="mt-2 space-y-1 border-t border-border pt-2">
+                    <MobileListCardRow label="Moniteur">{s.moniteur}</MobileListCardRow>
+                    <MobileListCardRow label="Véhicule">{s.vehicule}</MobileListCardRow>
+                    <MobileListCardRow label="Statut">
+                      <StatusBadge label={s.statut} tone={statutSeanceTone[s.statut]} />
+                    </MobileListCardRow>
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar max-h-[500px] overflow-auto">
               <table className="w-full min-w-[700px] text-sm">
                 <thead className="sticky top-0 z-10 bg-card">
@@ -232,12 +257,35 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
 
         {/* Tab Examens */}
         <TabsContent value="examens" className="mt-4">
           <Card className="p-0">
+            <ResponsiveDataView
+              empty={eleveExamens.length === 0}
+              emptyState={
+                <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  Aucun examen enregistré.
+                </p>
+              }
+              mobile={eleveExamens.map((x) => (
+                <MobileListCard key={x.id}>
+                  <p className="font-medium text-foreground">{x.typeExamen} ({x.typePermis})</p>
+                  <p className="text-xs text-muted-foreground">{x.dateExamen}</p>
+                  <div className="mt-2 space-y-1 border-t border-border pt-2">
+                    <MobileListCardRow label="Inspecteur">{x.inspecteur}</MobileListCardRow>
+                    <MobileListCardRow label="Résultat">
+                      <StatusBadge label={x.resultat} tone={resultatExamenTone[x.resultat]} />
+                    </MobileListCardRow>
+                    {x.notes && <MobileListCardRow label="Notes">{x.notes}</MobileListCardRow>}
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar max-h-[500px] overflow-auto">
               <table className="w-full min-w-[700px] text-sm">
                 <thead className="sticky top-0 z-10 bg-card">
@@ -274,12 +322,37 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
 
         {/* Tab Factures */}
         <TabsContent value="factures" className="mt-4">
           <Card className="p-0">
+            <ResponsiveDataView
+              empty={eleveFactures.length === 0}
+              emptyState={
+                <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  Aucune facture enregistrée.
+                </p>
+              }
+              mobile={eleveFactures.map((f) => (
+                <MobileListCard key={f.id}>
+                  <p className="font-mono text-sm font-bold text-foreground">{f.numero}</p>
+                  <p className="text-xs text-muted-foreground">{f.formation}</p>
+                  <div className="mt-2 space-y-1 border-t border-border pt-2">
+                    <MobileListCardRow label="Montant">{formatXOF(f.montant)}</MobileListCardRow>
+                    <MobileListCardRow label="Payé">{formatXOF(f.paye)}</MobileListCardRow>
+                    <MobileListCardRow label="Reste">{formatXOF(f.reste)}</MobileListCardRow>
+                    <MobileListCardRow label="Statut">
+                      <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
+                    </MobileListCardRow>
+                    <MobileListCardRow label="Date">{f.dateEmission}</MobileListCardRow>
+                  </div>
+                </MobileListCard>
+              ))}
+              desktop={
             <div className="custom-scrollbar max-h-[500px] overflow-auto">
               <table className="w-full min-w-[800px] text-sm">
                 <thead className="sticky top-0 z-10 bg-card">
@@ -318,6 +391,8 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
                 </tbody>
               </table>
             </div>
+              }
+            />
           </Card>
         </TabsContent>
       </Tabs>

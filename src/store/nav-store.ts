@@ -28,17 +28,23 @@ export type ViewKey =
 interface NavState {
   activeView: ViewKey
   collapsed: boolean
+  mobileNavOpen: boolean
   selectedEleveCode: string | null
   setActiveView: (view: ViewKey) => void
   setselectedEleveCode: (code: string | null) => void
   toggleCollapsed: () => void
+  setMobileNavOpen: (open: boolean) => void
+  closeMobileNav: () => void
 }
 
 export const useNavStore = create<NavState>((set) => ({
   activeView: 'dashboard',
   collapsed: false,
+  mobileNavOpen: false,
   selectedEleveCode: null,
-  setActiveView: (view) => set({ activeView: view }),
+  setActiveView: (view) => set({ activeView: view, mobileNavOpen: false }),
   setselectedEleveCode: (code) => set({ selectedEleveCode: code }),
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
+  setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
+  closeMobileNav: () => set({ mobileNavOpen: false }),
 }))

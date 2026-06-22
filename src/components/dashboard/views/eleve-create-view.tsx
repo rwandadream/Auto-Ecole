@@ -79,7 +79,7 @@ export function EleveCreateView() {
   return (
     <div>
       {/* Back + actions */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           onClick={() => setActiveView('eleves')}
           className="inline-flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

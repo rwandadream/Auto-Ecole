@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { StudentSidebar } from '@/components/dashboard/student-sidebar'
 import { StudentHeader } from '@/components/dashboard/student-header'
+import { AppShell } from '@/components/dashboard/app-shell'
 import { DashboardView } from '@/components/dashboard/views/dashboard-view'
 import { ElevesView } from '@/components/dashboard/views/eleves-view'
 import { EleveDetailView } from '@/components/dashboard/views/eleve-detail-view'
@@ -40,6 +41,23 @@ const studentViewMap = {
   'student-profil': StudentProfilView,
 } as const
 
+const adminViewMap = {
+  dashboard: DashboardView,
+  eleves: ElevesView,
+  scanner: ScannerCniView,
+  moniteurs: MoniteursView,
+  vehicules: VehiculesView,
+  inspecteurs: InspecteursView,
+  planning: PlanningView,
+  examens: ExamensView,
+  bordereaux: BordereauxView,
+  facturation: FacturationView,
+  comptabilite: ComptabiliteView,
+  parametres: ParametresView,
+  audit: AuditLogView,
+  assistance: AssistanceView,
+} as const
+
 export default function Home() {
   return (
     <StoreHydration>
@@ -62,100 +80,47 @@ function HomeContent() {
     }
   }, [user, activeView, setActiveView])
 
-  // Not authenticated → show login
   if (!isAuthenticated || !user) {
     return <LoginView />
   }
 
-  // Student portal
   if (user.mode === 'eleve') {
     const ViewComponent = studentViewMap[activeView as keyof typeof studentViewMap] ?? StudentDashboardView
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <StudentSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <StudentHeader />
-          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-            <ViewComponent />
-          </main>
-        </div>
-      </div>
+      <AppShell sidebar={<StudentSidebar />} header={<StudentHeader />}>
+        <ViewComponent />
+      </AppShell>
     )
   }
 
-  // Admin ERP — special case: eleve-detail page needs the selected code
   if (activeView === 'eleve-detail' && selectedEleveCode) {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
-          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-            <EleveDetailView eleveCode={selectedEleveCode} />
-          </main>
-        </div>
-      </div>
+      <AppShell sidebar={<Sidebar />} header={<Header />}>
+        <EleveDetailView eleveCode={selectedEleveCode} />
+      </AppShell>
     )
   }
 
-  // Admin ERP — special case: eleve-edit page needs the selected code
   if (activeView === 'eleve-edit' && selectedEleveCode) {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
-          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-            <EleveEditView eleveCode={selectedEleveCode} />
-          </main>
-        </div>
-      </div>
+      <AppShell sidebar={<Sidebar />} header={<Header />}>
+        <EleveEditView eleveCode={selectedEleveCode} />
+      </AppShell>
     )
   }
 
-  // Admin ERP — special case: eleve-create page
   if (activeView === 'eleve-create') {
     return (
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header />
-          <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-            <EleveCreateView />
-          </main>
-        </div>
-      </div>
+      <AppShell sidebar={<Sidebar />} header={<Header />}>
+        <EleveCreateView />
+      </AppShell>
     )
   }
 
-  // Admin ERP — standard views
-  const viewMap = {
-    dashboard: DashboardView,
-    eleves: ElevesView,
-    scanner: ScannerCniView,
-    moniteurs: MoniteursView,
-    vehicules: VehiculesView,
-    inspecteurs: InspecteursView,
-    planning: PlanningView,
-    examens: ExamensView,
-    bordereaux: BordereauxView,
-    facturation: FacturationView,
-    comptabilite: ComptabiliteView,
-    parametres: ParametresView,
-    audit: AuditLogView,
-    assistance: AssistanceView,
-  } as const
-
-  const ViewComponent = viewMap[activeView as keyof typeof viewMap] ?? DashboardView
+  const ViewComponent = adminViewMap[activeView as keyof typeof adminViewMap] ?? DashboardView
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header />
-        <main className="custom-scrollbar flex-1 overflow-y-auto p-6">
-          <ViewComponent />
-        </main>
-      </div>
-    </div>
+    <AppShell sidebar={<Sidebar />} header={<Header />}>
+      <ViewComponent />
+    </AppShell>
   )
 }

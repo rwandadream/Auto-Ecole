@@ -22,12 +22,12 @@ export function ViewHeader({ title, description, actions, className }: ViewHeade
   return (
     <div className={cn('mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between', className)}>
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h1>
         {description && (
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   )
 }
@@ -314,6 +314,39 @@ export function PaginationFooter({
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
+    </div>
+  )
+}
+
+export function PageToolbar({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+export function ScrollableTabs({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('-mx-1 overflow-x-auto px-1 pb-1', className)}>
+      <div className="flex min-w-max gap-1">{children}</div>
     </div>
   )
 }

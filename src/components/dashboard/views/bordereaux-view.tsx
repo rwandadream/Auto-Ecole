@@ -14,6 +14,11 @@ import {
   resultatExamenTone,
   TypeExamenBadge,
 } from './shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import { SaisieResultatsDialog } from '@/components/dashboard/dialogs/saisie-resultats-dialog'
 import { NouvelleSessionDialog } from '@/components/dashboard/dialogs/nouvelle-session-dialog'
 import {
@@ -125,10 +130,40 @@ export function BordereauxView() {
               <InfoCell label="Véhicule" value={sess.vehicule} />
             </div>
 
-            {/* Candidats table */}
+            {/* Candidats table / cartes mobile */}
             <div className="rounded-lg border border-border">
-              <div className="custom-scrollbar overflow-x-auto">
-                <table className="w-full min-w-[760px] border-collapse text-left">
+              <ResponsiveDataView
+                empty={sess.candidats.length === 0}
+                emptyState={
+                  <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Aucun candidat pour cette session.
+                  </p>
+                }
+                mobile={sess.candidats.map((c, idx) => (
+                  <MobileListCard key={c.identifiant}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          N° {String(idx + 1).padStart(2, '0')}
+                        </span>
+                        <p className="mt-1 font-semibold text-foreground">{c.nomComplet}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{c.identifiant}</p>
+                      </div>
+                      <StatusBadge label={c.resultat} tone={resultatExamenTone[c.resultat]} />
+                    </div>
+                    <div className="mt-3 space-y-1 border-t border-border pt-3">
+                      <MobileListCardRow label="Téléphone">{c.telephone}</MobileListCardRow>
+                      <MobileListCardRow label="Catégorie permis">
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                          {c.categoriePermis}
+                        </span>
+                      </MobileListCardRow>
+                    </div>
+                  </MobileListCard>
+                ))}
+                desktop={
+                  <div className="custom-scrollbar overflow-x-auto">
+                    <table className="w-full min-w-[760px] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">N°</th>
@@ -166,7 +201,9 @@ export function BordereauxView() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+                  </div>
+                }
+              />
             </div>
           </Card>
         ))}

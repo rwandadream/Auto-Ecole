@@ -4,6 +4,11 @@ import { useMemo, useState } from 'react'
 import { Search, ArrowUpDown, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useDataStore, type Eleve } from '@/store/data-store'
 import { formatXOF, StatusBadge, statutEleveTone } from '@/components/dashboard/views/shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 import type { StatutEleve } from '@/lib/domain/types'
 import { parseFlexibleDate } from '@/lib/stats'
 
@@ -134,9 +139,48 @@ export function RecentOrders() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="custom-scrollbar overflow-x-auto">
-        <table className="w-full min-w-[860px]">
+      {/* Table / cartes mobile */}
+      <ResponsiveDataView
+        empty={pageRows.length === 0}
+        emptyState={
+          <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+            Aucun élève ne correspond à votre recherche.
+          </p>
+        }
+        mobile={pageRows.map((eleve) => (
+          <MobileListCard key={eleve.id}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {eleve.nomComplet
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-foreground">{eleve.nomComplet}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{eleve.code}</p>
+                </div>
+              </div>
+              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-3 space-y-1 border-t border-border pt-3">
+              <MobileListCardRow label="Date inscription">{eleve.dateInscription}</MobileListCardRow>
+              <MobileListCardRow label="Type permis">{eleve.permis}</MobileListCardRow>
+              <MobileListCardRow label="Statut">
+                <StatusBadge label={eleve.statut} tone={statutEleveTone[eleve.statut]} />
+              </MobileListCardRow>
+              <MobileListCardRow label="Séances">{eleve.seances}</MobileListCardRow>
+              <MobileListCardRow label="Solde">{eleve.solde}</MobileListCardRow>
+            </div>
+          </MobileListCard>
+        ))}
+        desktop={
+          <div className="custom-scrollbar overflow-x-auto">
+            <table className="w-full min-w-[860px]">
           <thead>
             <tr className="border-b border-border">
               {columns.map((col) => (
@@ -202,7 +246,9 @@ export function RecentOrders() {
             )}
           </tbody>
         </table>
-      </div>
+          </div>
+        }
+      />
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-border p-4">
