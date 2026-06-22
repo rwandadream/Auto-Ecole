@@ -15,8 +15,6 @@ import {
   User,
   Users,
   BookOpen,
-  History,
-  HelpCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -55,9 +53,6 @@ import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 import { NouvelUtilisateurDialog } from '@/components/dashboard/dialogs/nouvel-utilisateur-dialog'
 import { FormationDialog } from '@/components/dashboard/dialogs/formation-dialog'
 import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
-import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
-import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
-import { FaqAdminPanel } from '@/components/dashboard/views/faq-admin-panel'
 import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
 
 const roleTone: Record<Role, BadgeTone> = {
@@ -336,20 +331,6 @@ export function ParametresView() {
               <BookOpen className="h-4 w-4" />
               Catalogue
             </TabsTrigger>
-            <TabsTrigger
-              value="audit"
-              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-            >
-              <History className="h-4 w-4" />
-              Journal d&apos;audit
-            </TabsTrigger>
-            <TabsTrigger
-              value="assistance"
-              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-            >
-              <HelpCircle className="h-4 w-4" />
-              Assistance
-            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -611,16 +592,6 @@ export function ParametresView() {
           {canManageUsers && <MediaMigrationPanel />}
         </TabsContent>
 
-        {/* -------- Tab 4 : Journal d'audit -------- */}
-        <TabsContent value="audit">
-          <AuditLogPanel />
-        </TabsContent>
-
-        {/* -------- Tab 5 : Assistance -------- */}
-        <TabsContent value="assistance">
-          <AssistancePanel />
-          {canManageUsers && <FaqAdminPanel />}
-        </TabsContent>
         </div>
       </Tabs>
 
