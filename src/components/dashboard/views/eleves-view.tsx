@@ -17,8 +17,10 @@ import {
   Gift,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { type StatutEleve } from '@/lib/mock-data'
+import { type StatutEleve } from '@/lib/domain/types'
+import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
 import { useNavStore } from '@/store/nav-store'
 import {
   ViewHeader,
@@ -27,6 +29,8 @@ import {
   Card,
   formatXOF,
   initials,
+  KpiCard,
+  statutEleveTone,
 } from '@/components/dashboard/views/shared'
 
 import {
@@ -60,58 +64,6 @@ const STATUT_FILTRES: StatutFiltre[] = [
   'Abandon',
 ]
 
-// Map statut élève → ton StatusBadge
-function statutTone(statut: StatutEleve): React.ComponentProps<typeof StatusBadge>['tone'] {
-  switch (statut) {
-    case 'Prospect':
-      return 'slate'
-    case 'Inscrit':
-      return 'sky'
-    case 'En formation':
-      return 'primary'
-    case 'Examen':
-      return 'amber'
-    case 'Admis':
-      return 'emerald'
-    case 'Ajourné':
-      return 'rose'
-    case 'Terminé':
-      return 'emerald'
-    case 'Abandon':
-      return 'slate'
-    default:
-      return 'slate'
-  }
-}
-
-type KpiCardProps = {
-  label: string
-  value: string
-  icon: React.ReactNode
-  tone: 'primary' | 'emerald' | 'amber' | 'sky' | 'slate'
-}
-
-function KpiCard({ label, value, icon, tone }: KpiCardProps) {
-  const toneClasses: Record<KpiCardProps['tone'], string> = {
-    primary: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-600',
-    sky: 'bg-sky-500/10 text-sky-600',
-    slate: 'bg-slate-500/10 text-slate-600',
-  }
-  return (
-    <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{value}</p>
-      </div>
-    </Card>
-  )
-}
-
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
@@ -122,6 +74,8 @@ export function ElevesView() {
 
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
+  const user = useAuthStore((s) => s.user)
+  const canDeleteEleve = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_eleve')
 
   const elevesFiltres = useMemo(() => {
     return eleves.filter((e) => {
@@ -176,19 +130,19 @@ export function ElevesView() {
           label="En formation"
           value={String(enFormation)}
           icon={<GraduationCap className="h-5 w-5" />}
-          tone="sky"
+          tone="secondary"
         />
         <KpiCard
           label="Admis ce mois"
           value={String(admis)}
           icon={<Award className="h-5 w-5" />}
-          tone="emerald"
+          tone="success"
         />
         <KpiCard
           label="Taux réussite"
           value={tauxReussite !== null ? `${tauxReussite.toString().replace('.', ',')} %` : '—'}
           icon={<TrendingUp className="h-5 w-5" />}
-          tone="amber"
+          tone="warning"
         />
       </div>
 
@@ -300,7 +254,7 @@ export function ElevesView() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge label={e.statut} tone={statutTone(e.statut)} />
+                      <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
@@ -317,9 +271,9 @@ export function ElevesView() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {e.solde > 0 ? (
-                        <span className="font-semibold text-rose-600">{formatXOF(e.solde)}</span>
+                        <span className="font-semibold text-destructive">{formatXOF(e.solde)}</span>
                       ) : (
-                        <span className="text-xs font-medium text-emerald-600">Soldé</span>
+                        <span className="text-xs font-medium text-success">Soldé</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -364,13 +318,15 @@ export function ElevesView() {
                             <Pencil className="mr-2 h-4 w-4" />
                             Modifier
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-600"
-                            onSelect={() => setDeleteEleveId(e.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
+                          {canDeleteEleve && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => setDeleteEleveId(e.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -430,13 +386,13 @@ export function ElevesView() {
             <AlertDialogTitle>Supprimer cet élève ?</AlertDialogTitle>
             <AlertDialogDescription>
               Cette action est irréversible. L&apos;élève sera définitivement retiré du registre,
-              ainsi que son code dossier et son rattachement au moniteur.
+              ainsi que ses factures, paiements, séances, examens et inscriptions associés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteEleveId) {
                   deleteEleve(deleteEleveId)

@@ -7,10 +7,8 @@ import {
   MessageCircle,
   Eye,
   Download,
-  Banknote,
-  Smartphone,
-  Building2,
   Trash2,
+  Banknote,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -31,59 +29,20 @@ import {
   Card,
   formatXOF,
   initials,
+  statutFactureTone,
+  ModePaiementBadge,
+  KpiCardMinimal,
 } from './shared'
 import { NouvelleFactureDialog } from '@/components/dashboard/dialogs/nouvelle-facture-dialog'
 import { NouveauPaiementDialog } from '@/components/dashboard/dialogs/nouveau-paiement-dialog'
 import { FactureDetailDialog } from '@/components/dashboard/dialogs/facture-detail-dialog'
 import {
   type StatutFacture,
-  type ModePaiement,
-} from '@/lib/mock-data'
+} from '@/lib/domain/types'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
+import { canPerformAction } from '@/lib/permissions'
 import { generateFacturePdf, relanceWhatsApp, messageRelanceFacture } from '@/lib/utils-docs'
-
-const statutTone: Record<StatutFacture, 'rose' | 'amber' | 'emerald'> = {
-  'Non payée': 'rose',
-  Partielle: 'amber',
-  Payée: 'emerald',
-  Impayée: 'rose',
-}
-
-const modePaiementConfig: Record<
-  ModePaiement,
-  { icon: React.ReactNode; bg: string; fg: string }
-> = {
-  Espèces: {
-    icon: <Banknote className="h-3.5 w-3.5" />,
-    bg: 'bg-slate-500/10',
-    fg: 'text-slate-600',
-  },
-  'Orange Money': {
-    icon: <Smartphone className="h-3.5 w-3.5" />,
-    bg: 'bg-amber-500/10',
-    fg: 'text-amber-600',
-  },
-  Wave: {
-    icon: <Smartphone className="h-3.5 w-3.5" />,
-    bg: 'bg-sky-500/10',
-    fg: 'text-sky-600',
-  },
-  Virement: {
-    icon: <Building2 className="h-3.5 w-3.5" />,
-    bg: 'bg-primary/10',
-    fg: 'text-primary',
-  },
-}
-
-function ModePaiementBadge({ mode }: { mode: ModePaiement }) {
-  const cfg = modePaiementConfig[mode]
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.fg}`}>
-      {cfg.icon}
-      {mode}
-    </span>
-  )
-}
 
 const statutFilters: ('Tous' | StatutFacture)[] = [
   'Tous',
@@ -92,32 +51,6 @@ const statutFilters: ('Tous' | StatutFacture)[] = [
   'Payée',
   'Impayée',
 ]
-
-function KpiCard({
-  label,
-  value,
-  tone = 'slate',
-}: {
-  label: string
-  value: string
-  tone?: 'primary' | 'emerald' | 'amber' | 'rose' | 'slate'
-}) {
-  const valueColor: Record<string, string> = {
-    primary: 'text-primary',
-    emerald: 'text-emerald-600',
-    amber: 'text-amber-600',
-    rose: 'text-rose-600',
-    slate: 'text-foreground',
-  }
-  return (
-    <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className={`mt-2 text-2xl font-bold ${valueColor[tone]}`}>{value}</p>
-    </Card>
-  )
-}
 
 function AvatarCell({ name }: { name: string }) {
   return (
@@ -143,6 +76,8 @@ export function FacturationView() {
   const [deleteFactureId, setDeleteFactureId] = useState<string | null>(null)
   const [detailFactureId, setDetailFactureId] = useState<string | null>(null)
   const deleteFacture = useDataStore((s) => s.deleteFacture)
+  const user = useAuthStore((s) => s.user)
+  const canDeleteFacture = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_facture')
 
   const filteredFactures = useMemo(() => {
     return factures.filter((f) => {
@@ -209,10 +144,10 @@ export function FacturationView() {
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Chiffre d'affaires total" value={formatXOF(caTotal)} tone="primary" />
-        <KpiCard label="Encaissé" value={formatXOF(encaisse)} tone="emerald" />
-        <KpiCard label="En attente" value={formatXOF(enAttente)} tone="amber" />
-        <KpiCard label="Factures impayées" value={String(impayeesCount)} tone="rose" />
+        <KpiCardMinimal label="Chiffre d'affaires total" value={formatXOF(caTotal)} tone="primary" />
+        <KpiCardMinimal label="Encaissé" value={formatXOF(encaisse)} tone="success" />
+        <KpiCardMinimal label="En attente" value={formatXOF(enAttente)} tone="warning" />
+        <KpiCardMinimal label="Factures impayées" value={String(impayeesCount)} tone="destructive" />
       </div>
 
       <Tabs defaultValue="factures" className="mt-6">
@@ -254,7 +189,7 @@ export function FacturationView() {
                 </div>
                 <button
                   onClick={handleBulkRelanceWhatsApp}
-                  className="flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+                  className="flex h-9 items-center gap-2 rounded-lg bg-success px-3 text-sm font-semibold text-white transition-colors hover:bg-success/90"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Relancer WhatsApp
@@ -302,14 +237,14 @@ export function FacturationView() {
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.formation}</td>
                       <td className="px-4 py-3 text-right text-sm font-medium text-foreground">{formatXOF(f.montant)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-medium text-emerald-600">{formatXOF(f.paye)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-medium text-success">{formatXOF(f.paye)}</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        <span className={f.reste > 0 ? 'text-rose-600' : 'text-muted-foreground'}>
+                        <span className={f.reste > 0 ? 'text-destructive' : 'text-muted-foreground'}>
                           {formatXOF(f.reste)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge label={f.statut} tone={statutTone[f.statut]} />
+                        <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.dateEmission}</td>
                       <td className="px-4 py-3">
@@ -323,7 +258,7 @@ export function FacturationView() {
                           </button>
                           <button
                             onClick={() => {
-                              generateFacturePdf(f)
+                              void generateFacturePdf(f)
                               toast.success(`Facture ${f.numero} générée.`)
                             }}
                             className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -334,7 +269,7 @@ export function FacturationView() {
                           {f.statut !== 'Payée' && (
                             <button
                               onClick={() => setPaiementFactureId(f.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-500/10"
+                              className="flex h-8 w-8 items-center justify-center rounded-md text-success transition-colors hover:bg-success/10"
                               title="Encaisser"
                             >
                               <Banknote className="h-4 w-4" />
@@ -354,19 +289,21 @@ export function FacturationView() {
                                   }),
                                 )
                               }
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-500/10"
+                              className="flex h-8 w-8 items-center justify-center rounded-md text-success transition-colors hover:bg-success/10"
                               title="Relancer WhatsApp"
                             >
                               <MessageCircle className="h-4 w-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => setDeleteFactureId(f.id)}
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-500/10"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canDeleteFacture && (
+                            <button
+                              onClick={() => setDeleteFactureId(f.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -401,9 +338,7 @@ export function FacturationView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paiements.map((p) => {
-                    const cfg = modePaiementConfig[p.modePaiement]
-                    return (
+                  {paiements.map((p) => (
                       <tr key={p.id} className="hover:bg-muted/40">
                         <td className="px-4 py-3">
                           <span className="font-mono text-sm font-bold text-foreground">{p.facture}</span>
@@ -411,7 +346,7 @@ export function FacturationView() {
                         <td className="px-4 py-3">
                           <AvatarCell name={p.eleve} />
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600">
+                        <td className="px-4 py-3 text-right text-sm font-bold text-success">
                           {formatXOF(p.montant)}
                         </td>
                         <td className="px-4 py-3">
@@ -422,8 +357,7 @@ export function FacturationView() {
                         </td>
                         <td className="px-4 py-3 text-sm text-muted-foreground">{p.datePaiement}</td>
                       </tr>
-                    )
-                  })}
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -457,7 +391,7 @@ export function FacturationView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteFactureId) {
                   deleteFacture(deleteFactureId)

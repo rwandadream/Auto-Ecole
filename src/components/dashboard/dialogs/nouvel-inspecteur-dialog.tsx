@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
 
@@ -100,19 +100,13 @@ export function NouvelInspecteurDialog({ open, onOpenChange, inspecteurId = null
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             {isEdit ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {isEdit ? 'Enregistrer' : "Créer l'inspecteur"}
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >

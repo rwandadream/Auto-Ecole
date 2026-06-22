@@ -3,7 +3,6 @@
 import {
   LayoutGrid,
   Users,
-  GraduationCap,
   Car,
   CalendarDays,
   ClipboardCheck,
@@ -11,13 +10,13 @@ import {
   Wallet,
   FileText,
   Settings,
-  HelpCircle,
   LogOut,
   ChevronLeft,
   ScanLine,
   UserCog,
   Shield,
-  History,
+  HelpCircle,
+  ScrollText,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -25,6 +24,7 @@ import { useNavStore, type ViewKey } from '@/store/nav-store'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
+import { BrandLogo } from '@/components/dashboard/brand-logo'
 
 type NavItem = {
   label: string
@@ -41,15 +41,6 @@ type NavSection = {
   title: string
   items: NavItem[]
 }
-
-// All roles in the system
-const ALL_ROLES = [
-  'Administrateur principal',
-  'Administrateur secondaire',
-  'Comptable',
-  'Moniteur',
-  'Conseiller',
-]
 
 // Helper: normalize role for matching (the auth-store may return 'Administrateur'
 // for unknown emails — treat it as an admin)
@@ -83,6 +74,8 @@ const navSections: NavSection[] = [
   {
     title: 'Général',
     items: [
+      { label: 'Assistance', view: 'assistance', icon: HelpCircle, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller'] },
+      { label: "Journal d'audit", view: 'audit', icon: ScrollText, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
       { label: 'Déconnexion', icon: LogOut, isLogout: true },
     ],
@@ -130,9 +123,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
-          <GraduationCap className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <BrandLogo />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
             <span className="text-base font-bold tracking-tight text-foreground">
@@ -177,14 +168,14 @@ export function Sidebar() {
                       onClick={() => {
                         if (item.isLogout) {
                           setShowLogout(true)
-                        } else {
+                        } else if (item.view) {
                           setActiveView(item.view)
                         }
                       }}
                       className={cn(
                         'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
                         item.isLogout
-                          ? 'text-muted-foreground hover:bg-rose-500/10 hover:text-rose-600'
+                          ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
                           : isActive
                             ? 'bg-primary text-primary-foreground shadow-sm'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground',

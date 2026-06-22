@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { UserPlus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
-import { type Role } from '@/lib/mock-data'
+import { type Role } from '@/lib/domain/types'
+import { DEMO_PASSWORD } from '@/lib/constants'
+import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 
 const ROLES: Role[] = [
   'Administrateur principal',
@@ -24,14 +26,13 @@ type Props = {
 }
 
 export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }: Props) {
-  const addProfile = useDataStore((s) => s.addProfile)
-  const updateProfile = useDataStore((s) => s.updateProfile)
   const profiles = useDataStore((s) => s.profiles)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('Moniteur')
   const [actif, setActif] = useState(true)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
 
   const isEdit = !!profileId
 
@@ -46,12 +47,14 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
           setEmail(target.email)
           setRole(target.role)
           setActif(target.actif)
+          setPassword('')
         }
       } else {
         setName('')
         setEmail('')
         setRole('Moniteur')
         setActif(true)
+        setPassword(DEMO_PASSWORD)
       }
     }
   }
@@ -61,6 +64,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
     setEmail('')
     setRole('Moniteur')
     setActif(true)
+    setPassword(DEMO_PASSWORD)
   }
 
   const handleCancel = () => {
@@ -68,7 +72,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
     onOpenChange(false)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim() || !email.trim()) {
       toast.error('Veuillez renseigner le nom complet et l\'email.')
       return
@@ -78,13 +82,50 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
       email: email.trim().toLowerCase(),
       role,
       actif,
+      password: password.trim() || DEMO_PASSWORD,
     }
     if (isEdit && profileId) {
-      updateProfile(profileId, payload)
-      toast.success(`Utilisateur ${name} modifié avec succès.`)
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: profileId,
+            name: payload.name,
+            role: payload.role,
+            actif: payload.actif,
+            password: password.trim() || undefined,
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          toast.error(json.error ?? 'Impossible de modifier l\'utilisateur')
+          return
+        }
+        await syncDataFromSupabase()
+        toast.success(`Utilisateur ${name} modifié avec succès.`)
+      } catch {
+        toast.error('Erreur réseau lors de la modification utilisateur')
+        return
+      }
     } else {
-      addProfile(payload)
-      toast.success(`Utilisateur ${name} ajouté à l'équipe.`)
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          toast.error(json.error ?? 'Impossible de créer l\'utilisateur')
+          return
+        }
+        await syncDataFromSupabase()
+        toast.success(`Utilisateur ${name} créé dans Supabase Auth.`)
+      } catch {
+        toast.error('Erreur réseau lors de la création utilisateur')
+        return
+      }
     }
     reset()
     onOpenChange(false)
@@ -103,19 +144,13 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             {isEdit ? <Save className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
             {isEdit ? 'Enregistrer' : "Créer l'utilisateur"}
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -125,7 +160,23 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
         </Field>
 
         <Field label="Email" required>
-          <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="a.diallo@sarahauto.ci" />
+          <FormInput
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            readOnly={isEdit}
+            disabled={isEdit}
+            placeholder="a.diallo@sarahauto.ci"
+          />
+        </Field>
+
+        <Field label={isEdit ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe'}>
+          <FormInput
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={isEdit ? 'Laisser vide pour ne pas changer' : DEMO_PASSWORD}
+          />
         </Field>
 
         <Field label="Rôle" required>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Receipt } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { formatXOF } from '@/components/dashboard/views/shared'
 import { useDataStore } from '@/store/data-store'
 
@@ -76,19 +76,13 @@ export function NouvelleFactureDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={() => onOpenChange(false)}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             <Receipt className="h-4 w-4" />
             Émettre la facture
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >

@@ -1,7 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useAuthStore } from '@/store/auth-store'
 import { useNavStore } from '@/store/nav-store'
+import { canAccessView, getDefaultViewForRole } from '@/lib/permissions'
+import { StoreHydration } from '@/components/dashboard/store-hydration'
+import { useSupabaseRealtime } from '@/hooks/use-supabase-realtime'
 import { LoginView } from '@/components/dashboard/login-view'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
@@ -37,9 +41,26 @@ const studentViewMap = {
 } as const
 
 export default function Home() {
+  return (
+    <StoreHydration>
+      <HomeContent />
+    </StoreHydration>
+  )
+}
+
+function HomeContent() {
   const { isAuthenticated, user } = useAuthStore()
   const activeView = useNavStore((s) => s.activeView)
+  const setActiveView = useNavStore((s) => s.setActiveView)
   const selectedEleveCode = useNavStore((s) => s.selectedEleveCode)
+
+  useSupabaseRealtime()
+
+  useEffect(() => {
+    if (user?.mode === 'admin' && !canAccessView(user.role, activeView)) {
+      setActiveView(getDefaultViewForRole(user.role))
+    }
+  }, [user, activeView, setActiveView])
 
   // Not authenticated → show login
   if (!isAuthenticated || !user) {

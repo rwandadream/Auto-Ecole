@@ -3,6 +3,21 @@
 //  Frontend-only, pas de backend
 // ============================================================
 
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { formatAmountFr, formatXOFFcfa, nowFrLocale } from '@/lib/format'
+
+/** Palette ERP SARAH AUTO (alignée sur globals.css) */
+const PDF_COLORS = {
+  primary: [37, 99, 235] as [number, number, number],
+  primaryLight: [239, 246, 255] as [number, number, number],
+  foreground: [30, 41, 59] as [number, number, number],
+  muted: [100, 116, 139] as [number, number, number],
+  destructive: [239, 68, 68] as [number, number, number],
+  border: [226, 232, 240] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
+}
+
 // --- WhatsApp relance ---
 export function sanitizePhone(phone: string): string {
   // Retire tout sauf les chiffres, garde le préfixe pays
@@ -25,17 +40,13 @@ export function messageRelanceFacture(params: {
   const { prenom, nom, numeroFacture, reste } = params
   return (
     `Bonjour ${prenom} ${nom},\n\n` +
-    `Votre facture *${numeroFacture}* présente un solde restant de *${reste.toLocaleString('fr-FR')} F CFA*.\n\n` +
+    `Votre facture *${numeroFacture}* présente un solde restant de *${formatXOFFcfa(reste)}*.\n\n` +
     `Nous vous prions de bien vouloir régulariser votre situation via :\n` +
     `• Wave\n• Orange Money\n• Espèces (à l'agence)\n\n` +
     `Merci de votre confiance.\n` +
     `— SARAH AUTO`
   )
 }
-
-// --- PDF generation ---
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
 type FactureData = {
   numero: string
@@ -74,31 +85,63 @@ type SessionData = {
   }>
 }
 
-function header(doc: jsPDF, subtitle: string) {
-  // Bande orange
-  doc.setFillColor(255, 107, 71)
+let cachedLogoPng: string | null = null
+
+/** Charge le logo SVG et le convertit en PNG pour jsPDF (cache en mémoire). */
+export async function loadLogoForPdf(): Promise<string | null> {
+  if (cachedLogoPng) return cachedLogoPng
+  if (typeof window === 'undefined') return null
+  try {
+    const res = await fetch('/logo.svg')
+    if (!res.ok) return null
+    const svgText = await res.text()
+    const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' })
+    const objectUrl = URL.createObjectURL(blob)
+    const img = new Image()
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('LOGO_LOAD_FAILED'))
+      img.src = objectUrl
+    })
+    const canvas = document.createElement('canvas')
+    canvas.width = 72
+    canvas.height = 72
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(img, 0, 0, 72, 72)
+    URL.revokeObjectURL(objectUrl)
+    cachedLogoPng = canvas.toDataURL('image/png')
+    return cachedLogoPng
+  } catch {
+    return null
+  }
+}
+
+async function header(doc: jsPDF, subtitle: string) {
+  doc.setFillColor(...PDF_COLORS.primary)
   doc.rect(0, 0, 210, 30, 'F')
-  // Logo texte
-  doc.setTextColor(255, 255, 255)
+  const logo = await loadLogoForPdf()
+  if (logo) {
+    doc.addImage(logo, 'PNG', 14, 6, 18, 18)
+  }
+  doc.setTextColor(...PDF_COLORS.white)
   doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
-  doc.text('SARAH AUTO', 14, 18)
+  doc.text('SARAH AUTO', logo ? 36 : 14, 18)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text('ERP Auto-Ecole', 14, 24)
-  // Sous-titre
-  doc.setTextColor(80, 80, 80)
+  doc.text('ERP Auto-Ecole', logo ? 36 : 14, 24)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
   doc.text(subtitle, 14, 42)
-  // Ligne
-  doc.setDrawColor(230, 230, 230)
+  doc.setDrawColor(...PDF_COLORS.border)
   doc.line(14, 46, 196, 46)
 }
 
 function footer(doc: jsPDF) {
   doc.setFontSize(8)
-  doc.setTextColor(150, 150, 150)
+  doc.setTextColor(...PDF_COLORS.muted)
   doc.setFont('helvetica', 'normal')
   doc.text(
     'SARAH AUTO — Auto-Ecole | Tel: +225 07 00 00 00 | Email: contact@sarahauto.ci',
@@ -106,28 +149,27 @@ function footer(doc: jsPDF) {
     285,
     { align: 'center' }
   )
-  doc.text(`Genere le ${new Date().toLocaleString('fr-FR')}`, 105, 290, { align: 'center' })
+  doc.text(`Genere le ${nowFrLocale()}`, 105, 290, { align: 'center' })
 }
 
-export function generateFacturePdf(f: FactureData) {
+export async function generateFacturePdf(f: FactureData) {
   const doc = new jsPDF()
-  header(doc, `Facture ${f.numero}`)
+  await header(doc, `Facture ${f.numero}`)
 
   // Infos
-  doc.setTextColor(40, 40, 40)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(`Date d'emission: ${f.dateEmission}`, 14, 56)
   doc.text(`Eleve: ${f.eleve} (${f.eleveCode})`, 14, 62)
   doc.text(`Formation: ${f.formation}`, 14, 68)
 
-  // Tableau
   autoTable(doc, {
     startY: 78,
     head: [['Designation', 'Montant (FCFA)'],
-           [f.formation, f.montant.toLocaleString('fr-FR')]],
+           [f.formation, formatAmountFr(f.montant)]],
     theme: 'striped',
-    headStyles: { fillColor: [255, 107, 71], textColor: 255, fontSize: 10 },
+    headStyles: { fillColor: PDF_COLORS.primary, textColor: 255, fontSize: 10 },
     bodyStyles: { fontSize: 10 },
     margin: { left: 14, right: 14 },
   })
@@ -137,13 +179,12 @@ export function generateFacturePdf(f: FactureData) {
   let y = (doc.lastAutoTable?.finalY ?? 100) + 14
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
-  doc.text(`Total facture: ${f.montant.toLocaleString('fr-FR')} FCFA`, 120, y)
-  doc.text(`Deja paye: ${f.paye.toLocaleString('fr-FR')} FCFA`, 120, y + 7)
-  doc.setTextColor(200, 50, 50)
-  doc.text(`Reste a payer: ${f.reste.toLocaleString('fr-FR')} FCFA`, 120, y + 14)
+  doc.text(`Total facture: ${formatXOFFcfa(f.montant)}`, 120, y)
+  doc.text(`Deja paye: ${formatXOFFcfa(f.paye)}`, 120, y + 7)
+  doc.setTextColor(...PDF_COLORS.destructive)
+  doc.text(`Reste a payer: ${formatXOFFcfa(f.reste)}`, 120, y + 14)
 
-  // Statut
-  doc.setTextColor(40, 40, 40)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.text(`Statut: ${f.reste === 0 ? 'Payee' : f.paye > 0 ? 'Partielle' : 'Non payee'}`, 14, y + 7)
@@ -152,11 +193,11 @@ export function generateFacturePdf(f: FactureData) {
   doc.save(`facture-${f.numero}.pdf`)
 }
 
-export function generateRecuPdf(p: PaiementData) {
+export async function generateRecuPdf(p: PaiementData) {
   const doc = new jsPDF()
-  header(doc, `Recu de paiement`)
+  await header(doc, `Recu de paiement`)
 
-  doc.setTextColor(40, 40, 40)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(`Recu No: REC-${p.reference}`, 14, 56)
@@ -164,33 +205,32 @@ export function generateRecuPdf(p: PaiementData) {
   doc.text(`Eleve: ${p.eleve}`, 14, 68)
   doc.text(`Facture: ${p.facture}`, 14, 74)
 
-  // Montant encadré
-  doc.setFillColor(255, 247, 244)
+  doc.setFillColor(...PDF_COLORS.primaryLight)
   doc.rect(14, 84, 182, 24, 'F')
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(255, 107, 71)
-  doc.text(`Montant encaisse: ${p.montant.toLocaleString('fr-FR')} FCFA`, 105, 100, { align: 'center' })
+  doc.setTextColor(...PDF_COLORS.primary)
+  doc.text(`Montant encaisse: ${formatXOFFcfa(p.montant)}`, 105, 100, { align: 'center' })
 
-  doc.setTextColor(40, 40, 40)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(`Mode de paiement: ${p.modePaiement}`, 14, 122)
   doc.text(`Reference: ${p.reference}`, 14, 128)
 
   doc.setFontSize(9)
-  doc.setTextColor(120, 120, 120)
+  doc.setTextColor(...PDF_COLORS.muted)
   doc.text('Ce recu confirme la reception du paiement ci-dessus.', 14, 145)
 
   footer(doc)
   doc.save(`recu-${p.reference}.pdf`)
 }
 
-export function generateBordereauPdf(s: SessionData) {
+export async function generateBordereauPdf(s: SessionData) {
   const doc = new jsPDF()
-  header(doc, `Bordereau d'examen — ${s.numeroBordereau}`)
+  await header(doc, `Bordereau d'examen — ${s.numeroBordereau}`)
 
-  doc.setTextColor(40, 40, 40)
+  doc.setTextColor(...PDF_COLORS.foreground)
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.text(`Date: ${s.date} a ${s.heure}`, 14, 56)
@@ -214,7 +254,7 @@ export function generateBordereauPdf(s: SessionData) {
       c.resultat,
     ]),
     theme: 'grid',
-    headStyles: { fillColor: [255, 107, 71], textColor: 255, fontSize: 9 },
+    headStyles: { fillColor: PDF_COLORS.primary, textColor: 255, fontSize: 9 },
     bodyStyles: { fontSize: 9 },
     margin: { left: 14, right: 14 },
   })

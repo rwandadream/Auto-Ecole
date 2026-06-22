@@ -5,6 +5,7 @@ import { ArrowLeft, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
+import { inscrireEleveAvecFacture } from '@/lib/inscription'
 import { ActionButton, Card } from './shared'
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 
@@ -13,6 +14,8 @@ const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-
 export function EleveCreateView() {
   const setActiveView = useNavStore((s) => s.setActiveView)
   const addEleve = useDataStore((s) => s.addEleve)
+  const formations = useDataStore((s) => s.formations)
+  const permis = useDataStore((s) => s.permis)
 
   const [nom, setNom] = useState('')
   const [prenom, setPrenom] = useState('')
@@ -26,12 +29,18 @@ export function EleveCreateView() {
   const [typePiece, setTypePiece] = useState('CNI')
   const [numPiece, setNumPiece] = useState('')
   const [typePermis, setTypePermis] = useState('B')
-  const [codeDossier, setCodeDossier] = useState('')
+  const [formationId, setFormationId] = useState('')
   const [parrain, setParrain] = useState('')
 
-  const handleSubmit = () => {
+  const formationsActives = formations.filter((f) => f.actif)
+
+  const handleSubmit = async () => {
     if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
       toast.error('Veuillez renseigner le nom, le prénom et le téléphone')
+      return
+    }
+    if (!formationId) {
+      toast.error('Veuillez sélectionner une formation pour inscrire l\'élève')
       return
     }
     const estParraine = parrain.trim() !== ''
@@ -40,6 +49,7 @@ export function EleveCreateView() {
       prenom: prenom.trim(),
       telephone: telephone.trim(),
       email: email.trim(),
+      adresse: adresse.trim(),
       dateNaissance,
       lieuNaissance: lieuNaissance.trim(),
       sexe,
@@ -50,7 +60,13 @@ export function EleveCreateView() {
       estParraine,
       parrainNom: parrain.trim(),
     })
-    toast.success('Élève créé avec succès')
+    try {
+      await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Impossible de créer l\'élève')
+      return
+    }
+    toast.success('Élève créé et facture émise automatiquement')
     // Naviguer vers la fiche du nouvel élève
     if (newEleve?.code) {
       useNavStore.getState().setselectedEleveCode(newEleve.code)
@@ -160,21 +176,27 @@ export function EleveCreateView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="A">A — Moto</option>
-                <option value="B">B — Voiture</option>
-                <option value="AB">AB — Moto + Voiture</option>
-                <option value="C">C — Poids lourd</option>
+                {(permis.length > 0 ? permis : [{ code: 'A', libelle: 'Moto' }, { code: 'B', libelle: 'Voiture' }, { code: 'AB', libelle: 'Moto + Voiture' }, { code: 'C', libelle: 'Poids lourd' }]).map((p) => (
+                  <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+                ))}
               </FormSelect>
             </Field>
-            <Field label="Code dossier">
-              <FormInput value={codeDossier} onChange={(e) => setCodeDossier(e.target.value)} placeholder="EL-XXXX (auto-généré si vide)" />
+            <Field label="Formation" required>
+              <FormSelect value={formationId} onChange={(e) => setFormationId(e.target.value)}>
+                <option value="">Sélectionner une formation</option>
+                {formationsActives.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nom} — {f.prix.toLocaleString('fr-FR')} F
+                  </option>
+                ))}
+              </FormSelect>
             </Field>
             <Field label="Parrainé par">
               <FormInput value={parrain} onChange={(e) => setParrain(e.target.value)} placeholder="Nom du parrain (optionnel)" />
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement si laissé vide. Le statut par défaut est &quot;Prospect&quot;.
+            Le code dossier est généré automatiquement. Une facture est émise dès l&apos;inscription à la formation.
           </p>
         </Card>
 

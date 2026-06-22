@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Plus, FileText, MoreVertical, Pencil, Trash2, Eye, Search } from 'lucide-react'
 import { toast } from 'sonner'
-import { type ResultatExamen } from '@/lib/mock-data'
+import { type ResultatExamen } from '@/lib/domain/types'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -15,8 +15,11 @@ import {
   Card,
   initials,
   PaginationFooter,
+  resultatExamenTone,
+  TypeExamenBadge,
 } from './shared'
 import { NouvelExamenDialog } from '@/components/dashboard/dialogs/nouvel-examen-dialog'
+import { ModifierExamenDialog } from '@/components/dashboard/dialogs/modifier-examen-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,33 +37,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-// --- Helpers ---
-function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
-  switch (r) {
-    case 'En attente':
-      return 'amber'
-    case 'Admis':
-      return 'emerald'
-    case 'Échec':
-      return 'rose'
-  }
-}
-
-function typeExamenBadge(type: string) {
-  if (type === 'Code') {
-    return (
-      <span className="inline-flex items-center rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-600">
-        Code
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-      Conduite
-    </span>
-  )
-}
-
 // --- Sub-component: Examens individuels table ---
 const RESULTAT_FILTRES: Array<'Tous' | ResultatExamen> = ['Tous', 'En attente', 'Admis', 'Échec']
 const TYPE_FILTRES = ['Tous', 'Code', 'Conduite'] as const
@@ -70,6 +46,8 @@ function ExamensIndividuels() {
   const deleteExamen = useDataStore((s) => s.deleteExamen)
   const { setActiveView, setselectedEleveCode } = useNavStore()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [editExamen, setEditExamen] = useState<(typeof examens)[number] | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
   const [search, setSearch] = useState('')
   const [resultatFiltre, setResultatFiltre] = useState<'Tous' | ResultatExamen>('Tous')
   const [typeFiltre, setTypeFiltre] = useState<(typeof TYPE_FILTRES)[number]>('Tous')
@@ -184,7 +162,7 @@ function ExamensIndividuels() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5">{typeExamenBadge(x.typeExamen)}</td>
+                  <td className="px-5 py-3.5"><TypeExamenBadge type={x.typeExamen} /></td>
                   <td className="px-5 py-3.5">
                     <span className="text-sm font-medium text-foreground">{x.typePermis}</span>
                   </td>
@@ -195,7 +173,7 @@ function ExamensIndividuels() {
                     <span className="text-sm text-muted-foreground">{x.inspecteur}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <StatusBadge label={x.resultat} tone={resultatTone(x.resultat)} />
+                    <StatusBadge label={x.resultat} tone={resultatExamenTone[x.resultat]} />
                   </td>
                   <td className="px-5 py-3.5 max-w-[220px]">
                     {x.notes ? (
@@ -227,13 +205,16 @@ function ExamensIndividuels() {
                           Voir la fiche élève
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onSelect={() => toast.info("Modification d'examen bientôt disponible")}
+                          onSelect={() => {
+                            setEditExamen(x)
+                            setShowEdit(true)
+                          }}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Modifier
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          className="text-rose-600 focus:text-rose-600"
+                          className="text-destructive focus:text-destructive"
                           onSelect={() => setDeleteId(x.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -279,7 +260,7 @@ function ExamensIndividuels() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteId) {
                   deleteExamen(deleteId)
@@ -293,6 +274,15 @@ function ExamensIndividuels() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ModifierExamenDialog
+        examen={editExamen}
+        open={showEdit}
+        onOpenChange={(v) => {
+          setShowEdit(v)
+          if (!v) setEditExamen(null)
+        }}
+      />
     </>
   )
 }
@@ -313,7 +303,7 @@ function SessionsCollectives() {
                 {sess.numeroBordereau}
               </span>
               <div className="mt-2 flex items-center gap-2">
-                {typeExamenBadge(sess.typeExamen)}
+                <TypeExamenBadge type={sess.typeExamen} />
                 <span className="text-xs text-muted-foreground">
                   {sess.candidats.length} candidat{sess.candidats.length > 1 ? 's' : ''}
                 </span>

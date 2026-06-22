@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 
 const geistSans = Geist({
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
   keywords: ["SARAH AUTO", "auto-école", "ERP", "conduite", "permis", "élèves"],
   authors: [{ name: "SARAH AUTO" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: '/logo.svg',
   },
 };
 
@@ -30,13 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
-        <Toaster />
-        <SonnerToaster richColors position="top-right" />
+        <SonnerToaster theme="light" position="top-right" />
       </body>
     </html>
   );

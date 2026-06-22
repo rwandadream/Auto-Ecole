@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { Banknote } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
-import { formatXOF } from '@/components/dashboard/views/shared'
-import { type ModePaiement } from '@/lib/mock-data'
-
-const modes: ModePaiement[] = ['Espèces', 'Orange Money', 'Wave', 'Virement']
+import { MODES_PAIEMENT } from '@/lib/constants'
+import { formatXOF, todayFrShort } from '@/lib/format'
+import type { ModePaiement } from '@/lib/domain/types'
 
 export function NouveauPaiementDialog({
   factureId,
@@ -21,8 +20,10 @@ export function NouveauPaiementDialog({
 }) {
   const addPaiement = useDataStore((s) => s.addPaiement)
   const factures = useDataStore((s) => s.factures)
+  const modesPaiement = useDataStore((s) => s.modesPaiement)
+  const modeOpts = modesPaiement.length > 0 ? modesPaiement.map((m) => m.label) : MODES_PAIEMENT
 
-  const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  const today = todayFrShort()
 
   const [montant, setMontant] = useState<number>(0)
   const [modePaiement, setModePaiement] = useState<ModePaiement>('Espèces')
@@ -86,20 +87,13 @@ export function NouveauPaiementDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!facture}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit} disabled={!facture}>
             <Banknote className="h-4 w-4" />
             Encaisser
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -113,11 +107,11 @@ export function NouveauPaiementDialog({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Déjà payé</p>
-              <p className="text-sm font-bold text-emerald-600">{formatXOF(facture.paye)}</p>
+              <p className="text-sm font-bold text-success">{formatXOF(facture.paye)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Reste à payer</p>
-              <p className="text-sm font-bold text-rose-600">{formatXOF(facture.reste)}</p>
+              <p className="text-sm font-bold text-destructive">{formatXOF(facture.reste)}</p>
             </div>
           </div>
 
@@ -133,7 +127,7 @@ export function NouveauPaiementDialog({
             </Field>
             <Field label="Mode de paiement" required>
               <FormSelect value={modePaiement} onChange={(e) => setModePaiement(e.target.value as ModePaiement)}>
-                {modes.map((m) => (
+                {modeOpts.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </FormSelect>

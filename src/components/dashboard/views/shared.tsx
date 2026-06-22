@@ -9,7 +9,7 @@ import type {
   StatutMoniteur,
   ResultatExamen,
   ModePaiement,
-} from '@/lib/mock-data'
+} from '@/lib/domain/types'
 
 type ViewHeaderProps = {
   title: string
@@ -33,15 +33,15 @@ export function ViewHeader({ title, description, actions, className }: ViewHeade
 }
 
 // Shared status badge styles (consistent across views)
-type BadgeTone = 'primary' | 'emerald' | 'amber' | 'rose' | 'sky' | 'slate'
+export type BadgeTone = 'primary' | 'success' | 'warning' | 'destructive' | 'secondary' | 'neutral'
 
 const toneStyles: Record<BadgeTone, { badge: string; dot: string }> = {
   primary: { badge: 'bg-primary/10 text-primary', dot: 'bg-primary' },
-  emerald: { badge: 'bg-emerald-500/10 text-emerald-600', dot: 'bg-emerald-500' },
-  amber: { badge: 'bg-amber-500/10 text-amber-600', dot: 'bg-amber-500' },
-  rose: { badge: 'bg-rose-500/10 text-rose-600', dot: 'bg-rose-500' },
-  sky: { badge: 'bg-sky-500/10 text-sky-600', dot: 'bg-sky-500' },
-  slate: { badge: 'bg-slate-500/10 text-slate-600', dot: 'bg-slate-500' },
+  success: { badge: 'bg-success/10 text-success', dot: 'bg-success' },
+  warning: { badge: 'bg-warning/10 text-warning', dot: 'bg-warning' },
+  destructive: { badge: 'bg-destructive/10 text-destructive', dot: 'bg-destructive' },
+  secondary: { badge: 'bg-secondary text-secondary-foreground', dot: 'bg-secondary-foreground' },
+  neutral: { badge: 'bg-muted text-muted-foreground', dot: 'bg-muted-foreground' },
 }
 
 export function StatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
@@ -59,16 +59,19 @@ export function ActionButton({
   children,
   variant = 'primary',
   onClick,
+  disabled,
 }: {
   children: React.ReactNode
   variant?: 'primary' | 'outline'
   onClick?: () => void
+  disabled?: boolean
 }) {
   if (variant === 'outline') {
     return (
       <button
         onClick={onClick}
-        className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        disabled={disabled}
+        className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
       >
         {children}
       </button>
@@ -77,7 +80,8 @@ export function ActionButton({
   return (
     <button
       onClick={onClick}
-      className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+      disabled={disabled}
+      className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
     >
       {children}
     </button>
@@ -91,10 +95,8 @@ export function Card({ children, className, onClick }: { children: React.ReactNo
   )
 }
 
-// Format currency XOF
-export function formatXOF(value: number) {
-  return `${value.toLocaleString('fr-FR')} F`
-}
+// Format currency XOF (re-export for backward compatibility)
+export { formatXOF } from '@/lib/format'
 
 // Avatar initials from name
 export function initials(name: string) {
@@ -108,40 +110,41 @@ export function initials(name: string) {
 
 // --- Status tone maps (single source of truth) ---
 export const statutFactureTone: Record<StatutFacture, BadgeTone> = {
-  'Non payée': 'rose',
-  Partielle: 'amber',
-  Payée: 'emerald',
-  Impayée: 'rose',
+  'Non payée': 'destructive',
+  Partielle: 'warning',
+  Payée: 'success',
+  Impayée: 'destructive',
 }
 
 export const statutSeanceTone: Record<StatutSeance, BadgeTone> = {
   Planifié: 'primary',
-  Effectué: 'emerald',
-  'Absent élève': 'amber',
-  Annulé: 'rose',
+  Effectué: 'success',
+  'Absent élève': 'warning',
+  Annulé: 'destructive',
 }
 
 export const statutEleveTone: Record<StatutEleve, BadgeTone> = {
-  Prospect: 'slate',
-  Inscrit: 'sky',
+  Prospect: 'neutral',
+  Inscrit: 'secondary',
   'En formation': 'primary',
-  Examen: 'amber',
-  Admis: 'emerald',
-  Ajourné: 'rose',
-  Terminé: 'emerald',
-  Abandon: 'slate',
+  Examen: 'warning',
+  Admis: 'success',
+  Ajourné: 'destructive',
+  Terminé: 'success',
+  Abandon: 'neutral',
 }
 
 export const statutMoniteurTone: Record<StatutMoniteur, BadgeTone> = {
-  Disponible: 'emerald',
-  'En mission': 'amber',
-  Absent: 'rose',
+  Disponible: 'success',
+  'En mission': 'warning',
+  Absent: 'destructive',
 }
 
 export const resultatExamenTone: Record<ResultatExamen, BadgeTone> = {
-  'En attente': 'amber',
-  Admis: 'emerald',
-  Échec: 'rose',
+  'En attente': 'warning',
+  Admis: 'success',
+  Échec: 'destructive',
+  Ajourné: 'warning',
 }
 
 // --- Date helpers (French) ---
@@ -165,15 +168,15 @@ export function dureeLabel(min: number): string {
 }
 
 // --- Shared KPI cards ---
-type KpiTone = 'primary' | 'emerald' | 'amber' | 'rose' | 'sky' | 'slate'
+export type KpiTone = BadgeTone
 
 const kpiToneClasses: Record<KpiTone, string> = {
   primary: 'bg-primary/10 text-primary',
-  emerald: 'bg-emerald-500/10 text-emerald-600',
-  amber: 'bg-amber-500/10 text-amber-600',
-  rose: 'bg-rose-500/10 text-rose-600',
-  sky: 'bg-sky-500/10 text-sky-600',
-  slate: 'bg-slate-500/10 text-slate-600',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  destructive: 'bg-destructive/10 text-destructive',
+  secondary: 'bg-secondary text-secondary-foreground',
+  neutral: 'bg-muted text-muted-foreground',
 }
 
 export function KpiCard({
@@ -202,17 +205,17 @@ export function KpiCard({
 
 const kpiMinimalValueColor: Record<KpiTone, string> = {
   primary: 'text-primary',
-  emerald: 'text-emerald-600',
-  amber: 'text-amber-600',
-  rose: 'text-rose-600',
-  sky: 'text-sky-600',
-  slate: 'text-foreground',
+  success: 'text-success',
+  warning: 'text-warning',
+  destructive: 'text-destructive',
+  secondary: 'text-secondary-foreground',
+  neutral: 'text-foreground',
 }
 
 export function KpiCardMinimal({
   label,
   value,
-  tone = 'slate',
+  tone = 'neutral',
 }: {
   label: string
   value: string
@@ -231,9 +234,9 @@ export const modePaiementConfig: Record<
   ModePaiement,
   { icon: React.ReactNode; bg: string; fg: string }
 > = {
-  Espèces: { icon: <Banknote className="h-3.5 w-3.5" />, bg: 'bg-slate-500/10', fg: 'text-slate-600' },
-  'Orange Money': { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-amber-500/10', fg: 'text-amber-600' },
-  Wave: { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-sky-500/10', fg: 'text-sky-600' },
+  Espèces: { icon: <Banknote className="h-3.5 w-3.5" />, bg: 'bg-muted', fg: 'text-muted-foreground' },
+  'Orange Money': { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-accent', fg: 'text-accent-foreground' },
+  Wave: { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-secondary', fg: 'text-secondary-foreground' },
   Virement: { icon: <Building2 className="h-3.5 w-3.5" />, bg: 'bg-primary/10', fg: 'text-primary' },
 }
 
@@ -243,6 +246,21 @@ export function ModePaiementBadge({ mode }: { mode: ModePaiement }) {
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.fg}`}>
       {cfg.icon}
       {mode}
+    </span>
+  )
+}
+
+export function TypeExamenBadge({ type }: { type: string }) {
+  if (type === 'Code') {
+    return (
+      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary-foreground">
+        Code
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+      Conduite
     </span>
   )
 }

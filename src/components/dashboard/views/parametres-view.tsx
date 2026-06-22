@@ -27,8 +27,9 @@ import {
   Card,
   formatXOF,
   initials,
+  type BadgeTone,
 } from './shared'
-import { Modal, Field as ModalField, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field as ModalField, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import {
   DropdownMenu,
@@ -48,19 +49,23 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useDataStore } from '@/store/data-store'
 import { useAuthStore } from '@/store/auth-store'
-import { type Role } from '@/lib/mock-data'
+import { type Role } from '@/lib/domain/types'
+import { canPerformAction } from '@/lib/permissions'
+import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 import { NouvelUtilisateurDialog } from '@/components/dashboard/dialogs/nouvel-utilisateur-dialog'
 import { FormationDialog } from '@/components/dashboard/dialogs/formation-dialog'
 import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
 import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
 import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
+import { FaqAdminPanel } from '@/components/dashboard/views/faq-admin-panel'
+import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
 
-const roleTone: Record<Role, 'primary' | 'sky' | 'amber' | 'slate'> = {
+const roleTone: Record<Role, BadgeTone> = {
   'Administrateur principal': 'primary',
   'Administrateur secondaire': 'primary',
-  Comptable: 'sky',
-  Moniteur: 'amber',
-  Conseiller: 'slate',
+  Comptable: 'secondary',
+  Moniteur: 'warning',
+  Conseiller: 'neutral',
 }
 
 const ROLES: Role[] = [
@@ -95,8 +100,7 @@ function ReadOnlyField({
 
 /**
  * Inline dialog for editing "Mon profil" — current admin user.
- * Looks up the matching profile in the data store by email. If found,
- * calls updateProfile; if not found, calls addProfile to create one.
+ * Updates name via PATCH /api/admin/users (Auth + profiles).
  */
 function ProfileEditDialog({
   open,
@@ -107,13 +111,12 @@ function ProfileEditDialog({
 }) {
   const user = useAuthStore((s) => s.user)
   const profiles = useDataStore((s) => s.profiles)
-  const addProfile = useDataStore((s) => s.addProfile)
-  const updateProfile = useDataStore((s) => s.updateProfile)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('Administrateur principal')
   const [actif, setActif] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // Seed from auth user when dialog opens
   const [prevOpen, setPrevOpen] = useState(false)
@@ -123,7 +126,8 @@ function ProfileEditDialog({
       setName(user.name)
       setEmail(user.email)
       setRole((user.role as Role) || 'Administrateur principal')
-      setActif(true)
+      const profile = profiles.find((p) => p.id === user.id)
+      setActif(profile?.actif ?? true)
     }
   }
 
@@ -131,28 +135,42 @@ function ProfileEditDialog({
     onOpenChange(false)
   }
 
-  const handleSubmit = () => {
-    if (!name.trim() || !email.trim()) {
-      toast.error('Veuillez renseigner le nom et l\'email.')
+  const handleSubmit = async () => {
+    if (!name.trim() || !user || user.mode !== 'admin') {
+      toast.error('Veuillez renseigner le nom.')
       return
     }
-    const existing = profiles.find(
-      (p) => p.email.toLowerCase() === (user?.mode === 'admin' ? user.email.toLowerCase() : '')
-    )
-    const payload = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role,
-      actif,
-    }
-    if (existing) {
-      updateProfile(existing.id, payload)
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          name: name.trim(),
+          role: user.role,
+          actif: true,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error ?? 'Impossible de mettre à jour le profil')
+        return
+      }
+      await syncDataFromSupabase()
+      useAuthStore.setState((state) => ({
+        user:
+          state.user?.mode === 'admin'
+            ? { ...state.user, name: name.trim() }
+            : state.user,
+      }))
       toast.success('Votre profil a été mis à jour.')
-    } else {
-      addProfile(payload)
-      toast.success('Profil équipe créé avec vos informations.')
+      onOpenChange(false)
+    } catch {
+      toast.error('Erreur réseau lors de la mise à jour du profil')
+    } finally {
+      setSaving(false)
     }
-    onOpenChange(false)
   }
 
   if (!user || user.mode !== 'admin') return null
@@ -166,19 +184,13 @@ function ProfileEditDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit} disabled={saving}>
             <Save className="h-4 w-4" />
             Enregistrer
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -187,7 +199,7 @@ function ProfileEditDialog({
           <FormInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Votre nom" />
         </ModalField>
         <ModalField label="Email">
-          <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@sarahauto.ci" />
+          <FormInput type="email" value={email} readOnly disabled placeholder="vous@sarahauto.ci" />
         </ModalField>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ModalField label="Rôle">
@@ -202,7 +214,7 @@ function ProfileEditDialog({
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Statut</label>
             <div className="flex h-10 items-center gap-3 rounded-lg border border-input bg-background px-3">
-              <Switch checked={actif} onCheckedChange={setActif} />
+              <Switch checked={actif} disabled />
               <span className="text-sm font-medium text-foreground">
                 {actif ? 'Actif' : 'Inactif'}
               </span>
@@ -221,11 +233,13 @@ export function ParametresView() {
   const profiles = useDataStore((s) => s.profiles)
   const permis = useDataStore((s) => s.permis)
   const formations = useDataStore((s) => s.formations)
-  const deleteProfile = useDataStore((s) => s.deleteProfile)
   const deleteFormation = useDataStore((s) => s.deleteFormation)
   const deletePermis = useDataStore((s) => s.deletePermis)
 
   const user = useAuthStore((s) => s.user)
+  const role = user?.mode === 'admin' ? user.role : ''
+  const canManageUsers = canPerformAction(role, 'manage_users')
+  const canManageFormations = canPerformAction(role, 'manage_formations')
 
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)
@@ -248,12 +262,30 @@ export function ParametresView() {
   const userInitials = initials(userName || 'U')
 
   // Handlers
-  const handleConfirmDeleteUser = () => {
+  const handleConfirmDeleteUser = async () => {
     if (!deletingUserId) return
+    if (user?.mode === 'admin' && user.id === deletingUserId) {
+      toast.error('Vous ne pouvez pas supprimer votre propre compte.')
+      setDeletingUserId(null)
+      return
+    }
     const target = profiles.find((p) => p.id === deletingUserId)
-    deleteProfile(deletingUserId)
-    toast.success(`Utilisateur ${target?.name ?? ''} supprimé de l'équipe.`)
-    setDeletingUserId(null)
+    try {
+      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(deletingUserId)}`, {
+        method: 'DELETE',
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error ?? 'Impossible de supprimer l\'utilisateur')
+        return
+      }
+      await syncDataFromSupabase()
+      toast.success(`Utilisateur ${target?.name ?? ''} supprimé de l'équipe.`)
+    } catch {
+      toast.error('Erreur réseau lors de la suppression utilisateur')
+    } finally {
+      setDeletingUserId(null)
+    }
   }
 
   const handleConfirmDeleteFormation = () => {
@@ -374,10 +406,12 @@ export function ParametresView() {
                   {profiles.length} membres — {profiles.filter((p) => p.actif).length} actifs
                 </p>
               </div>
-              <ActionButton variant="primary" onClick={() => { setEditingUserId(null); setShowUserDialog(true) }}>
-                <UserPlus className="h-4 w-4" />
-                Ajouter un utilisateur
-              </ActionButton>
+              {canManageUsers && (
+                <ActionButton variant="primary" onClick={() => { setEditingUserId(null); setShowUserDialog(true) }}>
+                  <UserPlus className="h-4 w-4" />
+                  Ajouter un utilisateur
+                </ActionButton>
+              )}
             </div>
 
             <div className="custom-scrollbar overflow-x-auto">
@@ -409,36 +443,40 @@ export function ParametresView() {
                       <td className="px-4 py-3">
                         <StatusBadge
                           label={p.actif ? 'Actif' : 'Inactif'}
-                          tone={p.actif ? 'emerald' : 'slate'}
+                          tone={p.actif ? 'success' : 'neutral'}
                         />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button
-                                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                aria-label="Actions"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuItem
-                                onClick={() => { setEditingUserId(p.id); setShowUserDialog(true) }}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Modifier
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-rose-600 focus:text-rose-600"
-                                onClick={() => setDeletingUserId(p.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {canManageUsers ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                  aria-label="Actions"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={() => { setEditingUserId(p.id); setShowUserDialog(true) }}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setDeletingUserId(p.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -487,7 +525,7 @@ export function ParametresView() {
                       </button>
                       <button
                         onClick={() => setDeletingPermisId(p.id)}
-                        className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-rose-600 shadow-sm border border-border hover:bg-rose-50"
+                        className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-destructive shadow-sm border border-border hover:bg-destructive/10"
                         title="Supprimer"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -505,13 +543,15 @@ export function ParametresView() {
                   <h2 className="text-base font-semibold text-foreground">Formations</h2>
                   <p className="text-sm text-muted-foreground">Catalogue des packs proposés</p>
                 </div>
-                <ActionButton
-                  variant="primary"
-                  onClick={() => { setEditingFormationId(null); setShowFormationDialog(true) }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Nouvelle formation
-                </ActionButton>
+                {canManageFormations && (
+                  <ActionButton
+                    variant="primary"
+                    onClick={() => { setEditingFormationId(null); setShowFormationDialog(true) }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nouvelle formation
+                  </ActionButton>
+                )}
               </div>
 
               <div className="custom-scrollbar overflow-x-auto">
@@ -536,26 +576,30 @@ export function ParametresView() {
                         <td className="px-4 py-3">
                           <StatusBadge
                             label={f.actif ? 'Actif' : 'Inactif'}
-                            tone={f.actif ? 'emerald' : 'slate'}
+                            tone={f.actif ? 'success' : 'neutral'}
                           />
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => { setEditingFormationId(f.id); setShowFormationDialog(true) }}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                              title="Modifier"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setDeletingFormationId(f.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                          {canManageFormations ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => { setEditingFormationId(f.id); setShowFormationDialog(true) }}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                title="Modifier"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingFormationId(f.id)}
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="block text-right text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -564,6 +608,7 @@ export function ParametresView() {
               </div>
             </Card>
           </div>
+          {canManageUsers && <MediaMigrationPanel />}
         </TabsContent>
 
         {/* -------- Tab 4 : Journal d'audit -------- */}
@@ -574,6 +619,7 @@ export function ParametresView() {
         {/* -------- Tab 5 : Assistance -------- */}
         <TabsContent value="assistance">
           <AssistancePanel />
+          {canManageUsers && <FaqAdminPanel />}
         </TabsContent>
         </div>
       </Tabs>
@@ -620,7 +666,7 @@ export function ParametresView() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeleteUser}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
             >
               Supprimer
             </AlertDialogAction>
@@ -648,7 +694,7 @@ export function ParametresView() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeleteFormation}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
             >
               Supprimer
             </AlertDialogAction>
@@ -676,7 +722,7 @@ export function ParametresView() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDeletePermis}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
             >
               Supprimer
             </AlertDialogAction>

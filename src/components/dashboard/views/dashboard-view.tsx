@@ -7,9 +7,10 @@ import { RecentOrders } from '@/components/dashboard/recent-orders'
 import { UnpaidInvoices } from '@/components/dashboard/unpaid-invoices'
 import { CalendarRange } from 'lucide-react'
 import { ViewHeader } from './shared'
+import { currentMonthRange } from '@/lib/format'
 
 export function DashboardView() {
-  const dateRange = '01 juin 2026 - 21 juin 2026'
+  const dateRange = currentMonthRange()
 
   return (
     <>

@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
-import { type ResultatExamen } from '@/lib/mock-data'
+import { type ResultatExamen } from '@/lib/domain/types'
+import { todayFrShort } from '@/lib/format'
 
 export function NouvelExamenDialog({
   open,
@@ -18,7 +19,7 @@ export function NouvelExamenDialog({
   const eleves = useDataStore((s) => s.eleves)
   const inspecteurs = useDataStore((s) => s.inspecteurs)
 
-  const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  const today = todayFrShort()
 
   const [eleveCode, setEleveCode] = useState('')
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Conduite')
@@ -73,19 +74,13 @@ export function NouvelExamenDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             <Plus className="h-4 w-4" />
             Planifier l'examen
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >

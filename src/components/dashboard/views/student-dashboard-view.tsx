@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
-import type { StatutEleve } from '@/lib/mock-data'
+import type { StatutEleve } from '@/lib/domain/types'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -35,8 +35,7 @@ function formatDateFr(iso: string): string {
   return `${j} ${jour} ${m}`
 }
 
-// Fixed "today" reference aligned with mock data timeline (Dec 2026)
-const TODAY = '2026-12-02'
+const TODAY = new Date().toISOString().slice(0, 10)
 
 // Lifecycle steps for "Mon parcours"
 const lifecycle: { label: string; value: StatutEleve }[] = [
@@ -135,7 +134,7 @@ export function StudentDashboardView() {
         {/* Prochaine séance */}
         <Card>
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
               <CalendarClock className="h-5 w-5" />
             </div>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -168,7 +167,7 @@ export function StudentDashboardView() {
         {/* Solde restant */}
         <Card>
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10 text-warning">
               <Wallet className="h-5 w-5" />
             </div>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -181,13 +180,13 @@ export function StudentDashboardView() {
           <p className="text-xs text-muted-foreground">Reste à payer</p>
           <div className="mt-3">
             {me && me.solde > 0 ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+                <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                 Paiement en attente
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 Soldé
               </span>
             )}

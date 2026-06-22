@@ -3,18 +3,8 @@
 import { useState } from 'react'
 import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
-
-const CODES = ['A', 'B', 'AB', 'C'] as const
-type Code = (typeof CODES)[number]
-
-const CODE_LABELS: Record<Code, string> = {
-  A: 'A — Moto',
-  B: 'B — Voiture',
-  AB: 'AB — Moto + Voiture',
-  C: 'C — Poids lourd',
-}
 
 type Props = {
   open: boolean
@@ -28,7 +18,7 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
   const updatePermis = useDataStore((s) => s.updatePermis)
   const permis = useDataStore((s) => s.permis)
 
-  const [code, setCode] = useState<Code>('B')
+  const [code, setCode] = useState('B')
   const [libelle, setLibelle] = useState('')
 
   const isEdit = !!permisId
@@ -40,18 +30,18 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
       if (permisId) {
         const target = permis.find((p) => p.id === permisId)
         if (target) {
-          setCode(target.code as Code)
+          setCode(target.code)
           setLibelle(target.libelle)
         }
       } else {
-        setCode('B')
+        setCode(permis[0]?.code ?? 'B')
         setLibelle('')
       }
     }
   }
 
   const reset = () => {
-    setCode('B')
+    setCode(permis[0]?.code ?? 'B')
     setLibelle('')
   }
 
@@ -65,16 +55,20 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
       toast.error('Veuillez renseigner le libellé du permis.')
       return
     }
+    if (!code.trim()) {
+      toast.error('Veuillez renseigner le code du permis.')
+      return
+    }
     const payload = {
-      code,
+      code: code.trim().toUpperCase(),
       libelle: libelle.trim(),
     }
     if (isEdit && permisId) {
       updatePermis(permisId, payload)
-      toast.success(`Permis ${code} modifié avec succès.`)
+      toast.success(`Permis ${payload.code} modifié avec succès.`)
     } else {
       addPermis(payload)
-      toast.success(`Permis ${code} ajouté au catalogue.`)
+      toast.success(`Permis ${payload.code} ajouté au catalogue.`)
     }
     reset()
     onOpenChange(false)
@@ -93,31 +87,33 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
       size="sm"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             {isEdit ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {isEdit ? 'Enregistrer' : 'Créer le permis'}
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
       <div className="space-y-4">
         <Field label="Code" required>
-          <FormSelect value={code} onChange={(e) => setCode(e.target.value as Code)}>
-            {CODES.map((c) => (
-              <option key={c} value={c}>
-                {CODE_LABELS[c]}
-              </option>
-            ))}
-          </FormSelect>
+          {permis.length > 0 ? (
+            <FormSelect value={code} onChange={(e) => setCode(e.target.value)}>
+              {permis.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.code} — {p.libelle}
+                </option>
+              ))}
+            </FormSelect>
+          ) : (
+            <FormInput
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="Ex : B, A, AB, C…"
+            />
+          )}
         </Field>
 
         <Field label="Libellé" required>

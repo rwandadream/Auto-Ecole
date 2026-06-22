@@ -11,26 +11,10 @@ import {
   YAxis,
 } from 'recharts'
 import { useDataStore } from '@/store/data-store'
-
-// Reference year aligned with the mock data timeline
-const REF_YEAR = 2026
+import { formatXOF } from '@/lib/format'
+import { parseFlexibleDate } from '@/lib/stats'
 
 const moisLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
-
-const moisFrToNum: Record<string, number> = {
-  'Jan': 0, 'Fév': 1, 'Mar': 2, 'Avr': 3, 'Mai': 4, 'Juin': 5,
-  'Juil': 6, 'Août': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Déc': 11,
-}
-
-// Parse "29 Nov 2026" → { month: 0-11, year: number } | null
-function parseFrMonth(s: string): { month: number; year: number } | null {
-  const parts = s.split(/\s+/)
-  if (parts.length !== 3) return null
-  const mois = moisFrToNum[parts[1]]
-  const annee = parseInt(parts[2], 10)
-  if (mois === undefined || Number.isNaN(annee)) return null
-  return { month: mois, year: annee }
-}
 
 function formatValue(value: number) {
   if (value >= 1000000) {
@@ -67,7 +51,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
               {labelMap[entry.name] || entry.name} :
             </span>
             <span className="text-xs font-bold text-foreground">
-              {entry.value.toLocaleString('fr-FR')} F
+              {formatXOF(entry.value)}
             </span>
           </div>
         ))}
@@ -82,20 +66,21 @@ export function TotalIncome() {
   const depenses = useDataStore((s) => s.depenses)
 
   const data = useMemo(() => {
+    const currentYear = new Date().getFullYear()
     // Initialize all 12 months to 0
     const buckets = moisLabels.map((m) => ({ month: m, revenus: 0, depenses: 0 }))
 
     paiements.forEach((p) => {
-      const d = parseFrMonth(p.datePaiement)
-      if (d && d.year === REF_YEAR) {
-        buckets[d.month].revenus += p.montant
+      const d = parseFlexibleDate(p.datePaiement)
+      if (d && d.getFullYear() === currentYear) {
+        buckets[d.getMonth()].revenus += p.montant
       }
     })
 
-    depenses.forEach((d) => {
-      const dt = parseFrMonth(d.date)
-      if (dt && dt.year === REF_YEAR) {
-        buckets[dt.month].depenses += d.montant
+    depenses.forEach((dep) => {
+      const d = parseFlexibleDate(dep.date)
+      if (d && d.getFullYear() === currentYear) {
+        buckets[d.getMonth()].depenses += dep.montant
       }
     })
 
@@ -130,32 +115,32 @@ export function TotalIncome() {
       <div className="mt-6 h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 0, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.94 0.005 240)" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis
               dataKey="month"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'oklch(0.55 0.015 240)', fontSize: 12 }}
+              tick={{ fill: '#64748B', fontSize: 12 }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: 'oklch(0.55 0.015 240)', fontSize: 12 }}
+              tick={{ fill: '#64748B', fontSize: 12 }}
               tickFormatter={(value) => formatValue(value)}
               domain={[0, yAxisMax]}
               ticks={ticks}
             />
-            <Tooltip cursor={{ fill: 'oklch(0.97 0.005 240)' }} content={<CustomTooltip />} />
+            <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
             <Bar
               dataKey="revenus"
               stackId="finance"
-              fill="oklch(0.665 0.193 32.7)"
+              fill="#2563EB"
               maxBarSize={36}
             />
             <Bar
               dataKey="depenses"
               stackId="finance"
-              fill="oklch(0.21 0.02 240)"
+              fill="#1E293B"
               radius={[6, 6, 0, 0]}
               maxBarSize={36}
             />

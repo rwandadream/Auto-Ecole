@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { History, Search, ShieldCheck } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { History, Search, ShieldCheck, ChevronDown } from 'lucide-react'
 import { useDataStore } from '@/store/data-store'
 import {
   ViewHeader,
   StatusBadge,
   Card,
+  type BadgeTone,
 } from '@/components/dashboard/views/shared'
 
 const ENTITY_OPTIONS: { value: string; label: string }[] = [
@@ -23,6 +24,7 @@ const ENTITY_OPTIONS: { value: string; label: string }[] = [
   { value: 'factures', label: 'Factures' },
   { value: 'paiements', label: 'Paiements' },
   { value: 'depenses', label: 'Dépenses' },
+  { value: 'inscriptions', label: 'Inscriptions' },
   { value: 'profiles', label: 'Utilisateurs' },
 ]
 
@@ -33,16 +35,16 @@ const ACTION_OPTIONS: { value: string; label: string }[] = [
   { value: 'DELETE', label: 'Suppression (DELETE)' },
 ]
 
-function actionTone(action: 'INSERT' | 'UPDATE' | 'DELETE'): 'emerald' | 'amber' | 'rose' {
+function actionTone(action: 'INSERT' | 'UPDATE' | 'DELETE'): BadgeTone {
   switch (action) {
     case 'INSERT':
-      return 'emerald'
+      return 'success'
     case 'UPDATE':
-      return 'amber'
+      return 'warning'
     case 'DELETE':
-      return 'rose'
+      return 'destructive'
     default:
-      return 'amber'
+      return 'warning'
   }
 }
 
@@ -64,11 +66,24 @@ function entityLabel(entity: string): string {
   return found ? found.label : entity
 }
 
+function DiffBlock({ data, label }: { data?: Record<string, unknown>; label: string }) {
+  if (!data || Object.keys(data).length === 0) return null
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{label}</p>
+      <pre className="max-h-40 overflow-auto rounded-md bg-muted p-2 text-[11px] text-foreground">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </div>
+  )
+}
+
 export function AuditLogPanel() {
   const auditLog = useDataStore((s) => s.auditLog)
   const [search, setSearch] = useState('')
   const [entityFilter, setEntityFilter] = useState<string>('Tous')
   const [actionFilter, setActionFilter] = useState<string>('Tous')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const filtered = auditLog.filter((entry) => {
     const q = search.trim().toLowerCase()
@@ -164,25 +179,49 @@ export function AuditLogPanel() {
                 </tr>
               )}
               {filtered.map((entry) => (
-                <tr key={entry.id} className="hover:bg-muted/40">
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
-                    {entry.timestamp}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge label={actionLabel(entry.action)} tone={actionTone(entry.action)} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground">
-                      {entityLabel(entry.entity)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-foreground">
-                    {entry.description}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
-                    {entry.user}
-                  </td>
-                </tr>
+                <Fragment key={entry.id}>
+                  <tr className="hover:bg-muted/40">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                      {entry.timestamp}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge label={actionLabel(entry.action)} tone={actionTone(entry.action)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground">
+                        {entityLabel(entry.entity)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>{entry.description}</span>
+                        {(entry.oldData || entry.newData) && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted"
+                            aria-label="Voir le détail"
+                          >
+                            <ChevronDown className={`h-4 w-4 transition-transform ${expandedId === entry.id ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                      {entry.user}
+                    </td>
+                  </tr>
+                  {expandedId === entry.id && (entry.oldData || entry.newData) && (
+                    <tr className="bg-muted/20">
+                      <td colSpan={5} className="px-4 py-3">
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                          <DiffBlock data={entry.oldData} label="Avant" />
+                          <DiffBlock data={entry.newData} label="Après" />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

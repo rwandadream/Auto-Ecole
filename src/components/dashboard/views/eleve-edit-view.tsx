@@ -1,31 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, Save, User, Phone, Mail, CreditCard, Car, Calendar, MapPin, Award } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
-import { ViewHeader, ActionButton, Card, StatusBadge, initials, statutEleveTone } from './shared'
+import { ActionButton, Card, StatusBadge, initials, statutEleveTone } from './shared'
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
-import type { StatutEleve } from '@/lib/mock-data'
+import { STATUTS_ELEVE } from '@/lib/constants'
+import type { StatutEleve } from '@/lib/domain/types'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
-
-const STATUTS: StatutEleve[] = [
-  'Prospect',
-  'Inscrit',
-  'En formation',
-  'Examen',
-  'Admis',
-  'Ajourné',
-  'Terminé',
-  'Abandon',
-]
 
 export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const setActiveView = useNavStore((s) => s.setActiveView)
   const eleve = useDataStore((s) => s.eleves).find((e) => e.code === eleveCode)
   const updateEleve = useDataStore((s) => s.updateEleve)
+  const permis = useDataStore((s) => s.permis)
 
   const [nom, setNom] = useState(eleve?.nom ?? '')
   const [prenom, setPrenom] = useState(eleve?.prenom ?? '')
@@ -35,6 +26,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const [nationalite, setNationalite] = useState(eleve?.nationalite ?? 'Ivoirienne')
   const [telephone, setTelephone] = useState(eleve?.telephone ?? '')
   const [email, setEmail] = useState(eleve?.email ?? '')
+  const [adresse, setAdresse] = useState(eleve?.adresse ?? '')
   const [typePiece, setTypePiece] = useState(eleve?.typePiece ?? 'CNI')
   const [numPiece, setNumPiece] = useState(eleve?.numPiece ?? '')
   const [typePermis, setTypePermis] = useState(eleve?.typePermis ?? 'B')
@@ -65,6 +57,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
       prenom: prenom.trim(),
       telephone: telephone.trim(),
       email: email.trim(),
+      adresse: adresse.trim(),
       dateNaissance,
       lieuNaissance: lieuNaissance.trim(),
       sexe,
@@ -156,6 +149,9 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
             <Field label="Email">
               <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="aminata.kone@email.com" />
             </Field>
+            <Field label="Adresse">
+              <FormInput value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Cocody, Abidjan" />
+            </Field>
           </div>
         </Card>
 
@@ -181,15 +177,14 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="A">A — Moto</option>
-                <option value="B">B — Voiture</option>
-                <option value="AB">AB — Moto + Voiture</option>
-                <option value="C">C — Poids lourd</option>
+                {(permis.length > 0 ? permis : [{ code: 'A', libelle: 'Moto' }, { code: 'B', libelle: 'Voiture' }, { code: 'AB', libelle: 'Moto + Voiture' }, { code: 'C', libelle: 'Poids lourd' }]).map((p) => (
+                  <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+                ))}
               </FormSelect>
             </Field>
             <Field label="Statut" required>
               <FormSelect value={statut} onChange={(e) => setStatut(e.target.value as StatutEleve)}>
-                {STATUTS.map((s) => (
+                {STATUTS_ELEVE.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </FormSelect>

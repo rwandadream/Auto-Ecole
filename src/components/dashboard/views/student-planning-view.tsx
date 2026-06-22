@@ -5,17 +5,19 @@ import {
   CalendarX,
   Clock,
   Car,
+  MapPin,
   User as UserIcon,
   FileText,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
-import type { StatutSeance } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   Card,
   StatusBadge,
+  statutSeanceTone,
+  dureeLabel,
 } from './shared'
 
 // Date helpers (consistent with planning-view)
@@ -41,26 +43,6 @@ function formatDateFr(iso: string): string {
   return `${j} ${jour} ${m} ${y}`
 }
 
-function statutTone(statut: StatutSeance): 'primary' | 'emerald' | 'amber' | 'rose' {
-  switch (statut) {
-    case 'Planifié':
-      return 'primary'
-    case 'Effectué':
-      return 'emerald'
-    case 'Absent élève':
-      return 'amber'
-    case 'Annulé':
-      return 'rose'
-  }
-}
-
-function dureeLabel(min: number): string {
-  if (min < 60) return `${min} min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`
-}
-
 type Filtre = 'avenir' | 'passees' | 'toutes'
 
 const filtres: { key: Filtre; label: string }[] = [
@@ -69,8 +51,7 @@ const filtres: { key: Filtre; label: string }[] = [
   { key: 'toutes', label: 'Toutes' },
 ]
 
-// Fixed "today" reference aligned with mock data timeline
-const TODAY = '2026-12-02'
+const TODAY = new Date().toISOString().slice(0, 10)
 
 export function StudentPlanningView() {
   const user = useAuthStore((s) => s.user)
@@ -195,7 +176,7 @@ export function StudentPlanningView() {
                               <Clock className="h-3 w-3" />
                               {dureeLabel(s.duree)}
                             </span>
-                            <StatusBadge label={s.statut} tone={statutTone(s.statut)} />
+                            <StatusBadge label={s.statut} tone={statutSeanceTone[s.statut]} />
                           </div>
                           <div className="mt-2 flex flex-col gap-1">
                             <p className="flex items-center gap-1.5 text-sm text-foreground">
@@ -206,6 +187,12 @@ export function StudentPlanningView() {
                               <Car className="h-3.5 w-3.5" />
                               {s.vehicule}
                             </p>
+                            {'lieuRdv' in s && s.lieuRdv && (
+                              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {s.lieuRdv}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>

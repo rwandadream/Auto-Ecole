@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
-import { type ResultatExamen } from '@/lib/mock-data'
+import { type ResultatExamen } from '@/lib/domain/types'
+import { todayFrShort } from '@/lib/format'
 
 export function NouvelleSessionDialog({
   open,
@@ -19,7 +20,7 @@ export function NouvelleSessionDialog({
   const inspecteurs = useDataStore((s) => s.inspecteurs)
   const vehicules = useDataStore((s) => s.vehicules)
 
-  const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  const today = todayFrShort()
 
   const [date, setDate] = useState(today)
   const [heure, setHeure] = useState('08:00')
@@ -88,19 +89,13 @@ export function NouvelleSessionDialog({
       size="lg"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             <Plus className="h-4 w-4" />
             Créer la session
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >

@@ -4,7 +4,6 @@ import { ArrowLeft, Pencil, Phone, Mail, MapPin, Calendar, User, CreditCard, Car
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
 import {
-  ViewHeader,
   StatusBadge,
   Card,
   initials,
@@ -17,12 +16,12 @@ import {
 } from './shared'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActionButton } from './shared'
+import { formatDateLongFr } from '@/lib/format'
 
 function formatDate(d: string) {
   if (!d) return '—'
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-    const date = new Date(d)
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+    return formatDateLongFr(d)
   }
   return d
 }
@@ -121,11 +120,11 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total payé</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{formatXOF(totalPaye)}</p>
+          <p className="mt-1 text-2xl font-bold text-success">{formatXOF(totalPaye)}</p>
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Reste à payer</p>
-          <p className="mt-1 text-2xl font-bold text-rose-600">{formatXOF(totalReste)}</p>
+          <p className="mt-1 text-2xl font-bold text-destructive">{formatXOF(totalReste)}</p>
         </Card>
       </div>
 
@@ -166,6 +165,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
               <InfoRow label="Prénom" value={eleve.prenom} icon={<User className="h-4 w-4" />} />
               <InfoRow label="Téléphone" value={eleve.telephone} icon={<Phone className="h-4 w-4" />} />
               <InfoRow label="Email" value={eleve.email} icon={<Mail className="h-4 w-4" />} />
+              <InfoRow label="Adresse" value={eleve.adresse || '—'} icon={<MapPin className="h-4 w-4" />} />
               <InfoRow label="Date de naissance" value={formatDate(eleve.dateNaissance)} icon={<Calendar className="h-4 w-4" />} />
               <InfoRow label="Lieu de naissance" value={eleve.lieuNaissance} icon={<MapPin className="h-4 w-4" />} />
               <InfoRow label="Sexe" value={eleve.sexe === 'F' ? 'Féminin' : 'Masculin'} icon={<User className="h-4 w-4" />} />
@@ -306,8 +306,8 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
                         <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-foreground">{f.numero}</td>
                         <td className="px-4 py-3 text-muted-foreground">{f.formation}</td>
                         <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-foreground">{formatXOF(f.montant)}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-emerald-600">{formatXOF(f.paye)}</td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-rose-600">{formatXOF(f.reste)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-success">{formatXOF(f.paye)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-destructive">{formatXOF(f.reste)}</td>
                         <td className="px-4 py-3">
                           <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
                         </td>

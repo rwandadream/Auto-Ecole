@@ -13,8 +13,10 @@ import {
   Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { type EtatVehicule } from '@/lib/mock-data'
+import { type EtatVehicule } from '@/lib/domain/types'
+import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -24,8 +26,7 @@ import {
   KpiCard,
   PaginationFooter,
 } from './shared'
-import { NouveauVehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
-import { ModifierVehiculeDialog } from '@/components/dashboard/dialogs/modifier-vehicule-dialog'
+import { VehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,19 +51,21 @@ const ETAT_FILTRES: EtatFiltre[] = ['Tous', 'Disponible', 'En maintenance', 'En 
 function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>['tone'] {
   switch (etat) {
     case 'Disponible':
-      return 'emerald'
+      return 'success'
     case 'En maintenance':
-      return 'amber'
+      return 'warning'
     case 'En panne':
-      return 'rose'
+      return 'destructive'
     default:
-      return 'slate'
+      return 'neutral'
   }
 }
 
 export function VehiculesView() {
   const vehicules = useDataStore((s) => s.vehicules)
   const deleteVehicule = useDataStore((s) => s.deleteVehicule)
+  const user = useAuthStore((s) => s.user)
+  const canDeleteVehicule = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_vehicule')
 
   const [recherche, setRecherche] = useState('')
   const [etatFiltre, setEtatFiltre] = useState<EtatFiltre>('Tous')
@@ -119,13 +122,13 @@ export function VehiculesView() {
           label="Disponibles"
           value={String(disponibles)}
           icon={<CheckCircle2 className="h-5 w-5" />}
-          tone="emerald"
+          tone="success"
         />
         <KpiCard
           label="En maintenance"
           value={String(enMaintenance)}
           icon={<Wrench className="h-5 w-5" />}
-          tone="amber"
+          tone="warning"
         />
       </div>
 
@@ -204,10 +207,10 @@ export function VehiculesView() {
                 const tone = etatTone(v.etat)
                 const iconWrapClass =
                   v.etat === 'Disponible'
-                    ? 'bg-emerald-500/10 text-emerald-600'
+                    ? 'bg-success/10 text-success'
                     : v.etat === 'En maintenance'
-                      ? 'bg-amber-500/10 text-amber-600'
-                      : 'bg-rose-500/10 text-rose-600'
+                      ? 'bg-warning/10 text-warning'
+                      : 'bg-destructive/10 text-destructive'
                 return (
                   <tr key={v.id} className="transition-colors hover:bg-muted/40">
                     <td className="px-4 py-3">
@@ -257,13 +260,15 @@ export function VehiculesView() {
                             <Pencil className="mr-2 h-4 w-4" />
                             Modifier
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-600"
-                            onSelect={() => setDeleteId(v.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
+                          {canDeleteVehicule && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => setDeleteId(v.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -293,8 +298,8 @@ export function VehiculesView() {
         />
       </Card>
 
-      <NouveauVehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
-      <ModifierVehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />
+      <VehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
+      <VehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />
 
       <AlertDialog
         open={deleteId !== null}
@@ -310,7 +315,7 @@ export function VehiculesView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteId) {
                   deleteVehicule(deleteId)

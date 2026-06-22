@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ClipboardCheck, Calendar, Clock, User, Car } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormSelect, FormTextarea } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore, type Seance } from '@/store/data-store'
 
 export function SuiviSeanceDialog({
@@ -68,19 +68,13 @@ export function SuiviSeanceDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={() => onOpenChange(false)}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             <ClipboardCheck className="h-4 w-4" />
             Enregistrer
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >

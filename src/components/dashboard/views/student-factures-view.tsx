@@ -3,9 +3,6 @@
 import { useState } from 'react'
 import {
   Download,
-  Banknote,
-  Smartphone,
-  Building2,
   Loader2,
   FileText,
   Receipt,
@@ -14,81 +11,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore, type Facture, type Paiement } from '@/store/data-store'
-import type { StatutFacture, ModePaiement } from '@/lib/mock-data'
 import { generateFacturePdf, generateRecuPdf } from '@/lib/utils-docs'
 import {
   ViewHeader,
   Card,
   StatusBadge,
   formatXOF,
+  statutFactureTone,
+  ModePaiementBadge,
+  type KpiTone,
 } from './shared'
-
-const statutTone: Record<StatutFacture, 'rose' | 'amber' | 'emerald'> = {
-  'Non payée': 'rose',
-  Partielle: 'amber',
-  Payée: 'emerald',
-  Impayée: 'rose',
-}
-
-const modePaiementConfig: Record<
-  ModePaiement,
-  { icon: React.ReactNode; bg: string; fg: string }
-> = {
-  Espèces: {
-    icon: <Banknote className="h-3.5 w-3.5" />,
-    bg: 'bg-slate-500/10',
-    fg: 'text-slate-600',
-  },
-  'Orange Money': {
-    icon: <Smartphone className="h-3.5 w-3.5" />,
-    bg: 'bg-amber-500/10',
-    fg: 'text-amber-600',
-  },
-  Wave: {
-    icon: <Smartphone className="h-3.5 w-3.5" />,
-    bg: 'bg-sky-500/10',
-    fg: 'text-sky-600',
-  },
-  Virement: {
-    icon: <Building2 className="h-3.5 w-3.5" />,
-    bg: 'bg-primary/10',
-    fg: 'text-primary',
-  },
-}
-
-function ModePaiementBadge({ mode }: { mode: ModePaiement }) {
-  const cfg = modePaiementConfig[mode]
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.fg}`}>
-      {cfg.icon}
-      {mode}
-    </span>
-  )
-}
 
 // KPI mini card
 function SummaryCard({
   label,
   value,
-  tone = 'slate',
+  tone = 'neutral',
   icon,
 }: {
   label: string
   value: string
-  tone?: 'primary' | 'emerald' | 'rose' | 'slate'
+  tone?: KpiTone
   icon: React.ReactNode
 }) {
-  const valueColor: Record<string, string> = {
+  const valueColor: Record<KpiTone, string> = {
     primary: 'text-primary',
-    emerald: 'text-emerald-600',
-    rose: 'text-rose-600',
-    slate: 'text-foreground',
+    success: 'text-success',
+    warning: 'text-warning',
+    destructive: 'text-destructive',
+    secondary: 'text-secondary-foreground',
+    neutral: 'text-foreground',
   }
-  const iconWrap: Record<string, string> = {
+  const iconWrap: Record<KpiTone, string> = {
     primary: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    rose: 'bg-rose-500/10 text-rose-600',
-    slate: 'bg-muted text-muted-foreground',
+    success: 'bg-success/10 text-success',
+    warning: 'bg-warning/10 text-warning',
+    destructive: 'bg-destructive/10 text-destructive',
+    secondary: 'bg-secondary text-secondary-foreground',
+    neutral: 'bg-muted text-muted-foreground',
   }
   return (
     <Card>
@@ -119,14 +79,14 @@ function DownloadButton({
 }) {
   const [generating, setGenerating] = useState(false)
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (generating) return
     setGenerating(true)
     try {
       if (type === 'facture') {
-        generateFacturePdf(document as Facture)
+        await generateFacturePdf(document as Facture)
       } else {
-        generateRecuPdf(document as Paiement)
+        await generateRecuPdf(document as Paiement)
       }
       toast.success('PDF généré')
     } catch {
@@ -183,19 +143,19 @@ export function StudentFacturesView() {
         <SummaryCard
           label="Total facturé"
           value={formatXOF(totalFacture)}
-          tone="slate"
+          tone="neutral"
           icon={<FileText className="h-5 w-5" />}
         />
         <SummaryCard
           label="Total payé"
           value={formatXOF(totalPaye)}
-          tone="emerald"
+          tone="success"
           icon={<Receipt className="h-5 w-5" />}
         />
         <SummaryCard
           label="Reste à payer"
           value={formatXOF(totalReste)}
-          tone={totalReste > 0 ? 'rose' : 'emerald'}
+          tone={totalReste > 0 ? 'destructive' : 'success'}
           icon={<Download className="h-5 w-5" />}
         />
       </div>
@@ -231,14 +191,14 @@ export function StudentFacturesView() {
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.formation}</td>
                       <td className="px-4 py-3 text-right text-sm font-medium text-foreground">{formatXOF(f.montant)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-medium text-emerald-600">{formatXOF(f.paye)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-medium text-success">{formatXOF(f.paye)}</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        <span className={f.reste > 0 ? 'text-rose-600' : 'text-muted-foreground'}>
+                        <span className={f.reste > 0 ? 'text-destructive' : 'text-muted-foreground'}>
                           {formatXOF(f.reste)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <StatusBadge label={f.statut} tone={statutTone[f.statut]} />
+                        <StatusBadge label={f.statut} tone={statutFactureTone[f.statut]} />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{f.dateEmission}</td>
                       <td className="px-4 py-3">
@@ -282,7 +242,7 @@ export function StudentFacturesView() {
                       <td className="px-4 py-3">
                         <span className="font-mono text-sm font-bold text-foreground">{p.facture}</span>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600">
+                      <td className="px-4 py-3 text-right text-sm font-bold text-success">
                         {formatXOF(p.montant)}
                       </td>
                       <td className="px-4 py-3">

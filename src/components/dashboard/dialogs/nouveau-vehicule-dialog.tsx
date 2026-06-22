@@ -1,24 +1,51 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
 
-export function NouveauVehiculeDialog({
-  open,
-  onOpenChange,
-}: {
+type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
-}) {
+  vehiculeId?: string | null
+}
+
+const ETATS = ['Disponible', 'En maintenance', 'En panne'] as const
+
+export function VehiculeDialog({ open, onOpenChange, vehiculeId = null }: Props) {
   const addVehicule = useDataStore((s) => s.addVehicule)
+  const updateVehicule = useDataStore((s) => s.updateVehicule)
+  const vehicules = useDataStore((s) => s.vehicules)
 
   const [marque, setMarque] = useState('')
   const [modele, setModele] = useState('')
   const [immatriculation, setImmatriculation] = useState('')
-  const [etat, setEtat] = useState<'Disponible' | 'En maintenance' | 'En panne'>('Disponible')
+  const [etat, setEtat] = useState<(typeof ETATS)[number]>('Disponible')
+
+  const isEdit = !!vehiculeId
+
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      if (vehiculeId) {
+        const target = vehicules.find((v) => v.id === vehiculeId)
+        if (target) {
+          setMarque(target.marque)
+          setModele(target.modele)
+          setImmatriculation(target.immatriculation)
+          setEtat(target.etat)
+        }
+      } else {
+        setMarque('')
+        setModele('')
+        setImmatriculation('')
+        setEtat('Disponible')
+      }
+    }
+  }
 
   const reset = () => {
     setMarque('')
@@ -34,16 +61,22 @@ export function NouveauVehiculeDialog({
 
   const handleSubmit = () => {
     if (!marque.trim() || !modele.trim() || !immatriculation.trim()) {
-      toast.error('Veuillez renseigner la marque, le modèle et l\'immatriculation.')
+      toast.error("Veuillez renseigner la marque, le modèle et l'immatriculation.")
       return
     }
-    addVehicule({
+    const payload = {
       marque: marque.trim(),
       modele: modele.trim(),
-      immatriculation: immatriculation.trim(),
+      immatriculation: isEdit ? immatriculation.trim().toUpperCase() : immatriculation.trim(),
       etat,
-    })
-    toast.success(`Véhicule ${marque} ${modele} ajouté avec succès.`)
+    }
+    if (isEdit && vehiculeId) {
+      updateVehicule(vehiculeId, payload)
+      toast.success(`Véhicule ${marque} ${modele} modifié avec succès.`)
+    } else {
+      addVehicule(payload)
+      toast.success(`Véhicule ${marque} ${modele} ajouté avec succès.`)
+    }
     reset()
     onOpenChange(false)
   }
@@ -52,24 +85,22 @@ export function NouveauVehiculeDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Ajouter un véhicule"
-      description="Renseignez les informations du nouveau véhicule"
+      title={isEdit ? 'Modifier le véhicule' : 'Ajouter un véhicule'}
+      description={
+        isEdit
+          ? 'Mettez à jour les informations du véhicule'
+          : 'Renseignez les informations du nouveau véhicule'
+      }
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter le véhicule
-          </button>
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
+            {isEdit ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {isEdit ? 'Enregistrer' : 'Ajouter le véhicule'}
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -84,14 +115,19 @@ export function NouveauVehiculeDialog({
         </div>
 
         <Field label="Immatriculation" required>
-          <FormInput value={immatriculation} onChange={(e) => setImmatriculation(e.target.value)} placeholder="AB-1247-CI" />
+          <FormInput
+            value={immatriculation}
+            onChange={(e) => setImmatriculation(e.target.value)}
+            placeholder="AB-1247-CI"
+            className={isEdit ? 'font-mono' : undefined}
+          />
         </Field>
 
         <Field label="État">
-          <FormSelect value={etat} onChange={(e) => setEtat(e.target.value as 'Disponible' | 'En maintenance' | 'En panne')}>
-            <option value="Disponible">Disponible</option>
-            <option value="En maintenance">En maintenance</option>
-            <option value="En panne">En panne</option>
+          <FormSelect value={etat} onChange={(e) => setEtat(e.target.value as (typeof ETATS)[number])}>
+            {ETATS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </FormSelect>
         </Field>
       </div>

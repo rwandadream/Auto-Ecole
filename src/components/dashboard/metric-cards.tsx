@@ -5,6 +5,13 @@ import { Wallet, TrendingDown, TrendingUp, Users, Award, Clock } from 'lucide-re
 import { cn } from '@/lib/utils'
 import { useDataStore } from '@/store/data-store'
 import { formatXOF } from '@/components/dashboard/views/shared'
+import {
+  countByMonth,
+  formatPercentChange,
+  monthKey,
+  previousMonthKey,
+  sumByMonth,
+} from '@/lib/stats'
 
 type Metric = {
   label: string
@@ -14,6 +21,7 @@ type Metric = {
   icon: React.ComponentType<{ className?: string }>
   iconBg: string
   iconColor: string
+  isNegative?: boolean
 }
 
 export function MetricCards() {
@@ -23,11 +31,18 @@ export function MetricCards() {
   const examens = useDataStore((s) => s.examens)
 
   const metrics: Metric[] = useMemo(() => {
-    const ca = factures.reduce((sum, f) => sum + f.montant, 0)
-    const totalDepenses = depenses.reduce((sum, d) => sum + d.montant, 0)
-    const benefice = ca - totalDepenses
+    const currentMonth = monthKey(new Date())
+    const prevMonth = previousMonthKey(currentMonth)
 
-    // Taux de réussite : admis / (total - en attente)
+    const caCurrent = sumByMonth(factures, (f) => f.dateEmission, (f) => f.montant, currentMonth)
+    const caPrev = sumByMonth(factures, (f) => f.dateEmission, (f) => f.montant, prevMonth)
+    const depCurrent = sumByMonth(depenses, (d) => d.date, (d) => d.montant, currentMonth)
+    const depPrev = sumByMonth(depenses, (d) => d.date, (d) => d.montant, prevMonth)
+    const beneficeCurrent = caCurrent - depCurrent
+    const beneficePrev = caPrev - depPrev
+    const elevesCurrent = countByMonth(eleves, (e) => e.dateInscription, currentMonth)
+    const elevesPrev = countByMonth(eleves, (e) => e.dateInscription, prevMonth)
+
     const examensNotes = examens.filter((x) => x.resultat !== 'En attente')
     const admis = examensNotes.filter((x) => x.resultat === 'Admis').length
     const tauxReussite =
@@ -36,13 +51,20 @@ export function MetricCards() {
         : '—'
 
     const facturesEnAttente = factures.filter((f) => f.statut !== 'Payée').length
+    const impayesMontant = factures
+      .filter((f) => f.statut === 'Impayée' || f.statut === 'Non payée')
+      .reduce((s, f) => s + f.reste, 0)
+
+    const caTotal = factures.reduce((sum, f) => sum + f.montant, 0)
+    const totalDepenses = depenses.reduce((sum, d) => sum + d.montant, 0)
+    const benefice = caTotal - totalDepenses
 
     return [
       {
         label: "Chiffre d'affaires",
-        value: formatXOF(ca),
-        change: '+4.9%',
-        lastMonth: '7 834 000 F',
+        value: formatXOF(caTotal),
+        change: formatPercentChange(caCurrent, caPrev),
+        lastMonth: formatXOF(caPrev),
         icon: Wallet,
         iconBg: 'bg-primary/10',
         iconColor: 'text-primary',
@@ -50,44 +72,45 @@ export function MetricCards() {
       {
         label: 'Total dépenses',
         value: formatXOF(totalDepenses),
-        change: '+2.3%',
-        lastMonth: '2 097 000 F',
+        change: formatPercentChange(depCurrent, depPrev),
+        lastMonth: formatXOF(depPrev),
         icon: TrendingDown,
-        iconBg: 'bg-rose-500/10',
-        iconColor: 'text-rose-600',
+        iconBg: 'bg-destructive/10',
+        iconColor: 'text-destructive',
+        isNegative: true,
       },
       {
         label: 'Bénéfice net',
         value: formatXOF(benefice),
-        change: '+6.8%',
-        lastMonth: '5 737 000 F',
+        change: formatPercentChange(beneficeCurrent, beneficePrev),
+        lastMonth: formatXOF(beneficePrev),
         icon: TrendingUp,
-        iconBg: 'bg-emerald-500/10',
-        iconColor: 'text-emerald-600',
+        iconBg: 'bg-success/10',
+        iconColor: 'text-success',
       },
       {
         label: 'Élèves inscrits',
         value: String(eleves.length),
-        change: '+12',
-        lastMonth: '236',
+        change: formatPercentChange(elevesCurrent, elevesPrev),
+        lastMonth: `${elevesPrev} ce mois`,
         icon: Users,
-        iconBg: 'bg-sky-500/10',
-        iconColor: 'text-sky-600',
+        iconBg: 'bg-secondary',
+        iconColor: 'text-secondary-foreground',
       },
       {
         label: 'Taux de réussite',
         value: tauxReussite,
-        change: '+3.2%',
-        lastMonth: '75,3%',
+        change: `${admis}/${examensNotes.length} admis`,
+        lastMonth: 'Examens notés',
         icon: Award,
-        iconBg: 'bg-amber-500/10',
-        iconColor: 'text-amber-600',
+        iconBg: 'bg-warning/10',
+        iconColor: 'text-warning',
       },
       {
         label: 'Factures en attente',
         value: String(facturesEnAttente),
-        change: '1 240 000 F',
-        lastMonth: '3 impayées',
+        change: formatXOF(impayesMontant),
+        lastMonth: 'Montant impayé',
         icon: Clock,
         iconBg: 'bg-primary/10',
         iconColor: 'text-primary',
@@ -99,7 +122,7 @@ export function MetricCards() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {metrics.map((metric) => {
         const Icon = metric.icon
-        const isNegative = metric.label === 'Total dépenses'
+        const isNegative = metric.isNegative === true
         return (
           <div
             key={metric.label}
@@ -109,7 +132,7 @@ export function MetricCards() {
               <div
                 className={cn(
                   'flex h-11 w-11 items-center justify-center rounded-xl',
-                  metric.iconBg
+                  metric.iconBg,
                 )}
               >
                 <Icon className={cn('h-5 w-5', metric.iconColor)} />
@@ -117,21 +140,19 @@ export function MetricCards() {
               <div
                 className={cn(
                   'flex items-center gap-1 rounded-full px-2 py-1',
-                  isNegative
-                    ? 'bg-rose-500/10'
-                    : 'bg-emerald-500/10'
+                  isNegative ? 'bg-destructive/10' : 'bg-success/10',
                 )}
               >
                 <TrendingUp
                   className={cn(
                     'h-3 w-3',
-                    isNegative ? 'rotate-180 text-rose-600' : 'text-emerald-600'
+                    isNegative ? 'rotate-180 text-destructive' : 'text-success',
                   )}
                 />
                 <span
                   className={cn(
                     'text-xs font-semibold',
-                    isNegative ? 'text-rose-600' : 'text-emerald-600'
+                    isNegative ? 'text-destructive' : 'text-success',
                   )}
                 >
                   {metric.change}
@@ -139,12 +160,8 @@ export function MetricCards() {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground">
-                {metric.label}
-              </p>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-                {metric.value}
-              </p>
+              <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{metric.value}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Mois précédent :{' '}
                 <span className="font-medium text-foreground">{metric.lastMonth}</span>

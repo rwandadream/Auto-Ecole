@@ -7,20 +7,18 @@ import {
   Mail,
   Phone,
   LifeBuoy,
-  ExternalLink,
 } from 'lucide-react'
 import {
   ViewHeader,
   Card,
 } from './shared'
-import { toast } from 'sonner'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { faq } from '@/lib/mock-data'
+import { useDataStore } from '@/store/data-store'
 
 const helpTopics = [
   {
@@ -28,22 +26,29 @@ const helpTopics = [
     title: 'Guide de démarrage',
     description: "Apprenez les bases de l'ERP et configurez votre auto-école en quelques minutes.",
     tone: 'bg-primary/10 text-primary',
+    content:
+      "1. Connectez-vous avec votre email staff (comptes seedés en base, mot de passe initial Sarah2026!). 2. Créez un élève via « Élèves » ou « Scanner CNI » en choisissant une formation — la facture est générée automatiquement. 3. Planifiez des séances dans « Planning » (conflits moniteur/véhicule détectés). 4. Encaissez les paiements dans « Facturation ».",
   },
   {
     icon: <PlayCircle className="h-6 w-6" />,
-    title: 'Vidéos tutoriels',
-    description: 'Des tutoriels vidéo pas à pas pour maîtriser chaque module de SARAH AUTO.',
-    tone: 'bg-sky-500/10 text-sky-600',
+    title: 'Modules principaux',
+    description: 'Parcours rapide : élèves, planning, examens, facturation et comptabilité.',
+    tone: 'bg-secondary text-secondary-foreground',
+    content:
+      "Élèves : cycle de vie Prospect → Admis. Planning : vue liste ou calendrier hebdomadaire. Examens : individuels + sessions/bordereaux PDF. Facturation : relances WhatsApp en un clic. Comptabilité : dépenses avec justificatif photo (500 Ko max).",
   },
   {
     icon: <Mail className="h-6 w-6" />,
     title: 'Contacter le support',
     description: 'Notre équipe support vous répond sous 24h ouvrées, du lundi au vendredi.',
-    tone: 'bg-emerald-500/10 text-emerald-600',
+    tone: 'bg-success/10 text-success',
+    content:
+      'Email : support@sarahauto.ci — Téléphone : +225 07 00 00 00. Indiquez votre rôle, le module concerné et une capture d’écran si possible.',
   },
 ]
 
 export function AssistancePanel() {
+  const faq = useDataStore((s) => s.faq)
   const [openItem, setOpenItem] = useState<string | undefined>(undefined)
 
   return (
@@ -51,21 +56,14 @@ export function AssistancePanel() {
       {/* Help topic cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {helpTopics.map((t) => (
-          <Card
-            key={t.title}
-            onClick={() => toast.info(`« ${t.title} » — documentation détaillée bientôt disponible`)}
-            className="flex cursor-pointer flex-col gap-3 transition-colors hover:border-primary/40"
-          >
+          <Card key={t.title} className="flex flex-col gap-3">
             <div className={`inline-flex h-12 w-12 items-center justify-center rounded-lg ${t.tone}`}>
               {t.icon}
             </div>
             <div>
               <h3 className="text-sm font-semibold text-foreground">{t.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
-            </div>
-            <div className="mt-auto flex items-center gap-1 text-sm font-medium text-primary">
-              En savoir plus
-              <ExternalLink className="h-3.5 w-3.5" />
+              <p className="mt-3 text-sm leading-relaxed text-foreground/80">{t.content}</p>
             </div>
           </Card>
         ))}
@@ -88,12 +86,12 @@ export function AssistancePanel() {
             onValueChange={setOpenItem}
             className="w-full"
           >
-            {faq.map((item, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-border last:border-b-0">
+            {faq.map((item) => (
+              <AccordionItem key={item.id} value={item.id} className="border-b border-border last:border-b-0">
                 <AccordionTrigger className="text-left text-sm font-semibold text-foreground hover:no-underline">
                   <span className="flex items-center gap-3">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
-                      {idx + 1}
+                      {item.sortOrder}
                     </span>
                     {item.q}
                   </span>

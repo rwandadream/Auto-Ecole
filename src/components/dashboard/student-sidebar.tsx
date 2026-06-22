@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import {
-  GraduationCap,
   LayoutGrid,
   CalendarDays,
   Receipt,
@@ -13,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
+import { BrandLogo } from '@/components/dashboard/brand-logo'
 
 type NavItem = {
   label: string
@@ -43,9 +43,7 @@ export function StudentSidebar() {
     >
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
-          <GraduationCap className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <BrandLogo />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
             <span className="text-base font-bold tracking-tight text-foreground">
@@ -103,7 +101,7 @@ export function StudentSidebar() {
         <button
           onClick={() => setShowLogout(true)}
           className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-rose-500/10 hover:text-rose-600',
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive',
             collapsed && 'justify-center px-2'
           )}
           title={collapsed ? 'Déconnexion' : undefined}

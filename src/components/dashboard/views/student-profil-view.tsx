@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Camera,
   Pencil,
@@ -19,25 +19,17 @@ import {
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
 import { toast } from 'sonner'
+import { readImageAsBase64 } from '@/lib/image-utils'
+import { uploadMedia, resolveMediaUrl } from '@/lib/supabase/storage'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   Card,
   StatusBadge,
   initials,
+  statutEleveTone,
 } from './shared'
-
-// Statut → badge tone
-const statutTone: Record<string, 'slate' | 'sky' | 'primary' | 'amber' | 'emerald' | 'rose'> = {
-  Prospect: 'slate',
-  Inscrit: 'sky',
-  'En formation': 'primary',
-  Examen: 'amber',
-  Admis: 'emerald',
-  Ajourné: 'rose',
-  Terminé: 'emerald',
-  Abandon: 'slate',
-}
 
 const moisLong = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -49,11 +41,6 @@ function formatDateNaissance(iso: string): string {
   const d = new Date(iso + 'T00:00:00')
   return `${d.getDate()} ${moisLong[d.getMonth()]} ${d.getFullYear()}`
 }
-
-type FieldKey =
-  | 'telephone'
-  | 'email'
-  | 'nationalite'
 
 function InfoRow({
   icon,
@@ -121,10 +108,51 @@ export function StudentProfilView() {
     email: '',
     nationalite: '',
   })
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState('')
+
+  const me =
+    user?.mode === 'eleve' ? eleves.find((e) => e.code === user.code) : undefined
+  const photoProfil = me?.photoProfil ?? ''
+
+  useEffect(() => {
+    if (!photoProfil) {
+      setAvatarUrl('')
+      return
+    }
+    let cancelled = false
+    void resolveMediaUrl(photoProfil).then((url) => {
+      if (!cancelled) setAvatarUrl(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [photoProfil])
 
   if (!user || user.mode !== 'eleve') return null
 
-  const me = eleves.find((e) => e.code === user.code)
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !me) return
+    try {
+      const { data: { user } } = await createClient().auth.getUser()
+      if (user) {
+        const ref = await uploadMedia('avatars', `${me.id}/profile.jpg`, file)
+        updateEleve(me.id, { photoProfil: ref })
+      } else {
+        const base64 = await readImageAsBase64(file)
+        updateEleve(me.id, { photoProfil: base64 })
+      }
+      toast.success('Photo de profil mise à jour')
+    } catch (err) {
+      if (err instanceof Error && err.message === 'FILE_TOO_LARGE') {
+        toast.error('Image trop volumineuse (max 500 Ko)')
+      } else {
+        toast.error('Impossible de lire l\'image')
+      }
+    }
+    e.target.value = ''
+  }
 
   // Initialize form when entering edit mode (only once per toggle)
   const startEdit = () => {
@@ -148,8 +176,8 @@ export function StudentProfilView() {
   }
 
   const statutBadgeTone = me
-    ? statutTone[me.statut] ?? 'slate'
-    : 'slate'
+    ? statutEleveTone[me.statut] ?? 'neutral'
+    : 'neutral'
 
   return (
     <>
@@ -164,11 +192,31 @@ export function StudentProfilView() {
           <div className="flex flex-col items-center text-center">
             {/* Avatar */}
             <div className="relative">
-              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-                {initials(user.nomComplet)}
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={user.nomComplet}
+                  className="h-24 w-24 rounded-full object-cover"
+                />
+              ) : me?.photoProfil && !avatarUrl ? (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
+                  …
+                </div>
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
+                  {initials(user.nomComplet)}
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
               <button
-                onClick={() => toast.info('Téléversement de photo bientôt disponible')}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 aria-label="Changer la photo"
                 title="Changer la photo"
@@ -237,7 +285,7 @@ export function StudentProfilView() {
               Informations {editMode ? '— modification' : 'personnelles'}
             </h2>
             {editMode && (
-              <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600">
+              <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
                 Mode édition
               </span>
             )}

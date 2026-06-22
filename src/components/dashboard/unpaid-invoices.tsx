@@ -6,25 +6,7 @@ import { cn } from '@/lib/utils'
 import { useDataStore } from '@/store/data-store'
 import { formatXOF } from '@/components/dashboard/views/shared'
 import { relanceWhatsApp, messageRelanceFacture } from '@/lib/utils-docs'
-
-// Reference "today" aligned with the mock data timeline (Dec 2026)
-const TODAY = new Date('2026-12-02T00:00:00')
-
-const moisFrToNum: Record<string, number> = {
-  'Jan': 0, 'Fév': 1, 'Mar': 2, 'Avr': 3, 'Mai': 4, 'Juin': 5,
-  'Juil': 6, 'Août': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Déc': 11,
-}
-
-// Parse a French date like "29 Nov 2026" into a Date
-function parseFrDate(s: string): Date | null {
-  const parts = s.split(/\s+/)
-  if (parts.length !== 3) return null
-  const jour = parseInt(parts[0], 10)
-  const mois = moisFrToNum[parts[1]]
-  const annee = parseInt(parts[2], 10)
-  if (Number.isNaN(jour) || mois === undefined || Number.isNaN(annee)) return null
-  return new Date(annee, mois, jour)
-}
+import { parseFlexibleDate } from '@/lib/stats'
 
 function daysBetween(from: Date, to: Date): number {
   const ms = to.getTime() - from.getTime()
@@ -44,8 +26,8 @@ export function UnpaidInvoices() {
     () =>
       facturesImpayees.map((f) => {
         const eleve = eleves.find((e) => e.code === f.eleveCode)
-        const dEmit = parseFrDate(f.dateEmission)
-        const retard = dEmit ? daysBetween(dEmit, TODAY) : 0
+        const dEmit = parseFlexibleDate(f.dateEmission)
+        const retard = dEmit ? daysBetween(dEmit, new Date()) : 0
         return {
           id: f.id,
           numero: f.numero,
@@ -88,8 +70,8 @@ export function UnpaidInvoices() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
-            <AlertCircle className="h-5 w-5 text-rose-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
+            <AlertCircle className="h-5 w-5 text-destructive" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">Relances impayés</h2>
@@ -150,7 +132,7 @@ export function UnpaidInvoices() {
                   <p
                     className={cn(
                       'text-xs font-medium',
-                      row.retard > 30 ? 'text-rose-600' : 'text-amber-600'
+                      row.retard > 30 ? 'text-destructive' : 'text-warning'
                     )}
                   >
                     Retard : {row.retard} jours
@@ -159,7 +141,7 @@ export function UnpaidInvoices() {
                 <button
                   onClick={() => handleRelance(row)}
                   disabled={!row.telephone}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 transition-colors hover:bg-emerald-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success transition-colors hover:bg-success hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   title={`Relancer ${row.eleveNom} par WhatsApp`}
                   aria-label={`Relancer ${row.eleveNom} par WhatsApp`}
                 >

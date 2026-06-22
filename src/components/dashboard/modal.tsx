@@ -9,6 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 type ModalProps = {
   open: boolean
@@ -47,6 +48,47 @@ export function Modal({
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
+  )
+}
+
+export function ModalCancelButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className={cn('h-10 rounded-lg', className)}
+      {...props}
+    />
+  )
+}
+
+export function ModalPrimaryButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      className={cn('h-10 rounded-lg font-semibold', className)}
+      {...props}
+    />
+  )
+}
+
+export function ModalDestructiveButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      variant="destructive"
+      className={cn('h-10 rounded-lg font-semibold', className)}
+      {...props}
+    />
   )
 }
 

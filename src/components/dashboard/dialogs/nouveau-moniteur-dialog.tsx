@@ -1,26 +1,57 @@
 'use client'
 
 import { useState } from 'react'
-import { UserPlus } from 'lucide-react'
+import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
+import { STATUTS_MONITEUR } from '@/lib/constants'
+import type { StatutMoniteur } from '@/lib/domain/types'
 
-export function NouveauMoniteurDialog({
-  open,
-  onOpenChange,
-}: {
+type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
-}) {
+  moniteurId?: string | null
+}
+
+export function MoniteurDialog({ open, onOpenChange, moniteurId = null }: Props) {
   const addMoniteur = useDataStore((s) => s.addMoniteur)
+  const updateMoniteur = useDataStore((s) => s.updateMoniteur)
+  const moniteurs = useDataStore((s) => s.moniteurs)
 
   const [nom, setNom] = useState('')
   const [prenom, setPrenom] = useState('')
   const [telephone, setTelephone] = useState('')
   const [email, setEmail] = useState('')
   const [specialite, setSpecialite] = useState<'Conduite' | 'Code'>('Conduite')
-  const [statut, setStatut] = useState<'Disponible' | 'En mission' | 'Absent'>('Disponible')
+  const [statut, setStatut] = useState<StatutMoniteur>('Disponible')
+
+  const isEdit = !!moniteurId
+
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      if (moniteurId) {
+        const target = moniteurs.find((m) => m.id === moniteurId)
+        if (target) {
+          setNom(target.nom)
+          setPrenom(target.prenom)
+          setTelephone(target.telephone)
+          setEmail(target.email)
+          setSpecialite(target.specialite as 'Conduite' | 'Code')
+          setStatut(target.statut)
+        }
+      } else {
+        setNom('')
+        setPrenom('')
+        setTelephone('')
+        setEmail('')
+        setSpecialite('Conduite')
+        setStatut('Disponible')
+      }
+    }
+  }
 
   const reset = () => {
     setNom('')
@@ -41,15 +72,21 @@ export function NouveauMoniteurDialog({
       toast.error('Veuillez renseigner le nom, le prénom et le téléphone.')
       return
     }
-    addMoniteur({
+    const payload = {
       nom: nom.trim(),
       prenom: prenom.trim(),
       telephone: telephone.trim(),
       email: email.trim(),
       specialite,
       statut,
-    })
-    toast.success(`Moniteur ${prenom} ${nom} ajouté avec succès.`)
+    }
+    if (isEdit && moniteurId) {
+      updateMoniteur(moniteurId, payload)
+      toast.success(`Moniteur ${prenom} ${nom} modifié avec succès.`)
+    } else {
+      addMoniteur(payload)
+      toast.success(`Moniteur ${prenom} ${nom} ajouté avec succès.`)
+    }
     reset()
     onOpenChange(false)
   }
@@ -58,24 +95,22 @@ export function NouveauMoniteurDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Ajouter un moniteur"
-      description="Renseignez les informations du nouveau moniteur"
+      title={isEdit ? 'Modifier le moniteur' : 'Ajouter un moniteur'}
+      description={
+        isEdit
+          ? 'Mettez à jour les informations du moniteur'
+          : 'Renseignez les informations du nouveau moniteur'
+      }
       size="md"
       footer={
         <>
-          <button
-            onClick={handleCancel}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={handleCancel}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <UserPlus className="h-4 w-4" />
-            Créer le moniteur
-          </button>
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
+            {isEdit ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {isEdit ? 'Enregistrer' : 'Créer le moniteur'}
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -106,10 +141,10 @@ export function NouveauMoniteurDialog({
             </FormSelect>
           </Field>
           <Field label="Statut">
-            <FormSelect value={statut} onChange={(e) => setStatut(e.target.value as 'Disponible' | 'En mission' | 'Absent')}>
-              <option value="Disponible">Disponible</option>
-              <option value="En mission">En mission</option>
-              <option value="Absent">Absent</option>
+            <FormSelect value={statut} onChange={(e) => setStatut(e.target.value as StatutMoniteur)}>
+              {STATUTS_MONITEUR.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </FormSelect>
           </Field>
         </div>

@@ -1,10 +1,18 @@
 import { create } from 'zustand'
-import { useDataStore } from '@/store/data-store'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { createClient } from '@/lib/supabase/client'
+import { assertSupabaseConfigured } from '@/lib/supabase/config'
+import { mapEleveStatutFromDb } from '@/lib/supabase/mappers'
+import { mapRoleFromDb } from '@/lib/supabase/roles'
+import { syncDataFromSupabase, syncDataForEleve } from '@/lib/supabase/sync-data'
+import { setCurrentAuditUser } from '@/lib/audit-user'
+import { AUTH_STORE_KEY } from '@/store/persist-config'
 
 export type UserMode = 'admin' | 'eleve'
 
 export type AdminUser = {
   mode: 'admin'
+  id: string
   name: string
   email: string
   role: string
@@ -25,57 +33,151 @@ export type AuthUser = AdminUser | EleveUser
 interface AuthState {
   isAuthenticated: boolean
   user: AuthUser | null
-  loginAdmin: (email: string, _password: string) => boolean
-  loginEleve: (code: string, telephone: string) => boolean
-  logout: () => void
+  loginAdmin: (email: string, password: string) => Promise<boolean>
+  loginEleve: (code: string, telephone: string) => Promise<boolean>
+  restoreSupabaseSession: () => Promise<boolean>
+  logout: () => Promise<void>
 }
 
-// Mock admin credentials — any email + password works, but map known team members
-const adminProfiles: Record<string, { name: string; role: string }> = {
-  'a.diallo@sarahauto.ci': { name: 'Aïcha Diallo', role: 'Administrateur principal' },
-  'e.tanoh@sarahauto.ci': { name: 'Tanoh Estelle', role: 'Comptable' },
-  'jm.koffi@sarahauto.ci': { name: 'Koffi Jean-Marc', role: 'Moniteur' },
+function syncAuditUser(user: AuthUser | null) {
+  if (!user) {
+    setCurrentAuditUser('Système')
+    return
+  }
+  if (user.mode === 'admin') {
+    setCurrentAuditUser(user.name)
+  } else {
+    setCurrentAuditUser(user.nomComplet)
+  }
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: false,
-  user: null,
-  loginAdmin: (email, _password) => {
-    const profile = adminProfiles[email.toLowerCase()] ?? {
-      name: email.split('@')[0],
-      role: 'Administrateur',
-    }
-    set({
-      isAuthenticated: true,
-      user: {
-        mode: 'admin',
-        name: profile.name,
-        email: email.toLowerCase(),
-        role: profile.role,
+function setAdminUser(user: AdminUser) {
+  syncAuditUser(user)
+  return { isAuthenticated: true, user }
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      isAuthenticated: false,
+      user: null,
+
+      loginAdmin: async (email, password) => {
+        assertSupabaseConfigured()
+        const supabase = createClient()
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+
+        if (error || !data.user) {
+          return false
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id,name,email,role,actif')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        if (profileError || !profile || profile.actif === false) {
+          await supabase.auth.signOut()
+          return false
+        }
+
+        const user: AdminUser = {
+          mode: 'admin',
+          id: profile.id,
+          name: profile.name ?? '',
+          email: profile.email,
+          role: mapRoleFromDb(profile.role ?? ''),
+        }
+        set(setAdminUser(user))
+        await syncDataFromSupabase()
+        return true
       },
-    })
-    return true
-  },
-  loginEleve: (code, telephone) => {
-    // Lire depuis le data-store (pas mock-data) pour que les élèves nouvellement créés puissent se connecter
-    const eleves = useDataStore.getState().eleves
-    const eleve = eleves.find(
-      (e) => e.code.toLowerCase() === code.toLowerCase() && e.telephone.replace(/\s/g, '') === telephone.replace(/\s/g, '')
-    )
-    if (!eleve) return false
-    set({
-      isAuthenticated: true,
-      user: {
-        mode: 'eleve',
-        code: eleve.code,
-        nomComplet: `${eleve.prenom} ${eleve.nom}`,
-        telephone: eleve.telephone,
-        email: eleve.email,
-        typePermis: eleve.typePermis,
-        statut: eleve.statut,
+
+      loginEleve: async (code, telephone) => {
+        assertSupabaseConfigured()
+        const supabase = createClient()
+        const { data, error } = await supabase.rpc('login_eleve_portail', {
+          p_code: code.trim(),
+          p_telephone: telephone.trim(),
+        })
+
+        const row = Array.isArray(data) ? data[0] : data
+        if (error || !row) {
+          return false
+        }
+
+        const user: EleveUser = {
+          mode: 'eleve',
+          code: row.code,
+          nomComplet: `${row.prenom} ${row.nom}`,
+          telephone: row.telephone,
+          email: row.email ?? '',
+          typePermis: row.type_permis,
+          statut: mapEleveStatutFromDb(row.statut),
+        }
+        syncAuditUser(user)
+        set({ isAuthenticated: true, user })
+        await syncDataForEleve(row.code, row.telephone)
+        return true
       },
-    })
-    return true
-  },
-  logout: () => set({ isAuthenticated: false, user: null }),
-}))
+
+      restoreSupabaseSession: async () => {
+        assertSupabaseConfigured()
+        const supabase = createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) return false
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id,name,email,role,actif')
+          .eq('id', authUser.id)
+          .maybeSingle()
+
+        if (!profile || profile.actif === false) {
+          await supabase.auth.signOut()
+          return false
+        }
+
+        const user: AdminUser = {
+          mode: 'admin',
+          id: profile.id,
+          name: profile.name ?? '',
+          email: profile.email,
+          role: mapRoleFromDb(profile.role ?? ''),
+        }
+
+        if (!get().isAuthenticated) {
+          set(setAdminUser(user))
+        }
+
+        await syncDataFromSupabase()
+        return true
+      },
+
+      logout: async () => {
+        assertSupabaseConfigured()
+        const supabase = createClient()
+        await supabase.auth.signOut()
+        syncAuditUser(null)
+        set({ isAuthenticated: false, user: null })
+      },
+    }),
+    {
+      name: AUTH_STORE_KEY,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          syncAuditUser(state.user)
+        }
+      },
+    },
+  ),
+)

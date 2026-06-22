@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, MoreHorizontal, CalendarDays, CheckCircle2, Clock, XCircle, ClipboardCheck, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
-import { type StatutSeance } from '@/lib/mock-data'
+import { type StatutSeance } from '@/lib/domain/types'
 import type { Seance } from '@/store/data-store'
 import { useDataStore } from '@/store/data-store'
 import { cn } from '@/lib/utils'
@@ -12,9 +12,14 @@ import {
   ActionButton,
   Card,
   initials,
+  formatDateFr,
+  statutSeanceTone,
+  dureeLabel,
 } from './shared'
 import { NouvelleSeanceDialog } from '@/components/dashboard/dialogs/nouvelle-seance-dialog'
 import { SuiviSeanceDialog } from '@/components/dashboard/dialogs/suivi-seance-dialog'
+import { PlanningCalendar } from '@/components/dashboard/views/planning-calendar'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,41 +37,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-// --- Helpers ---
-const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-const mois = [
-  'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc',
-]
-
-function formatDateFr(iso: string): string {
-  // Already-formatted strings (e.g. "01 Déc 2026") are returned as-is
+function formatPlanningDate(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
-  const d = new Date(iso + 'T00:00:00')
-  const j = jours[d.getDay()]
-  const jour = String(d.getDate()).padStart(2, '0')
-  const m = mois[d.getMonth()]
-  return `${j} ${jour} ${m}`
-}
-
-function statutTone(statut: StatutSeance): 'primary' | 'emerald' | 'amber' | 'rose' {
-  switch (statut) {
-    case 'Planifié':
-      return 'primary'
-    case 'Effectué':
-      return 'emerald'
-    case 'Absent élève':
-      return 'amber'
-    case 'Annulé':
-      return 'rose'
-  }
-}
-
-function dureeLabel(min: number): string {
-  if (min < 60) return `${min} min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`
+  return formatDateFr(iso + 'T00:00:00')
 }
 
 const FILTRES: Array<'Tous' | StatutSeance> = [
@@ -87,6 +60,7 @@ type Kpi = {
 
 // --- Component ---
 export function PlanningView() {
+  const [vue, setVue] = useState<'liste' | 'calendrier'>('liste')
   const [filtre, setFiltre] = useState<'Tous' | StatutSeance>('Tous')
   const [page, setPage] = useState(1)
   const [showNewSeance, setShowNewSeance] = useState(false)
@@ -116,19 +90,19 @@ export function PlanningView() {
       label: 'Effectuées',
       value: nbEffectuees,
       icon: <CheckCircle2 className="h-4 w-4" />,
-      iconWrap: 'bg-emerald-500/10 text-emerald-600',
+      iconWrap: 'bg-success/10 text-success',
     },
     {
       label: 'Planifiées',
       value: nbPlanifiees,
       icon: <Clock className="h-4 w-4" />,
-      iconWrap: 'bg-sky-500/10 text-sky-600',
+      iconWrap: 'bg-secondary text-secondary-foreground',
     },
     {
       label: 'Annulées / Absences',
       value: nbAnnuleesAbsences,
       icon: <XCircle className="h-4 w-4" />,
-      iconWrap: 'bg-rose-500/10 text-rose-600',
+      iconWrap: 'bg-destructive/10 text-destructive',
     },
   ]
 
@@ -185,8 +159,15 @@ export function PlanningView() {
         ))}
       </div>
 
+      <Tabs value={vue} onValueChange={(v) => setVue(v as 'liste' | 'calendrier')} className="mt-6">
+        <TabsList>
+          <TabsTrigger value="liste">Liste</TabsTrigger>
+          <TabsTrigger value="calendrier">Calendrier</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="liste" className="mt-4">
       {/* Statut filter */}
-      <div className="mt-6 flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {FILTRES.map((f) => {
           const active = filtre === f
           return (
@@ -209,7 +190,7 @@ export function PlanningView() {
       {/* Table */}
       <Card className="mt-4 p-0">
         <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[920px] border-collapse text-left">
+          <table className="w-full min-w-[1100px] border-collapse text-left">
             <thead>
               <tr className="border-b border-border">
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</th>
@@ -217,6 +198,7 @@ export function PlanningView() {
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Élève</th>
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Moniteur</th>
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Véhicule</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lieu RDV</th>
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</th>
                 <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
@@ -226,7 +208,7 @@ export function PlanningView() {
               {seancesPage.map((s) => (
                 <tr key={s.id} className="hover:bg-muted/40">
                   <td className="px-5 py-3.5">
-                    <div className="text-sm font-semibold text-foreground">{formatDateFr(s.date)}</div>
+                    <div className="text-sm font-semibold text-foreground">{formatPlanningDate(s.date)}</div>
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
@@ -255,8 +237,13 @@ export function PlanningView() {
                   <td className="px-5 py-3.5">
                     <span className="text-sm text-muted-foreground">{s.vehicule}</span>
                   </td>
+                  <td className="px-5 py-3.5 max-w-[180px]">
+                    <span className="line-clamp-2 text-sm text-muted-foreground" title={s.lieuRdv}>
+                      {s.lieuRdv || '—'}
+                    </span>
+                  </td>
                   <td className="px-5 py-3.5">
-                    <StatusBadge label={s.statut} tone={statutTone(s.statut)} />
+                    <StatusBadge label={s.statut} tone={statutSeanceTone[s.statut]} />
                   </td>
                   <td className="px-5 py-3.5 max-w-[220px]">
                     {s.notes ? (
@@ -287,7 +274,7 @@ export function PlanningView() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => setToDelete(s)}
-                          className="flex items-center gap-2 text-sm text-rose-600 focus:text-rose-600"
+                          className="flex items-center gap-2 text-sm text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                           Supprimer
@@ -341,6 +328,11 @@ export function PlanningView() {
           </div>
         </div>
       </Card>
+        </TabsContent>
+        <TabsContent value="calendrier" className="mt-4">
+          <PlanningCalendar seances={seancesFiltrees} onSelect={openSuivi} />
+        </TabsContent>
+      </Tabs>
 
       <NouvelleSeanceDialog open={showNewSeance} onOpenChange={setShowNewSeance} />
       <SuiviSeanceDialog seance={suiviSeance} open={showSuivi} onOpenChange={setShowSuivi} />
@@ -352,7 +344,7 @@ export function PlanningView() {
             <AlertDialogTitle>Supprimer cette séance ?</AlertDialogTitle>
             <AlertDialogDescription>
               {toDelete
-                ? `La séance du ${formatDateFr(toDelete.date)} (${toDelete.heureDebut}–${toDelete.heureFin}) pour ${toDelete.eleve} sera définitivement supprimée. Cette action est irréversible.`
+                ? `La séance du ${formatPlanningDate(toDelete.date)} (${toDelete.heureDebut}–${toDelete.heureFin}) pour ${toDelete.eleve} sera définitivement supprimée. Cette action est irréversible.`
                 : 'Cette action est irréversible.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -360,7 +352,7 @@ export function PlanningView() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-rose-600 text-white hover:bg-rose-600/90"
+              variant="destructive"
             >
               Supprimer
             </AlertDialogAction>

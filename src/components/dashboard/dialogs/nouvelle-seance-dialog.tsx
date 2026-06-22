@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { CalendarPlus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
+import { DEFAULT_LIEU_RDV } from '@/lib/domain/constants'
+import { getConflictMessage, isMoniteurAvailable, isVehiculeAvailable } from '@/lib/planning-utils'
 
 export function NouvelleSeanceDialog({
   open,
@@ -17,6 +19,9 @@ export function NouvelleSeanceDialog({
   const eleves = useDataStore((s) => s.eleves)
   const moniteurs = useDataStore((s) => s.moniteurs)
   const vehicules = useDataStore((s) => s.vehicules)
+  const seances = useDataStore((s) => s.seances)
+  const appConfig = useDataStore((s) => s.appConfig)
+  const lieuDefaut = appConfig['lieu_rdv_defaut'] ?? DEFAULT_LIEU_RDV
 
   const [eleveCode, setEleveCode] = useState('')
   const [moniteurId, setMoniteurId] = useState('')
@@ -24,10 +29,27 @@ export function NouvelleSeanceDialog({
   const [date, setDate] = useState('')
   const [heureDebut, setHeureDebut] = useState('')
   const [heureFin, setHeureFin] = useState('')
+  const [lieuRdv, setLieuRdv] = useState(lieuDefaut)
   const [type, setType] = useState('Conduite')
   const [notes, setNotes] = useState('')
 
-  const vehiculesDisponibles = vehicules.filter((v) => v.etat === 'Disponible')
+  const slotCheck = useMemo(
+    () => ({ date, heureDebut, heureFin }),
+    [date, heureDebut, heureFin],
+  )
+
+  const moniteursDisponibles = useMemo(() => {
+    if (!date || !heureDebut || !heureFin) return moniteurs
+    return moniteurs.filter((m) =>
+      isMoniteurAvailable(seances, m.id, slotCheck),
+    )
+  }, [moniteurs, seances, slotCheck, date, heureDebut, heureFin])
+
+  const vehiculesDisponibles = useMemo(() => {
+    const base = vehicules.filter((v) => v.etat === 'Disponible')
+    if (!date || !heureDebut || !heureFin) return base
+    return base.filter((v) => isVehiculeAvailable(seances, v.id, slotCheck))
+  }, [vehicules, seances, slotCheck, date, heureDebut, heureFin])
 
   const resetForm = () => {
     setEleveCode('')
@@ -36,6 +58,7 @@ export function NouvelleSeanceDialog({
     setDate('')
     setHeureDebut('')
     setHeureFin('')
+    setLieuRdv(lieuDefaut)
     setType('Conduite')
     setNotes('')
   }
@@ -44,9 +67,7 @@ export function NouvelleSeanceDialog({
     if (!debut || !fin) return 0
     const [dh, dm] = debut.split(':').map(Number)
     const [fh, fm] = fin.split(':').map(Number)
-    const debutMin = dh * 60 + dm
-    const finMin = fh * 60 + fm
-    return Math.max(0, finMin - debutMin)
+    return Math.max(0, fh * 60 + fm - (dh * 60 + dm))
   }
 
   const handleSubmit = () => {
@@ -58,6 +79,17 @@ export function NouvelleSeanceDialog({
       toast.error("L'heure de fin doit être après l'heure de début")
       return
     }
+    const conflictMsg = getConflictMessage(seances, {
+      date,
+      heureDebut,
+      heureFin,
+      moniteurId,
+      vehiculeId: vehiculeId || undefined,
+    })
+    if (conflictMsg) {
+      toast.error(conflictMsg)
+      return
+    }
     const eleve = eleves.find((e) => e.code === eleveCode)
     const moniteur = moniteurs.find((m) => m.id === moniteurId)
     const vehicule = vehicules.find((v) => v.id === vehiculeId)
@@ -65,21 +97,20 @@ export function NouvelleSeanceDialog({
       toast.error('Élève ou moniteur introuvable')
       return
     }
-    const eleveNom = `${eleve.prenom} ${eleve.nom}`
-    const moniteurNom = `${moniteur.prenom} ${moniteur.nom}`
-    const vehiculeDesc = vehicule
-      ? `${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})`
-      : '—'
-    const duree = computeDureeMin(heureDebut, heureFin)
     addSeance({
-      eleve: eleveNom,
+      eleve: `${eleve.prenom} ${eleve.nom}`,
       eleveCode,
-      moniteur: moniteurNom,
-      vehicule: vehiculeDesc,
+      moniteur: `${moniteur.prenom} ${moniteur.nom}`,
+      moniteurId,
+      vehicule: vehicule
+        ? `${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})`
+        : '—',
+      vehiculeId: vehiculeId || '',
+      lieuRdv: lieuRdv.trim() || lieuDefaut,
       date,
       heureDebut,
       heureFin,
-      duree,
+      duree: computeDureeMin(heureDebut, heureFin),
       statut: 'Planifié',
       notes: notes.trim(),
     })
@@ -97,19 +128,13 @@ export function NouvelleSeanceDialog({
       size="md"
       footer={
         <>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={() => onOpenChange(false)}>
             Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSubmit}>
             <CalendarPlus className="h-4 w-4" />
             Planifier la séance
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -129,7 +154,7 @@ export function NouvelleSeanceDialog({
           <Field label="Moniteur" required>
             <FormSelect value={moniteurId} onChange={(e) => setMoniteurId(e.target.value)}>
               <option value="">Sélectionner un moniteur</option>
-              {moniteurs.map((m) => (
+              {moniteursDisponibles.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.prenom} {m.nom}
                 </option>
@@ -150,8 +175,12 @@ export function NouvelleSeanceDialog({
         </div>
 
         <p className="-mt-2 text-xs text-muted-foreground">
-          Seuls les véhicules disponibles sont proposés
+          Moniteurs et véhicules filtrés selon disponibilité et conflits horaires
         </p>
+
+        <Field label="Lieu de rendez-vous">
+          <FormInput value={lieuRdv} onChange={(e) => setLieuRdv(e.target.value)} />
+        </Field>
 
         <Field label="Date" required>
           <FormInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />

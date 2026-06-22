@@ -1,46 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import { FileDown, ClipboardEdit, Plus } from 'lucide-react'
-import { type ResultatExamen } from '@/lib/mock-data'
+import { FileDown, ClipboardEdit, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
 import { generateBordereauPdf } from '@/lib/utils-docs'
 import {
   ViewHeader,
   StatusBadge,
   ActionButton,
   Card,
+  resultatExamenTone,
+  TypeExamenBadge,
 } from './shared'
 import { SaisieResultatsDialog } from '@/components/dashboard/dialogs/saisie-resultats-dialog'
 import { NouvelleSessionDialog } from '@/components/dashboard/dialogs/nouvelle-session-dialog'
-
-// --- Helpers ---
-function resultatTone(r: ResultatExamen): 'amber' | 'emerald' | 'rose' {
-  switch (r) {
-    case 'En attente':
-      return 'amber'
-    case 'Admis':
-      return 'emerald'
-    case 'Échec':
-      return 'rose'
-  }
-}
-
-function typeExamenBadge(type: string) {
-  if (type === 'Code') {
-    return (
-      <span className="inline-flex items-center rounded-md bg-sky-500/10 px-2 py-0.5 text-xs font-semibold text-sky-600">
-        Code
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-      Conduite
-    </span>
-  )
-}
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 // --- Info cell helper ---
 function InfoCell({ label, value }: { label: string; value: string }) {
@@ -52,11 +37,29 @@ function InfoCell({ label, value }: { label: string; value: string }) {
   )
 }
 
+function canDeleteSession(role: string): boolean {
+  return role === 'Administrateur principal' || role === 'Administrateur secondaire' || role === 'Administrateur'
+}
+
 // --- Main component ---
 export function BordereauxView() {
   const examenSessions = useDataStore((s) => s.examenSessions)
+  const deleteExamenSession = useDataStore((s) => s.deleteExamenSession)
+  const user = useAuthStore((s) => s.user)
   const [saisieSession, setSaisieSession] = useState<typeof examenSessions[number] | null>(null)
   const [showAddSession, setShowAddSession] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const showDelete = user?.mode === 'admin' && canDeleteSession(user.role)
+  const deletingSession = deletingId ? examenSessions.find((s) => s.id === deletingId) : null
+
+  const handleConfirmDelete = () => {
+    if (!deletingId) return
+    const num = deletingSession?.numeroBordereau ?? deletingId
+    deleteExamenSession(deletingId)
+    setDeletingId(null)
+    toast.success(`Session ${num} supprimée.`)
+  }
 
   return (
     <>
@@ -80,15 +83,15 @@ export function BordereauxView() {
                 <span className="rounded-md bg-muted px-2.5 py-1 font-mono text-sm font-bold text-foreground">
                   {sess.numeroBordereau}
                 </span>
-                {typeExamenBadge(sess.typeExamen)}
+                <TypeExamenBadge type={sess.typeExamen} />
                 <span className="text-xs text-muted-foreground">
                   {sess.candidats.length} candidat{sess.candidats.length > 1 ? 's' : ''}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => {
-                    generateBordereauPdf(sess)
+                    void generateBordereauPdf(sess)
                     toast.success(`Bordereau ${sess.numeroBordereau} généré.`)
                   }}
                   className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -100,6 +103,15 @@ export function BordereauxView() {
                   <ClipboardEdit className="h-4 w-4" />
                   Saisir les résultats
                 </ActionButton>
+                {showDelete && (
+                  <button
+                    onClick={() => setDeletingId(sess.id)}
+                    className="flex h-9 items-center gap-2 rounded-lg border border-destructive/30 bg-background px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </button>
+                )}
               </div>
             </div>
 
@@ -148,7 +160,7 @@ export function BordereauxView() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <StatusBadge label={c.resultat} tone={resultatTone(c.resultat)} />
+                          <StatusBadge label={c.resultat} tone={resultatExamenTone[c.resultat]} />
                         </td>
                       </tr>
                     ))}
@@ -161,6 +173,35 @@ export function BordereauxView() {
       </div>
       <SaisieResultatsDialog session={saisieSession} open={!!saisieSession} onOpenChange={(v) => { if (!v) setSaisieSession(null) }} />
       <NouvelleSessionDialog open={showAddSession} onOpenChange={setShowAddSession} />
+
+      <AlertDialog open={!!deletingId} onOpenChange={(v) => { if (!v) setDeletingId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingSession ? (
+                <>
+                  Vous êtes sur le point de supprimer la session{' '}
+                  <strong>{deletingSession.numeroBordereau}</strong> ({deletingSession.candidats.length} candidat
+                  {deletingSession.candidats.length > 1 ? 's' : ''}). Cette action est irréversible et sera tracée
+                  dans le journal d&apos;audit.
+                </>
+              ) : (
+                'Cette action est irréversible.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              variant="destructive"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

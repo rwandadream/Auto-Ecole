@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Plus,
   Search,
@@ -24,12 +24,15 @@ import {
   ActionButton,
   Card,
   formatXOF,
+  type KpiTone,
 } from './shared'
-import { type CategorieDepense, type ModePaiement } from '@/lib/mock-data'
+import { type CategorieDepense, type ModePaiement } from '@/lib/domain/types'
+import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
-import { NouvelleDepenseDialog } from '@/components/dashboard/dialogs/nouvelle-depense-dialog'
-import { ModifierDepenseDialog } from '@/components/dashboard/dialogs/modifier-depense-dialog'
-import { Modal } from '@/components/dashboard/modal'
+import { useAuthStore } from '@/store/auth-store'
+import { resolveMediaUrl } from '@/lib/supabase/storage'
+import { DepenseDialog } from '@/components/dashboard/dialogs/nouvelle-depense-dialog'
+import { Modal, ModalCancelButton } from '@/components/dashboard/modal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,51 +54,51 @@ const categorieConfig: Record<
     icon: <Fuel className="h-3.5 w-3.5" />,
   },
   Entretien: {
-    bar: 'bg-sky-500',
-    badge: 'bg-sky-500/10 text-sky-600',
+    bar: 'bg-chart-2',
+    badge: 'bg-secondary text-secondary-foreground',
     icon: <Wrench className="h-3.5 w-3.5" />,
   },
   Réparations: {
-    bar: 'bg-rose-500',
-    badge: 'bg-rose-500/10 text-rose-600',
+    bar: 'bg-destructive',
+    badge: 'bg-destructive/10 text-destructive',
     icon: <Wrench className="h-3.5 w-3.5" />,
   },
   Assurance: {
-    bar: 'bg-amber-500',
-    badge: 'bg-amber-500/10 text-amber-600',
+    bar: 'bg-warning',
+    badge: 'bg-warning/10 text-warning',
     icon: <ShieldCheck className="h-3.5 w-3.5" />,
   },
   Salaires: {
-    bar: 'bg-emerald-500',
-    badge: 'bg-emerald-500/10 text-emerald-600',
+    bar: 'bg-success',
+    badge: 'bg-success/10 text-success',
     icon: <Users className="h-3.5 w-3.5" />,
   },
   Fournitures: {
-    bar: 'bg-slate-500',
-    badge: 'bg-slate-500/10 text-slate-600',
+    bar: 'bg-muted-foreground',
+    badge: 'bg-muted text-muted-foreground',
     icon: <Package className="h-3.5 w-3.5" />,
   },
   Autres: {
-    bar: 'bg-slate-400',
-    badge: 'bg-slate-500/10 text-slate-600',
+    bar: 'bg-muted-foreground/70',
+    badge: 'bg-muted text-muted-foreground',
     icon: <MoreHorizontal className="h-3.5 w-3.5" />,
   },
 }
 
 const modePaiementBadge: Record<ModePaiement, { bg: string; fg: string; icon: React.ReactNode }> = {
   Espèces: {
-    bg: 'bg-slate-500/10',
-    fg: 'text-slate-600',
+    bg: 'bg-muted',
+    fg: 'text-muted-foreground',
     icon: <Banknote className="h-3 w-3" />,
   },
   'Orange Money': {
-    bg: 'bg-amber-500/10',
-    fg: 'text-amber-600',
+    bg: 'bg-accent',
+    fg: 'text-accent-foreground',
     icon: <Smartphone className="h-3 w-3" />,
   },
   Wave: {
-    bg: 'bg-sky-500/10',
-    fg: 'text-sky-600',
+    bg: 'bg-secondary',
+    fg: 'text-secondary-foreground',
     icon: <Smartphone className="h-3 w-3" />,
   },
   Virement: {
@@ -122,12 +125,12 @@ function KpiCard({
 }: {
   label: string
   value: string
-  tone?: 'primary' | 'emerald' | 'rose' | 'foreground'
+  tone?: KpiTone | 'foreground'
 }) {
   const valueColor: Record<string, string> = {
     primary: 'text-primary',
-    emerald: 'text-emerald-600',
-    rose: 'text-rose-600',
+    success: 'text-success',
+    destructive: 'text-destructive',
     foreground: 'text-foreground',
   }
   return (
@@ -140,15 +143,40 @@ function KpiCard({
   )
 }
 
+function JustificatifImage({ stored }: { stored: string }) {
+  const [url, setUrl] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    void resolveMediaUrl(stored).then((resolved) => {
+      if (!cancelled) setUrl(resolved)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [stored])
+
+  if (!url) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">Chargement du justificatif…</p>
+  }
+
+  return (
+    <img src={url} alt="Justificatif" className="max-h-[70vh] w-full rounded-lg object-contain" />
+  )
+}
+
 export function ComptabiliteView() {
   const depenses = useDataStore((s) => s.depenses)
   const deleteDepense = useDataStore((s) => s.deleteDepense)
+  const user = useAuthStore((s) => s.user)
+  const canDeleteDepense = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_depense')
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [previewJustificatif, setPreviewJustificatif] = useState<string | null>(null)
 
   // Compute totals per category
   const categorieTotals = useMemo(() => {
@@ -208,9 +236,9 @@ export function ComptabiliteView() {
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <KpiCard label="Total dépenses" value={formatXOF(totalDepenses)} tone="rose" />
+        <KpiCard label="Total dépenses" value={formatXOF(totalDepenses)} tone="destructive" />
         <KpiCard label="Dépenses véhicules" value={formatXOF(depensesVehicules)} tone="primary" />
-        <KpiCard label="Salaires & charges" value={formatXOF(depensesSalaires)} tone="emerald" />
+        <KpiCard label="Salaires & charges" value={formatXOF(depensesSalaires)} tone="success" />
       </div>
 
       {/* Category breakdown */}
@@ -314,7 +342,10 @@ export function ComptabiliteView() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
-                        onClick={() => toast.info('Aucun justificatif téléversé pour cette dépense')}
+                        onClick={() => {
+                          if (d.justificatif) setPreviewJustificatif(d.justificatif)
+                          else toast.info('Aucun justificatif téléversé pour cette dépense')
+                        }}
                         className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         title="Voir le justificatif"
                       >
@@ -341,13 +372,15 @@ export function ComptabiliteView() {
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => setDeleteId(d.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-500/10"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canDeleteDepense && (
+                          <button
+                            onClick={() => setDeleteId(d.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10"
+                            title="Supprimer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -365,8 +398,25 @@ export function ComptabiliteView() {
         </div>
       </Card>
 
-      <NouvelleDepenseDialog open={showAdd} onOpenChange={setShowAdd} />
-      <ModifierDepenseDialog depenseId={editId} open={showEdit} onOpenChange={setShowEdit} />
+      <DepenseDialog open={showAdd} onOpenChange={setShowAdd} />
+      <DepenseDialog depenseId={editId} open={showEdit} onOpenChange={setShowEdit} />
+
+      <Modal
+        open={previewJustificatif !== null}
+        onOpenChange={(v) => { if (!v) setPreviewJustificatif(null) }}
+        title="Justificatif"
+        description="Aperçu du document joint"
+        size="lg"
+        footer={
+          <ModalCancelButton type="button" onClick={() => setPreviewJustificatif(null)}>
+            Fermer
+          </ModalCancelButton>
+        }
+      >
+        {previewJustificatif && (
+          <JustificatifImage stored={previewJustificatif} />
+        )}
+      </Modal>
 
       {/* Detail modal (read-only) */}
       <DepenseDetailModal depenseId={detailId} open={detailId !== null} onOpenChange={(v) => { if (!v) setDetailId(null) }} />
@@ -386,7 +436,7 @@ export function ComptabiliteView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteId) {
                   deleteDepense(deleteId)
@@ -434,12 +484,9 @@ function DepenseDetailModal({
       description={`Enregistrée le ${depense.date}`}
       size="md"
       footer={
-        <button
-          onClick={() => onOpenChange(false)}
-          className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
+        <ModalCancelButton onClick={() => onOpenChange(false)}>
           Fermer
-        </button>
+        </ModalCancelButton>
       }
     >
       <div className="space-y-4">

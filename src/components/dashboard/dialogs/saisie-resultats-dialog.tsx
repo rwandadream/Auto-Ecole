@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Save, Calendar, Clock, MapPin, Award, User } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton } from '@/components/dashboard/modal'
 import { StatusBadge } from '@/components/dashboard/views/shared'
 import { useDataStore, type Eleve, type Examen } from '@/store/data-store'
 
@@ -28,19 +28,6 @@ type Session = {
 }
 
 type ResultRow = SessionCandidat & { notes: string }
-
-function resultatTone(r: string) {
-  switch (r) {
-    case 'Admis':
-      return 'emerald' as const
-    case 'Échec':
-      return 'rose' as const
-    case 'En attente':
-      return 'amber' as const
-    default:
-      return 'slate' as const
-  }
-}
 
 export function SaisieResultatsDialog({
   session,
@@ -144,19 +131,13 @@ export function SaisieResultatsDialog({
       size="xl"
       footer={
         <>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={() => onOpenChange(false)}>
             Annuler
-          </button>
-          <button
-            onClick={handleSave}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleSave}>
             <Save className="h-4 w-4" />
             Enregistrer les résultats
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -251,9 +232,9 @@ export function SaisieResultatsDialog({
         {/* Résumé coloré */}
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
           <span className="text-sm font-medium text-muted-foreground">Résumé :</span>
-          <StatusBadge label={`${admis} Admis`} tone="emerald" />
-          <StatusBadge label={`${echec} Échec`} tone="rose" />
-          <StatusBadge label={`${attente} En attente`} tone="amber" />
+          <StatusBadge label={`${admis} Admis`} tone="success" />
+          <StatusBadge label={`${echec} Échec`} tone="destructive" />
+          <StatusBadge label={`${attente} En attente`} tone="warning" />
         </div>
       </div>
     </Modal>

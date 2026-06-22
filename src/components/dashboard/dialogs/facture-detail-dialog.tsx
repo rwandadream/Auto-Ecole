@@ -3,18 +3,11 @@
 import { useMemo } from 'react'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal } from '@/components/dashboard/modal'
-import { StatusBadge, formatXOF, initials } from '@/components/dashboard/views/shared'
+import { Modal, ModalCancelButton, ModalPrimaryButton } from '@/components/dashboard/modal'
+import { StatusBadge, formatXOF, initials, statutFactureTone } from '@/components/dashboard/views/shared'
 import { useDataStore } from '@/store/data-store'
 import { generateFacturePdf } from '@/lib/utils-docs'
-import type { StatutFacture, ModePaiement } from '@/lib/mock-data'
-
-const statutTone: Record<StatutFacture, 'rose' | 'amber' | 'emerald'> = {
-  'Non payée': 'rose',
-  Partielle: 'amber',
-  Payée: 'emerald',
-  Impayée: 'rose',
-}
+import type { ModePaiement } from '@/lib/domain/types'
 
 const modePaiementLabel: Record<ModePaiement, string> = {
   Espèces: 'Espèces',
@@ -63,9 +56,9 @@ export function FactureDetailDialog({
     )
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
-      generateFacturePdf(facture)
+      await generateFacturePdf(facture)
       toast.success(`Facture ${facture.numero} générée.`)
     } catch {
       toast.error('Impossible de générer le PDF.')
@@ -81,19 +74,13 @@ export function FactureDetailDialog({
       size="lg"
       footer={
         <>
-          <button
-            onClick={() => onOpenChange(false)}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
+          <ModalCancelButton onClick={() => onOpenChange(false)}>
             Fermer
-          </button>
-          <button
-            onClick={handleDownload}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
+          </ModalCancelButton>
+          <ModalPrimaryButton onClick={handleDownload}>
             <Download className="h-4 w-4" />
             Télécharger PDF
-          </button>
+          </ModalPrimaryButton>
         </>
       }
     >
@@ -116,7 +103,7 @@ export function FactureDetailDialog({
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Numéro de facture</p>
             <p className="font-mono text-base font-bold text-foreground">{facture.numero}</p>
             <div className="mt-1">
-              <StatusBadge label={facture.statut} tone={statutTone[facture.statut]} />
+              <StatusBadge label={facture.statut} tone={statutFactureTone[facture.statut]} />
             </div>
           </div>
         </div>
@@ -140,11 +127,11 @@ export function FactureDetailDialog({
             </div>
             <div className="px-4 py-3">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Payé</p>
-              <p className="mt-1 text-sm font-bold text-emerald-600">{formatXOF(facture.paye)}</p>
+              <p className="mt-1 text-sm font-bold text-success">{formatXOF(facture.paye)}</p>
             </div>
             <div className="px-4 py-3">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Reste</p>
-              <p className={`mt-1 text-sm font-bold ${facture.reste > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
+              <p className={`mt-1 text-sm font-bold ${facture.reste > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {formatXOF(facture.reste)}
               </p>
             </div>
@@ -182,7 +169,7 @@ export function FactureDetailDialog({
                 {paiements.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/30">
                     <td className="px-3 py-2 text-sm text-foreground">{p.datePaiement}</td>
-                    <td className="px-3 py-2 text-right text-sm font-semibold text-emerald-600">
+                    <td className="px-3 py-2 text-right text-sm font-semibold text-success">
                       {formatXOF(p.montant)}
                     </td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">

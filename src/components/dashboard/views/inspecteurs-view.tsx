@@ -22,6 +22,7 @@ import {
   Card,
   initials,
   PaginationFooter,
+  KpiCard,
 } from '@/components/dashboard/views/shared'
 import { NouvelInspecteurDialog } from '@/components/dashboard/dialogs/nouvel-inspecteur-dialog'
 import {
@@ -40,32 +41,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
-
-type KpiCardProps = {
-  label: string
-  value: string
-  icon: React.ReactNode
-  tone: 'primary' | 'emerald' | 'slate'
-}
-
-function KpiCard({ label, value, icon, tone }: KpiCardProps) {
-  const toneClasses: Record<KpiCardProps['tone'], string> = {
-    primary: 'bg-primary/10 text-primary',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    slate: 'bg-slate-500/10 text-slate-600',
-  }
-  return (
-    <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{value}</p>
-      </div>
-    </Card>
-  )
-}
 
 type StatutFilter = 'Tous' | 'Actif' | 'Inactif'
 
@@ -140,13 +115,13 @@ export function InspecteursView() {
           label="Actifs"
           value={String(actifs)}
           icon={<CheckCircle2 className="h-5 w-5" />}
-          tone="emerald"
+          tone="success"
         />
         <KpiCard
           label="Inactifs"
           value={String(inactifs)}
           icon={<XCircle className="h-5 w-5" />}
-          tone="slate"
+          tone="neutral"
         />
       </div>
 
@@ -229,7 +204,7 @@ export function InspecteursView() {
                     <td className="px-4 py-3">
                       <StatusBadge
                         label={i.actif ? 'Actif' : 'Inactif'}
-                        tone={i.actif ? 'emerald' : 'slate'}
+                        tone={i.actif ? 'success' : 'neutral'}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -251,7 +226,7 @@ export function InspecteursView() {
                               Modifier
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-rose-600 focus:text-rose-600"
+                              className="text-destructive focus:text-destructive"
                               onClick={() => setDeletingId(i.id)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -304,7 +279,7 @@ export function InspecteursView() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
             >
               Supprimer
             </AlertDialogAction>

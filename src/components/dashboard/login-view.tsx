@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import Image from 'next/image'
+import { BrandLogo } from '@/components/dashboard/brand-logo'
 import {
   GraduationCap,
-  CheckCircle2,
   Mail,
   Lock,
   Eye,
@@ -14,38 +15,122 @@ import {
   Loader2,
   AlertCircle,
   User,
+  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth-store'
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 type TabKey = 'admin' | 'eleve'
+
+function LoginField({
+  id,
+  label,
+  icon,
+  type = 'text',
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  disabled,
+  suffix,
+}: {
+  id: string
+  label: string
+  icon: ReactNode
+  type?: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  autoComplete?: string
+  disabled?: boolean
+  suffix?: ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-[13px] font-medium text-foreground/90">
+        {label}
+      </label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/80">
+          {icon}
+        </span>
+        <input
+          id={id}
+          type={type}
+          autoComplete={autoComplete}
+          disabled={disabled}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-11 w-full rounded-xl border border-border/80 bg-background/80 pl-10 pr-10 text-sm text-foreground shadow-sm transition-all placeholder:text-muted-foreground/60 hover:border-border focus:border-primary focus:bg-background focus:outline-none focus:ring-[3px] focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        {suffix && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">{suffix}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+const ROLES: { key: TabKey; label: string; icon: typeof User }[] = [
+  { key: 'admin', label: 'Administration', icon: User },
+  { key: 'eleve', label: 'Portail élève', icon: GraduationCap },
+]
 
 export function LoginView() {
   const { loginAdmin, loginEleve } = useAuthStore()
 
   const [activeTab, setActiveTab] = useState<TabKey>('admin')
-
-  // Admin form state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-
-  // Eleve form state
   const [code, setCode] = useState('')
   const [telephone, setTelephone] = useState('')
-
-  // Shared state
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [forgotMode, setForgotMode] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   const resetError = () => error && setError('')
 
-  const handleAdminSubmit = (e: React.FormEvent) => {
+  const switchTab = (tab: TabKey) => {
+    setActiveTab(tab)
+    setError('')
+    setLoading(false)
+    setForgotMode(false)
+    setResetSent(false)
+  }
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!email.trim() || !email.includes('@')) {
+      setError('Adresse email invalide.')
+      return
+    }
+    setLoading(true)
+    try {
+      const supabase = createClient()
+      const redirectTo = `${window.location.origin}/auth/callback?next=/auth/reset-password`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
+      if (resetError) {
+        setError(resetError.message)
+        return
+      }
+      setResetSent(true)
+      toast.success('Email de réinitialisation envoyé.')
+    } catch {
+      setError('Impossible d\'envoyer l\'email de réinitialisation.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -63,16 +148,14 @@ export function LoginView() {
     }
 
     setLoading(true)
-    setTimeout(() => {
-      const ok = loginAdmin(email.trim(), password)
-      if (!ok) {
-        setError('Email ou mot de passe incorrect.')
-        setLoading(false)
-      }
-    }, 600)
+    const ok = await loginAdmin(email.trim(), password)
+    if (!ok) {
+      setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+    }
   }
 
-  const handleEleveSubmit = (e: React.FormEvent) => {
+  const handleEleveSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -86,275 +169,316 @@ export function LoginView() {
     }
 
     setLoading(true)
-    setTimeout(() => {
-      const ok = loginEleve(code.trim(), telephone.trim())
-      if (!ok) {
-        setError('Code dossier ou téléphone incorrect.')
-        setLoading(false)
-      }
-    }, 600)
-  }
-
-  const switchTab = (tab: string) => {
-    setActiveTab(tab as TabKey)
-    setError('')
-    setLoading(false)
+    const ok = await loginEleve(code.trim(), telephone.trim())
+    if (!ok) {
+      setError('Code dossier ou téléphone incorrect.')
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden">
-      {/* ============== BACKGROUND IMAGE ============== */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/login-bg.png')" }}
-        aria-hidden="true"
+    <div className="relative min-h-screen min-h-[100dvh] w-full overflow-hidden">
+      {/* Fond plein écran */}
+      <Image
+        src="/trafic.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+        aria-hidden
       />
-      {/* Dark overlay for readability */}
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/65 to-black/80"
-        aria-hidden="true"
-      />
-      {/* Subtle orange glow accent */}
-      <div
-        className="pointer-events-none absolute -left-32 top-1/4 h-96 w-96 rounded-full bg-primary/20 blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -right-32 bottom-1/4 h-96 w-96 rounded-full bg-primary/15 blur-3xl"
-        aria-hidden="true"
-      />
+      <div className="login-vignette fixed inset-0" aria-hidden />
 
-      {/* ============== CENTERED LOGIN CARD ============== */}
-      <div className="relative z-10 flex w-full max-w-md flex-col px-4 py-8 sm:px-6">
-        {/* Opaque card (contains logo + form) */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-2xl sm:p-8">
-          {/* Brand header (inside the card) */}
-          <div className="mb-6 flex flex-col items-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-xl shadow-primary/30">
-              <GraduationCap className="h-9 w-9 text-primary-foreground" />
+      {/* Contenu centré */}
+      <div className="relative z-10 flex min-h-screen min-h-[100dvh] w-full items-center justify-center p-4 sm:p-6">
+        <div className="login-card-enter w-full max-w-[420px]">
+          <div className="overflow-hidden rounded-[1.35rem] border border-white/25 bg-white/90 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+            {/* Bandeau brand */}
+            <div className="relative border-b border-border/50 bg-gradient-to-r from-primary/8 via-transparent to-primary/5 px-6 py-7">
+              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
+              <div className="flex flex-col items-center justify-center gap-3 text-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white p-3 shadow-md ring-1 ring-border/30">
+                  <BrandLogo size="lg" className="h-full w-full rounded-lg" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-foreground">
+                    SARAH AUTO
+                  </h1>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    ERP Auto-École · Cocody
+                  </p>
+                </div>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              SARAH AUTO
-            </h1>
-            <p className="mt-0.5 text-sm font-medium uppercase tracking-wider text-muted-foreground">
-              ERP Auto-École
-            </p>
-          </div>
 
-          <Tabs value={activeTab} onValueChange={switchTab} className="w-full">
-            <TabsList className="grid h-11 w-full grid-cols-2 rounded-lg border border-border bg-muted p-1">
-              <TabsTrigger
-                value="admin"
-                className="h-9 rounded-md text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
+            <div className="px-6 py-5 sm:px-7 sm:py-6">
+              {/* Sélecteur de rôle */}
+              <div
+                role="tablist"
+                aria-label="Type de connexion"
+                className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/50 p-1"
               >
-                <User className="h-4 w-4" />
-                Administration
-              </TabsTrigger>
-              <TabsTrigger
-                value="eleve"
-                className="h-9 rounded-md text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md"
-              >
-                <GraduationCap className="h-4 w-4" />
-                Portail Élève
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Error banner (shared) */}
-            {error && (
-              <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span className="font-medium">{error}</span>
-              </div>
-            )}
-
-            {/* ============== TAB ADMIN ============== */}
-            <TabsContent value="admin" className="mt-6">
-              <div className="mb-5 space-y-1">
-                <h2 className="text-lg font-bold text-foreground">Connexion Administration</h2>
-                <p className="text-sm text-muted-foreground">Email et mot de passe</p>
+                {ROLES.map(({ key, label, icon: Icon }) => {
+                  const active = activeTab === key
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => switchTab(key)}
+                      className={cn(
+                        'flex h-10 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition-all duration-200 sm:text-[13px]',
+                        active
+                          ? 'bg-background text-foreground shadow-sm ring-1 ring-border/60'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {label}
+                    </button>
+                  )
+                })}
               </div>
 
-              <form onSubmit={handleAdminSubmit} className="space-y-4">
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <label htmlFor="email" className="text-sm font-medium text-foreground">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
+              {/* Erreur */}
+              {error && (
+                <div
+                  role="alert"
+                  className="mb-4 flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 px-3.5 py-3 text-sm text-destructive"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="font-medium">{error}</span>
+                </div>
+              )}
+
+              {/* Formulaire Admin */}
+              {activeTab === 'admin' && (
+                <div role="tabpanel">
+                  {forgotMode ? (
+                    <>
+                      <div className="mb-4">
+                        <h2 className="text-[15px] font-semibold text-foreground">
+                          Mot de passe oublié
+                        </h2>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Un lien de réinitialisation sera envoyé à votre email staff.
+                        </p>
+                      </div>
+                      {resetSent ? (
+                        <p className="rounded-xl border border-success/30 bg-success/10 px-3 py-3 text-sm text-success">
+                          Si un compte existe pour <strong>{email}</strong>, vous recevrez un email avec un lien
+                          valide quelques minutes.
+                        </p>
+                      ) : (
+                        <form onSubmit={handleForgotSubmit} className="space-y-3.5">
+                          <LoginField
+                            id="reset-email"
+                            label="Adresse email"
+                            icon={<Mail className="h-4 w-4" />}
+                            type="email"
+                            autoComplete="email"
+                            disabled={loading}
+                            value={email}
+                            onChange={(v) => {
+                              setEmail(v)
+                              resetError()
+                            }}
+                            placeholder="vous@sarahauto.ci"
+                          />
+                          <button
+                            type="submit"
+                            disabled={loading}
+                            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-md disabled:opacity-60"
+                          >
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                            Envoyer le lien
+                          </button>
+                        </form>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMode(false)
+                          setResetSent(false)
+                          setError('')
+                        }}
+                        className="mt-4 flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Retour à la connexion
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                  <div className="mb-4">
+                    <h2 className="text-[15px] font-semibold text-foreground">
+                      Connexion équipe
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Accès réservé au personnel SARAH AUTO
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleAdminSubmit} className="space-y-3.5">
+                    <LoginField
                       id="email"
+                      label="Adresse email"
+                      icon={<Mail className="h-4 w-4" />}
                       type="email"
                       autoComplete="email"
+                      disabled={loading}
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value)
+                      onChange={(v) => {
+                        setEmail(v)
                         resetError()
                       }}
                       placeholder="vous@sarahauto.ci"
-                      className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
                     />
-                  </div>
-                </div>
 
-                {/* Password */}
-                <div className="space-y-1.5">
-                  <label htmlFor="password" className="text-sm font-medium text-foreground">
-                    Mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
+                    <LoginField
                       id="password"
+                      label="Mot de passe"
+                      icon={<Lock className="h-4 w-4" />}
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"
+                      disabled={loading}
                       value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
+                      onChange={(v) => {
+                        setPassword(v)
                         resetError()
                       }}
                       placeholder="••••••••"
-                      className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
+                      suffix={
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={
+                            showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                          }
+                          className="rounded-md p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      }
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
 
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Connexion...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-4 w-4" />
-                      Se connecter
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMode(true)
+                          setError('')
+                        }}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Connexion en cours…
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="h-4 w-4" />
+                          Se connecter
+                        </>
+                      )}
+                    </button>
+                  </form>
                     </>
                   )}
-                </button>
-              </form>
+                </div>
+              )}
 
-              {/* Hint box */}
-              <div className="mt-5 rounded-lg border border-border bg-muted p-3 text-xs text-muted-foreground">
-                <p className="flex items-center gap-1.5 font-semibold text-foreground">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  Démo
-                </p>
-                <p className="mt-1.5 leading-relaxed">
-                  Email : <span className="font-mono text-foreground">a.diallo@sarahauto.ci</span>
-                  <br />
-                  Mot de passe : n&apos;importe lequel
-                </p>
-              </div>
-            </TabsContent>
+              {/* Formulaire Élève */}
+              {activeTab === 'eleve' && (
+                <div role="tabpanel">
+                  <div className="mb-4">
+                    <h2 className="text-[15px] font-semibold text-foreground">
+                      Espace apprenant
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Suivez votre formation et votre planning
+                    </p>
+                  </div>
 
-            {/* ============== TAB ELEVE ============== */}
-            <TabsContent value="eleve" className="mt-6">
-              <div className="mb-5 space-y-1">
-                <h2 className="text-lg font-bold text-foreground">Connexion Élève</h2>
-                <p className="text-sm text-muted-foreground">Code dossier et numéro de téléphone</p>
-              </div>
-
-              <form onSubmit={handleEleveSubmit} className="space-y-4">
-                {/* Code dossier */}
-                <div className="space-y-1.5">
-                  <label htmlFor="code" className="text-sm font-medium text-foreground">
-                    Code dossier
-                  </label>
-                  <div className="relative">
-                    <Hash className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
+                  <form onSubmit={handleEleveSubmit} className="space-y-3.5">
+                    <LoginField
                       id="code"
-                      type="text"
+                      label="Code dossier"
+                      icon={<Hash className="h-4 w-4" />}
+                      disabled={loading}
                       value={code}
-                      onChange={(e) => {
-                        setCode(e.target.value)
+                      onChange={(v) => {
+                        setCode(v)
                         resetError()
                       }}
                       placeholder="EL-XXXX"
-                      className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
                     />
-                  </div>
-                </div>
 
-                {/* Telephone */}
-                <div className="space-y-1.5">
-                  <label htmlFor="telephone" className="text-sm font-medium text-foreground">
-                    Téléphone
-                  </label>
-                  <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
+                    <LoginField
                       id="telephone"
+                      label="Numéro de téléphone"
+                      icon={<Phone className="h-4 w-4" />}
                       type="tel"
+                      autoComplete="tel"
+                      disabled={loading}
                       value={telephone}
-                      onChange={(e) => {
-                        setTelephone(e.target.value)
+                      onChange={(v) => {
+                        setTelephone(v)
                         resetError()
                       }}
                       placeholder="+225 07 12 34 56"
-                      className="h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40"
                     />
-                  </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Connexion en cours…
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="h-4 w-4" />
+                          Accéder à mon espace
+                        </>
+                      )}
+                    </button>
+                  </form>
+
                 </div>
+              )}
 
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Connexion...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-4 w-4" />
-                      Accéder à mon espace
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* Hint box */}
-              <div className="mt-5 rounded-lg border border-border bg-muted p-3 text-xs text-muted-foreground">
-                <p className="flex items-center gap-1.5 font-semibold text-foreground">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  Démo
-                </p>
-                <p className="mt-1.5 leading-relaxed">
-                  Code : <span className="font-mono text-foreground">EL-2401</span>
-                  <br />
-                  Téléphone : <span className="font-mono text-foreground">+225 07 12 34 56</span>
-                </p>
+              {/* Footer confiance */}
+              <div className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground/80">
+                <ShieldCheck className="h-3 w-3 text-primary/70" />
+                Connexion sécurisée · Données chiffrées localement
               </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+            </div>
+          </div>
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Besoin d&apos;aide ? Contactez{' '}
-          <span className="font-medium text-foreground">support@sarahauto.ci</span>
-        </p>
-        <p className="mt-2 text-center text-xs text-muted-foreground/60">
-          © {new Date().getFullYear()} SARAH AUTO — Tous droits réservés.
-        </p>
+          <p className="mt-4 text-center text-[11px] text-white/70 drop-shadow-sm">
+            © {new Date().getFullYear()} SARAH AUTO — Tous droits réservés
+          </p>
+        </div>
       </div>
     </div>
   )

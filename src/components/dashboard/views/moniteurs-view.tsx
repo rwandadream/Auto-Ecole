@@ -14,8 +14,10 @@ import {
   Mail,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { type StatutMoniteur } from '@/lib/mock-data'
+import { type StatutMoniteur } from '@/lib/domain/types'
+import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -27,8 +29,7 @@ import {
   statutMoniteurTone,
   PaginationFooter,
 } from './shared'
-import { NouveauMoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
-import { ModifierMoniteurDialog } from '@/components/dashboard/dialogs/modifier-moniteur-dialog'
+import { MoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,8 @@ const SPECIALITE_FILTRES = ['Tous', 'Conduite', 'Code'] as const
 export function MoniteursView() {
   const moniteurs = useDataStore((s) => s.moniteurs)
   const deleteMoniteur = useDataStore((s) => s.deleteMoniteur)
+  const user = useAuthStore((s) => s.user)
+  const canDeleteMoniteur = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_moniteur')
 
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
@@ -115,13 +118,13 @@ export function MoniteursView() {
           label="Disponibles"
           value={String(disponibles)}
           icon={<CheckCircle2 className="h-5 w-5" />}
-          tone="emerald"
+          tone="success"
         />
         <KpiCard
           label="En mission"
           value={String(enMission)}
           icon={<Briefcase className="h-5 w-5" />}
-          tone="amber"
+          tone="warning"
         />
       </div>
 
@@ -251,7 +254,7 @@ export function MoniteursView() {
                         className={cn(
                           'inline-flex h-7 min-w-8 items-center justify-center rounded-md px-2 text-xs font-bold',
                           isCode
-                            ? 'bg-sky-500/10 text-sky-600'
+                            ? 'bg-secondary text-secondary-foreground'
                             : 'bg-primary/10 text-primary'
                         )}
                       >
@@ -284,13 +287,15 @@ export function MoniteursView() {
                             <Pencil className="mr-2 h-4 w-4" />
                             Modifier
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-rose-600 focus:text-rose-600"
-                            onSelect={() => setDeleteId(m.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
+                          {canDeleteMoniteur && (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => setDeleteId(m.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -320,8 +325,8 @@ export function MoniteursView() {
         />
       </Card>
 
-      <NouveauMoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
-      <ModifierMoniteurDialog moniteurId={editId} open={showEdit} onOpenChange={setShowEdit} />
+      <MoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
+      <MoniteurDialog moniteurId={editId} open={showEdit} onOpenChange={setShowEdit} />
 
       <AlertDialog
         open={deleteId !== null}
@@ -337,7 +342,7 @@ export function MoniteursView() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              variant="destructive"
               onClick={() => {
                 if (deleteId) {
                   deleteMoniteur(deleteId)

@@ -2,29 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { Search, ArrowUpDown, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useDataStore, type Eleve } from '@/store/data-store'
-import { formatXOF } from '@/components/dashboard/views/shared'
-
-type Statut = 'Prospect' | 'Inscrit' | 'En formation' | 'Examen' | 'Admis' | 'Ajourné' | 'Terminé' | 'Abandon'
+import { formatXOF, StatusBadge, statutEleveTone } from '@/components/dashboard/views/shared'
+import type { StatutEleve } from '@/lib/domain/types'
+import { parseFlexibleDate } from '@/lib/stats'
 
 const PAGE_SIZE = 7
-
-const moisFrToNum: Record<string, number> = {
-  'Jan': 0, 'Fév': 1, 'Mar': 2, 'Avr': 3, 'Mai': 4, 'Juin': 5,
-  'Juil': 6, 'Août': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Déc': 11,
-}
-
-// Parse "29 Nov 2026" → timestamp (NaN if unparseable)
-function parseFrDate(s: string): number {
-  const parts = s.split(/\s+/)
-  if (parts.length !== 3) return NaN
-  const jour = parseInt(parts[0], 10)
-  const mois = moisFrToNum[parts[1]]
-  const annee = parseInt(parts[2], 10)
-  if (Number.isNaN(jour) || mois === undefined || Number.isNaN(annee)) return NaN
-  return new Date(annee, mois, jour).getTime()
-}
 
 const columns = [
   { key: 'code', label: 'Code dossier' },
@@ -36,32 +19,6 @@ const columns = [
   { key: 'solde', label: 'Solde' },
 ]
 
-const statutStyles: Record<Statut, { badge: string; dot: string }> = {
-  Prospect: { badge: 'bg-slate-500/10 text-slate-600', dot: 'bg-slate-500' },
-  Inscrit: { badge: 'bg-sky-500/10 text-sky-600', dot: 'bg-sky-500' },
-  'En formation': { badge: 'bg-primary/10 text-primary', dot: 'bg-primary' },
-  Examen: { badge: 'bg-amber-500/10 text-amber-600', dot: 'bg-amber-500' },
-  Admis: { badge: 'bg-emerald-500/10 text-emerald-600', dot: 'bg-emerald-500' },
-  Ajourné: { badge: 'bg-rose-500/10 text-rose-600', dot: 'bg-rose-500' },
-  Terminé: { badge: 'bg-emerald-500/10 text-emerald-600', dot: 'bg-emerald-500' },
-  Abandon: { badge: 'bg-slate-500/10 text-slate-600', dot: 'bg-slate-500' },
-}
-
-function StatusBadge({ statut }: { statut: Statut }) {
-  const style = statutStyles[statut] ?? statutStyles.Prospect
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
-        style.badge
-      )}
-    >
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
-      {statut}
-    </span>
-  )
-}
-
 type Row = {
   id: string
   code: string
@@ -69,7 +26,7 @@ type Row = {
   dateTs: number
   nomComplet: string
   permis: string
-  statut: Statut
+  statut: StatutEleve
   seances: string
   solde: string
 }
@@ -82,10 +39,10 @@ function toRow(e: Eleve): Row {
     id: e.id,
     code: e.code,
     dateInscription: e.dateInscription,
-    dateTs: parseFrDate(e.dateInscription),
+    dateTs: parseFlexibleDate(e.dateInscription)?.getTime() ?? NaN,
     nomComplet: `${e.prenom} ${e.nom}`,
     permis: `Permis ${e.typePermis}`,
-    statut: e.statut as Statut,
+    statut: e.statut,
     seances,
     solde,
   }
@@ -227,7 +184,7 @@ export function RecentOrders() {
                     <span className="text-sm text-muted-foreground">{eleve.permis}</span>
                   </td>
                   <td className="px-5 py-4">
-                    <StatusBadge statut={eleve.statut} />
+                    <StatusBadge label={eleve.statut} tone={statutEleveTone[eleve.statut]} />
                   </td>
                   <td className="px-5 py-4">
                     <span className="text-sm text-muted-foreground">{eleve.seances}</span>
