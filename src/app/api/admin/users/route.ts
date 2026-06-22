@@ -1,85 +1,71 @@
 import { NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { mapRoleToDb } from '@/lib/supabase/roles'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { mapRoleFromDb, mapRoleToDb } from '@/lib/supabase/roles'
 
 const ADMIN_ROLES = ['administrateur_principal', 'administrateur_secondaire']
 
-async function requireAdminClient() {
+async function requireAdminSession() {
   const serverClient = await createServerClient()
   const { data: { user: caller }, error: authError } = await serverClient.auth.getUser()
   if (authError || !caller) {
-    return { error: NextResponse.json({ error: 'Non authentifié' }, { status: 401 }) }
+    return { response: NextResponse.json({ error: 'Non authentifié' }, { status: 401 }) }
   }
 
-  const { data: callerProfile, error: callerProfileError } = await serverClient
+  const { data: callerProfile } = await serverClient
     .from('profiles')
     .select('role, actif')
     .eq('id', caller.id)
     .maybeSingle()
 
-  if (callerProfileError || !callerProfile?.actif) {
-    return { error: NextResponse.json({ error: 'Accès refusé' }, { status: 403 }) }
+  if (!callerProfile?.actif || !ADMIN_ROLES.includes(callerProfile.role ?? '')) {
+    return { response: NextResponse.json({ error: 'Réservé aux administrateurs' }, { status: 403 }) }
   }
 
-  if (!ADMIN_ROLES.includes(callerProfile.role ?? '')) {
-    return { error: NextResponse.json({ error: 'Réservé aux administrateurs' }, { status: 403 }) }
-  }
-
-  return { serverClient, caller }
+  return { callerId: caller.id }
 }
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireAdminClient()
-    if ('error' in auth && auth.error) return auth.error
+    const auth = await requireAdminSession()
+    if ('response' in auth) return auth.response
 
     const body = await request.json()
-    const { email, password, name, role } = body as {
+    const { email, password, name, role, actif } = body as {
       email?: string
       password?: string
       name?: string
       role?: string
+      actif?: boolean
     }
 
     if (!email || !password || !name || !role) {
       return NextResponse.json({ error: 'Champs requis: email, password, name, role' }, { status: 400 })
     }
 
-    const admin = createAdminClient()
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
+    const adminClient = createAdminClient()
 
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
+    const { data, error } = await adminClient.auth.admin.createUser({
       email: normalizedEmail,
       password,
       email_confirm: true,
       user_metadata: { name: trimmedName },
     })
 
-    if (createError || !created.user) {
-      return NextResponse.json(
-        { error: createError?.message ?? 'Création impossible' },
-        { status: 400 },
-      )
+    if (error || !data.user) {
+      return NextResponse.json({ error: error?.message ?? 'Création impossible' }, { status: 400 })
     }
 
-    const { error: profileError } = await admin
+    // Update profile role/actif (handle_new_user trigger already created the row with name/email)
+    await adminClient
       .from('profiles')
-      .update({
-        name: trimmedName,
-        role: mapRoleToDb(role),
-        actif: true,
-      })
-      .eq('id', created.user.id)
-
-    if (profileError) {
-      await admin.auth.admin.deleteUser(created.user.id)
-      return NextResponse.json({ error: profileError.message }, { status: 400 })
-    }
+      .update({ role: mapRoleToDb(role), actif: actif ?? true })
+      .eq('id', data.user.id)
 
     return NextResponse.json({
-      id: created.user.id,
+      id: data.user.id,
       email: normalizedEmail,
       name: trimmedName,
       role,
@@ -92,9 +78,8 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const auth = await requireAdminClient()
-    if ('error' in auth && auth.error) return auth.error
-    const { serverClient } = auth
+    const auth = await requireAdminSession()
+    if ('response' in auth) return auth.response
 
     const body = await request.json()
     const { id, name, role, actif, password } = body as {
@@ -109,26 +94,37 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Champs requis: id, name, role, actif' }, { status: 400 })
     }
 
+    const adminClient = createAdminClient()
     const trimmedPassword = password?.trim()
-    const { data, error } = await serverClient.rpc('update_staff_user', {
-      p_id: id,
-      p_name: name.trim(),
-      p_role: mapRoleToDb(role),
-      p_actif: actif,
-      p_password: trimmedPassword || null,
-    })
 
-    const row = Array.isArray(data) ? data[0] : data
-    if (error || !row) {
+    // Update password via Admin API if provided
+    if (trimmedPassword) {
+      const { error: pwError } = await adminClient.auth.admin.updateUserById(id, {
+        password: trimmedPassword,
+      })
+      if (pwError) {
+        return NextResponse.json({ error: pwError.message }, { status: 400 })
+      }
+    }
+
+    // Update profile (name, role, actif)
+    const { data, error } = await adminClient
+      .from('profiles')
+      .update({ name: name.trim(), role: mapRoleToDb(role), actif })
+      .eq('id', id)
+      .select('id, email, name, role, actif')
+      .maybeSingle()
+
+    if (error || !data) {
       return NextResponse.json({ error: error?.message ?? 'Mise à jour impossible' }, { status: 400 })
     }
 
     return NextResponse.json({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      role,
-      actif: row.actif,
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      role: mapRoleFromDb(data.role ?? ''),
+      actif: data.actif,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur serveur'
@@ -138,19 +134,23 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = await requireAdminClient()
-    if ('error' in auth && auth.error) return auth.error
-    const { serverClient } = auth
+    const auth = await requireAdminSession()
+    if ('response' in auth) return auth.response
 
     const id = new URL(request.url).searchParams.get('id')
     if (!id) {
       return NextResponse.json({ error: 'Paramètre id requis' }, { status: 400 })
     }
 
-    const admin = createAdminClient()
-    await admin.auth.admin.signOut(id, 'global')
+    if (auth.callerId === id) {
+      return NextResponse.json(
+        { error: 'Vous ne pouvez pas supprimer votre propre compte' },
+        { status: 400 },
+      )
+    }
 
-    const { error } = await serverClient.rpc('delete_staff_user', { p_id: id })
+    const adminClient = createAdminClient()
+    const { error } = await adminClient.auth.admin.deleteUser(id)
     if (error) {
       return NextResponse.json({ error: error.message ?? 'Suppression impossible' }, { status: 400 })
     }

@@ -21,7 +21,6 @@ const ROLES: Role[] = [
 type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
-  /** When provided, dialog runs in edit mode (pre-fill + updateProfile). Otherwise create mode. */
   profileId?: string | null
 }
 
@@ -74,61 +73,56 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
 
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim()) {
-      toast.error('Veuillez renseigner le nom complet et l\'email.')
+      toast.error("Veuillez renseigner le nom complet et l'email.")
       return
     }
-    const payload = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      role,
-      actif,
-      password: password.trim() || DEMO_PASSWORD,
-    }
-    if (isEdit && profileId) {
-      try {
+
+    try {
+      if (isEdit && profileId) {
         const res = await fetch('/api/admin/users', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: profileId,
-            name: payload.name,
-            role: payload.role,
-            actif: payload.actif,
+            name: name.trim(),
+            role,
+            actif,
             password: password.trim() || undefined,
           }),
         })
         const json = await res.json()
         if (!res.ok) {
-          toast.error(json.error ?? 'Impossible de modifier l\'utilisateur')
+          toast.error(json.error ?? "Impossible de modifier l'utilisateur")
           return
         }
         await syncDataFromSupabase()
         toast.success(`Utilisateur ${name} modifié avec succès.`)
-      } catch {
-        toast.error('Erreur réseau lors de la modification utilisateur')
-        return
-      }
-    } else {
-      try {
+      } else {
         const res = await fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password: password.trim() || DEMO_PASSWORD,
+            name: name.trim(),
+            role,
+            actif,
+          }),
         })
         const json = await res.json()
         if (!res.ok) {
-          toast.error(json.error ?? 'Impossible de créer l\'utilisateur')
+          toast.error(json.error ?? "Impossible de créer l'utilisateur")
           return
         }
         await syncDataFromSupabase()
-        toast.success(`Utilisateur ${name} créé dans Supabase Auth.`)
-      } catch {
-        toast.error('Erreur réseau lors de la création utilisateur')
-        return
+        toast.success(`Utilisateur ${name} créé avec succès.`)
       }
+
+      reset()
+      onOpenChange(false)
+    } catch {
+      toast.error('Erreur réseau — vérifiez votre connexion.')
     }
-    reset()
-    onOpenChange(false)
   }
 
   return (
@@ -138,7 +132,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
       title={isEdit ? "Modifier l'utilisateur" : 'Ajouter un utilisateur'}
       description={
         isEdit
-          ? 'Mettez à jour les informations du membre de l\'équipe'
+          ? "Mettez à jour les informations du membre de l'équipe"
           : 'Invitez un nouveau membre dans votre équipe SARAH AUTO'
       }
       size="md"
