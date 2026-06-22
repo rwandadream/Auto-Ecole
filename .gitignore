@@ -64,3 +64,4 @@ skills-lock.json
 .cursor/
 worklog.md
 upload/
+.vercel
