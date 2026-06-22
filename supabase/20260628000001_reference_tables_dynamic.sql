@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS public.modes_paiement (
 );
 
 ALTER TABLE public.modes_paiement ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lecture publique modes_paiement" ON public.modes_paiement;
+DROP POLICY IF EXISTS "Admin modes_paiement" ON public.modes_paiement;
 CREATE POLICY "Lecture publique modes_paiement" ON public.modes_paiement FOR SELECT USING (true);
 CREATE POLICY "Admin modes_paiement" ON public.modes_paiement FOR ALL USING (public.is_admin());
 
@@ -27,6 +29,8 @@ CREATE TABLE IF NOT EXISTS public.categories_depense (
 );
 
 ALTER TABLE public.categories_depense ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lecture publique categories_depense" ON public.categories_depense;
+DROP POLICY IF EXISTS "Admin categories_depense" ON public.categories_depense;
 CREATE POLICY "Lecture publique categories_depense" ON public.categories_depense FOR SELECT USING (true);
 CREATE POLICY "Admin categories_depense" ON public.categories_depense FOR ALL USING (public.is_admin());
 
@@ -48,6 +52,8 @@ CREATE TABLE IF NOT EXISTS public.app_config (
 );
 
 ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Lecture publique app_config" ON public.app_config;
+DROP POLICY IF EXISTS "Admin app_config" ON public.app_config;
 CREATE POLICY "Lecture publique app_config" ON public.app_config FOR SELECT USING (true);
 CREATE POLICY "Admin app_config" ON public.app_config FOR ALL USING (public.is_admin());
 

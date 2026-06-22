@@ -28,15 +28,46 @@ Exécutez **dans cet ordre** via le SQL Editor Supabase ou le MCP :
 | 18 | `20260627000002_rpc_revoke_public.sql` | REVOKE PUBLIC sur RPC admin (complément — anon hérite de PUBLIC par défaut) |
 | 19 | `20260627000003_rls_policy_consolidation.sql` | Fusion policies SELECT + WITH CHECK admin (perf RLS) |
 | 20 | `20260627000004_portail_rate_limit.sql` | Rate limiting `login_eleve_portail` (5 essais / 15 min) |
+| 21 | `20260628000001_reference_tables_dynamic.sql` | Tables `modes_paiement`, `categories_depense`, `app_config` + seed FAQ |
 
 > L'ancien `20260621000004_seed_demo.sql` et `seed_full_mock.sql` ont été remplacés par `seed_reference_data.sql`.
+
+## Déploiement Vercel + Supabase Auth
+
+**Production :** https://auto-ecole-pi.vercel.app
+
+### Variables Vercel (Production + Development)
+
+| Variable | Valeur |
+|----------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://myzgspejgqzvmbuqqwks.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | clé `sb_publishable_…` (Dashboard → API Keys) |
+| `SUPABASE_SERVICE_ROLE_KEY` | clé `service_role` (Dashboard → API Keys, **serveur uniquement**) |
+
+Automatisation (token Supabase requis) :
+
+```bash
+set SUPABASE_ACCESS_TOKEN=sbp_votre_token
+node scripts/setup-vercel-supabase.mjs
+```
+
+### Supabase → Authentication → URL Configuration
+
+Ajouter dans **Redirect URLs** :
+
+- `https://auto-ecole-pi.vercel.app/**`
+- `https://auto-ecole-pi.vercel.app/auth/callback`
+- `https://auto-ecole-pi.vercel.app/auth/reset-password`
+- `http://localhost:3000/**` (dev local)
+
+**Site URL :** `https://auto-ecole-pi.vercel.app`
 
 ## Variables d'environnement
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://myzgspejgqzvmbuqqwks.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...   # serveur uniquement — route API /api/admin/users
+SUPABASE_SERVICE_ROLE_KEY=...   # serveur uniquement (Vercel Production/Development)
 ```
 
 Supabase est **obligatoire** : l'application ne démarre pas sans ces variables.
@@ -57,7 +88,7 @@ Supabase est **obligatoire** : l'application ne démarre pas sans ces variables.
 
 Portail élève : code `EL-2401` + téléphone `+225 07 12 34 56`
 
-Création d'utilisateurs supplémentaires : UI **Paramètres → Utilisateurs** (API `/api/admin/users` + Admin Auth).
+Création d'utilisateurs supplémentaires : UI **Paramètres → Utilisateurs** (API `/api/admin/users` + RPC `create_staff_user`).
 
 Réinitialisation mot de passe staff : lien **Mot de passe oublié ?** sur l'écran de connexion admin (redirect `/auth/reset-password`).
 
@@ -80,13 +111,13 @@ Realtime : séances, factures et paiements se resynchronisent automatiquement (d
 | `get_eleve_portail_data` | Séances, factures, paiements élève |
 | `inscrire_eleve` | Inscription + facture (transaction) |
 | `enregistrer_paiement` | Paiement + recalcul statut facture |
-| `create_staff_user` | *(legacy RPC)* — remplacé par Admin API côté serveur |
+| `create_staff_user` | Création compte staff (admin connecté, sans service role) |
 | `update_staff_user` | Mise à jour profil staff (+ mot de passe Auth optionnel) |
 | `delete_staff_user` | Suppression compte staff (Auth + profile) |
 | `delete_eleve` | Suppression élève + factures/paiements/bordereaux (admin, transaction) |
 
 ## Tables
 
-`profiles`, `permis`, `eleves`, `formations`, `inscriptions`, `moniteurs`, `vehicules`, `inspecteurs`, `seances`, `examens`, `factures`, `paiements`, `depenses`, `audit_log`, `examen_sessions`, `examen_session_eleves`
+`profiles`, `permis`, `eleves`, `formations`, `inscriptions`, `moniteurs`, `vehicules`, `inspecteurs`, `seances`, `examens`, `factures`, `paiements`, `depenses`, `audit_log`, `examen_sessions`, `examen_session_eleves`, `faq_items`, `modes_paiement`, `categories_depense`, `app_config`
 
 Vue : `eleves_solde` (solde calculé depuis factures/paiements)

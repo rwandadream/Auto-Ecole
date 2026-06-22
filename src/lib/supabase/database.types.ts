@@ -918,6 +918,20 @@ export type Database = {
       }
     }
     Functions: {
+      create_staff_user: {
+        Args: {
+          p_email: string
+          p_password: string
+          p_name: string
+          p_role: string
+        }
+        Returns: {
+          id: string
+          email: string
+          name: string
+          role: string
+        }[]
+      }
       delete_eleve: {
         Args: { p_id: string }
         Returns: undefined
@@ -957,6 +971,22 @@ export type Database = {
           statut: string
           telephone: string
           type_permis: string
+        }[]
+      }
+      update_staff_user: {
+        Args: {
+          p_id: string
+          p_name: string
+          p_role: string
+          p_actif: boolean
+          p_password?: string
+        }
+        Returns: {
+          id: string
+          email: string
+          name: string
+          role: string
+          actif: boolean
         }[]
       }
     }

@@ -271,7 +271,7 @@ export function ParametresView() {
       })
       const json = await res.json()
       if (!res.ok) {
-        toast.error(json.error ?? 'Impossible de supprimer l\'utilisateur')
+        toast.error(json.error ?? "Impossible de supprimer l'utilisateur")
         return
       }
       await syncDataFromSupabase()
