@@ -1,4 +1,5 @@
 import type { ViewKey, ParametresTab } from '@/store/nav-store'
+import { mapRoleFromDb } from '@/lib/supabase/roles'
 
 export type AppRole =
   | 'Super Administrateur'
@@ -72,11 +73,7 @@ const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
 }
 
 export function normalizeRole(role: string): AppRole {
-  // Alias legacy → nouveaux noms
-  if (role === 'Administrateur' || role === 'Administrateur principal') return 'Directeur'
-  if (role === 'Administrateur secondaire') return 'Responsable adjoint'
-  if (role === 'Conseiller') return 'Secrétaire'
-  return role as AppRole
+  return mapRoleFromDb(role) as AppRole
 }
 
 export function isSuperAdmin(role: string): boolean {

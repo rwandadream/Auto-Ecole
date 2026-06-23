@@ -130,18 +130,14 @@ function ProfileEditDialog({
   const [actif, setActif] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Seed from auth user when dialog opens
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open && user && user.mode === 'admin') {
-      setName(user.name)
-      setEmail(user.email)
-      setRole((user.role as Role) || 'Directeur')
-      const profile = profiles.find((p) => p.id === user.id)
-      setActif(profile?.actif ?? true)
-    }
-  }
+  useEffect(() => {
+    if (!open || !user || user.mode !== 'admin') return
+    setName(user.name)
+    setEmail(user.email)
+    setRole((user.role as Role) || 'Directeur')
+    const profile = profiles.find((p) => p.id === user.id)
+    setActif(profile?.actif ?? true)
+  }, [open, user, profiles])
 
   const handleCancel = () => {
     onOpenChange(false)
@@ -260,12 +256,15 @@ export function ParametresView() {
     [role],
   )
 
+  const activeTab = visibleTabs.includes(parametresTab)
+    ? parametresTab
+    : visibleTabs[0] ?? 'profil'
+
   useEffect(() => {
-    if (visibleTabs.length === 0) return
-    if (!visibleTabs.includes(parametresTab)) {
-      useNavStore.getState().setParametresTab(visibleTabs[0])
+    if (visibleTabs.length > 0 && parametresTab !== activeTab) {
+      useNavStore.getState().setParametresTab(activeTab)
     }
-  }, [visibleTabs, parametresTab])
+  }, [visibleTabs, parametresTab, activeTab])
 
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)
@@ -338,7 +337,7 @@ export function ParametresView() {
       />
 
       <Tabs
-        value={parametresTab}
+        value={activeTab}
         onValueChange={(v) => useNavStore.getState().setParametresTab(v as ParametresTab)}
         className="flex flex-col gap-6"
       >

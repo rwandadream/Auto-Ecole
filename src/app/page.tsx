@@ -75,8 +75,11 @@ function HomeContent() {
   useSupabaseRealtime()
 
   useEffect(() => {
-    if (user?.mode === 'admin' && !canAccessView(user.role, activeView)) {
-      setActiveView(getDefaultViewForRole(user.role))
+    if (user?.mode !== 'admin') return
+    if (canAccessView(user.role, activeView)) return
+    const fallback = getDefaultViewForRole(user.role)
+    if (fallback !== activeView) {
+      setActiveView(fallback)
     }
   }, [user, activeView, setActiveView])
 
