@@ -34,6 +34,16 @@ export type Permis = {
   libelle: string
 }
 
+export const PERMIS_CATEGORIES: { code: string; libelle: string }[] = [
+  { code: 'A',    libelle: 'Deux-roues et motos' },
+  { code: 'B',    libelle: 'Voitures particulières (8 places maximum)' },
+  { code: 'C',    libelle: 'Camions et transport de marchandises' },
+  { code: 'D',    libelle: 'Bus et transport en commun' },
+  { code: 'E',    libelle: 'Véhicules articulés et remorques lourdes' },
+  { code: 'F',    libelle: 'Véhicules adaptés aux personnes handicapées' },
+  { code: 'BCDE', libelle: 'Permis professionnel toutes catégories' },
+]
+
 export type Formation = {
   id: string
   nom: string
@@ -97,6 +107,7 @@ export type Eleve = {
   estParraine: boolean
   parrainNom: string
   moniteur: string
+  accesPortail?: boolean
 }
 
 export type Seance = {
@@ -180,6 +191,7 @@ export type Facture = {
 
 export type Paiement = {
   id: string
+  factureId: string
   facture: string
   eleve: string
   montant: number

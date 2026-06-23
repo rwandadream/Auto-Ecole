@@ -109,25 +109,26 @@ export function StudentProfilView() {
     nationalite: '',
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarState, setAvatarState] = useState<{ key: string; url: string } | null>(null)
 
   const me =
     user?.mode === 'eleve' ? eleves.find((e) => e.code === user.code) : undefined
   const photoProfil = me?.photoProfil ?? ''
 
   useEffect(() => {
-    if (!photoProfil) {
-      setAvatarUrl('')
-      return
-    }
+    if (!photoProfil) return
     let cancelled = false
     void resolveMediaUrl(photoProfil).then((url) => {
-      if (!cancelled) setAvatarUrl(url)
+      if (!cancelled) setAvatarState({ key: photoProfil, url })
     })
     return () => {
       cancelled = true
     }
   }, [photoProfil])
+
+  const avatarUrl =
+    photoProfil && avatarState?.key === photoProfil ? avatarState.url : ''
+  const avatarLoading = !!photoProfil && avatarState?.key !== photoProfil
 
   if (!user || user.mode !== 'eleve') return null
 
@@ -198,7 +199,7 @@ export function StudentProfilView() {
                   alt={user.nomComplet}
                   className="h-24 w-24 rounded-full object-cover"
                 />
-              ) : me?.photoProfil && !avatarUrl ? (
+              ) : avatarLoading ? (
                 <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
                   …
                 </div>

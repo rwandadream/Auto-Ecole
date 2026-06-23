@@ -8,6 +8,7 @@ import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
 import { ActionButton, Card } from './shared'
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
 
@@ -176,7 +177,7 @@ export function EleveCreateView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : [{ code: 'A', libelle: 'Moto' }, { code: 'B', libelle: 'Voiture' }, { code: 'AB', libelle: 'Moto + Voiture' }, { code: 'C', libelle: 'Poids lourd' }]).map((p) => (
+                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
                   <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>

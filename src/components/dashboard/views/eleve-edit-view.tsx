@@ -9,6 +9,7 @@ import { ActionButton, Card, StatusBadge, initials, statutEleveTone } from './sh
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { STATUTS_ELEVE } from '@/lib/constants'
 import type { StatutEleve } from '@/lib/domain/types'
+import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
 
@@ -32,6 +33,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const [typePermis, setTypePermis] = useState(eleve?.typePermis ?? 'B')
   const [statut, setStatut] = useState<StatutEleve>(eleve?.statut ?? 'Prospect')
   const [moniteur, setMoniteur] = useState(eleve?.moniteur ?? 'Non assigné')
+  const [accesPortail, setAccesPportail] = useState(eleve?.accesPortail !== false)
 
   if (!eleve) {
     return (
@@ -67,6 +69,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
       typePermis,
       statut,
       moniteur,
+      accesPortail,
     })
     toast.success('Élève modifié avec succès')
     setActiveView('eleve-detail')
@@ -177,7 +180,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : [{ code: 'A', libelle: 'Moto' }, { code: 'B', libelle: 'Voiture' }, { code: 'AB', libelle: 'Moto + Voiture' }, { code: 'C', libelle: 'Poids lourd' }]).map((p) => (
+                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
                   <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>
@@ -196,6 +199,25 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <p className="mt-3 text-xs text-muted-foreground">
             Le statut permet de faire avancer l&apos;élève dans son cycle : Prospect → Inscrit → En formation → Examen → Admis/Ajourné → Terminé.
           </p>
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Accès espace apprenant</p>
+              <p className="text-xs text-muted-foreground">
+                {accesPortail ? "L'élève peut se connecter avec son code et son téléphone." : "Connexion bloquée — l'élève ne peut plus accéder à son espace."}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={accesPortail}
+              onClick={() => setAccesPportail((v) => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${accesPortail ? 'bg-primary' : 'bg-muted-foreground/40'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${accesPortail ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
         </Card>
 
         {/* Actions footer */}

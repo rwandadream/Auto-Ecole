@@ -27,8 +27,8 @@ import { FacturationView } from '@/components/dashboard/views/facturation-view'
 import { ComptabiliteView } from '@/components/dashboard/views/comptabilite-view'
 import { ParametresView } from '@/components/dashboard/views/parametres-view'
 import { InspecteursView } from '@/components/dashboard/views/inspecteurs-view'
-import { AuditLogView } from '@/components/dashboard/views/audit-log-view'
-import { AssistanceView } from '@/components/dashboard/views/assistance-view'
+import { MoniteurDashboardView } from '@/components/dashboard/views/moniteur-dashboard-view'
+import { ParrainageView } from '@/components/dashboard/views/parrainage-view'
 import { StudentDashboardView } from '@/components/dashboard/views/student-dashboard-view'
 import { StudentPlanningView } from '@/components/dashboard/views/student-planning-view'
 import { StudentFacturesView } from '@/components/dashboard/views/student-factures-view'
@@ -43,6 +43,7 @@ const studentViewMap = {
 
 const adminViewMap = {
   dashboard: DashboardView,
+  'moniteur-dashboard': MoniteurDashboardView,
   eleves: ElevesView,
   scanner: ScannerCniView,
   moniteurs: MoniteursView,
@@ -54,8 +55,7 @@ const adminViewMap = {
   facturation: FacturationView,
   comptabilite: ComptabiliteView,
   parametres: ParametresView,
-  audit: AuditLogView,
-  assistance: AssistanceView,
+  parrainage: ParrainageView,
 } as const
 
 export default function Home() {

@@ -21,14 +21,19 @@ import { useNavStore } from '@/store/nav-store'
 import { useDataStore } from '@/store/data-store'
 import { initials } from '@/components/dashboard/views/shared'
 import { currentMonthRange } from '@/lib/format'
+import { canAccessParametresTab, getParametresTabsForRole } from '@/lib/permissions'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
 
 export function Header() {
   const user = useAuthStore((s) => s.user)
-  const setActiveView = useNavStore((s) => s.setActiveView)
+  const openParametres = useNavStore((s) => s.openParametres)
   const [showLogout, setShowLogout] = useState(false)
+
+  const canSeeAudit =
+    user?.mode === 'admin' &&
+    getParametresTabsForRole(user.role).includes('audit')
 
   // Recent audit entries for the notifications popover
   const auditLog = useDataStore((s) => s.auditLog)
@@ -105,18 +110,20 @@ export function Header() {
                 ))
               )}
             </div>
+            {canSeeAudit && (
             <button
-              onClick={() => setActiveView('audit')}
+              onClick={() => openParametres('audit')}
               className="w-full border-t border-border p-3 text-center text-sm font-medium text-primary transition-colors hover:bg-primary/5"
             >
               Voir tout le journal d&apos;audit
             </button>
+            )}
           </PopoverContent>
         </Popover>
 
         {/* Help → Assistance */}
         <button
-          onClick={() => setActiveView('assistance')}
+          onClick={() => openParametres('assistance')}
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Aide"
         >
@@ -149,14 +156,23 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setActiveView('parametres')}>
-              <User className="mr-2 h-4 w-4" />
-              Mon profil
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setActiveView('parametres')}>
-              <Settings className="mr-2 h-4 w-4" />
-              Paramètres
-            </DropdownMenuItem>
+            {user?.mode === 'admin' && getParametresTabsForRole(user.role).includes('profil') ? (
+              <>
+                <DropdownMenuItem onSelect={() => openParametres('profil')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Mon profil
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openParametres('profil')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Paramètres
+                </DropdownMenuItem>
+              </>
+            ) : user?.mode === 'admin' ? (
+              <DropdownMenuItem onSelect={() => openParametres('assistance')}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Assistance
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => setShowLogout(true)}

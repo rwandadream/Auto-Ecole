@@ -11,6 +11,7 @@ import {
   StatusBadge,
   ActionButton,
   Card,
+  PaginationFooter,
   resultatExamenTone,
   TypeExamenBadge,
 } from './shared'
@@ -54,6 +55,13 @@ export function BordereauxView() {
   const [saisieSession, setSaisieSession] = useState<typeof examenSessions[number] | null>(null)
   const [showAddSession, setShowAddSession] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+
+  const PAR_PAGE = 5
+  const totalPages = Math.max(1, Math.ceil(examenSessions.length / PAR_PAGE))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * PAR_PAGE
+  const sessionsPage = examenSessions.slice(debut, debut + PAR_PAGE)
 
   const showDelete = user?.mode === 'admin' && canDeleteSession(user.role)
   const deletingSession = deletingId ? examenSessions.find((s) => s.id === deletingId) : null
@@ -80,7 +88,7 @@ export function BordereauxView() {
       />
 
       <div className="flex flex-col gap-6">
-        {examenSessions.map((sess) => (
+        {sessionsPage.map((sess) => (
           <Card key={sess.id} className="flex flex-col gap-5 p-5">
             {/* Card header */}
             <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -125,6 +133,7 @@ export function BordereauxView() {
               <InfoCell label="Date" value={sess.date} />
               <InfoCell label="Heure" value={sess.heure} />
               <InfoCell label="Centre" value={sess.centre} />
+              <InfoCell label="Lieu" value={sess.lieu || sess.centre} />
               <InfoCell label="Type examen" value={sess.typeExamen} />
               <InfoCell label="Inspecteur" value={sess.inspecteur} />
               <InfoCell label="Véhicule" value={sess.vehicule} />
@@ -208,6 +217,21 @@ export function BordereauxView() {
           </Card>
         ))}
       </div>
+
+      {examenSessions.length > PAR_PAGE && (
+        <Card className="p-0">
+          <PaginationFooter
+            pageCourante={pageCourante}
+            totalPages={totalPages}
+            total={examenSessions.length}
+            debut={debut}
+            pageDataLength={sessionsPage.length}
+            label="sessions"
+            setPage={setPage}
+          />
+        </Card>
+      )}
+
       <SaisieResultatsDialog session={saisieSession} open={!!saisieSession} onOpenChange={(v) => { if (!v) setSaisieSession(null) }} />
       <NouvelleSessionDialog open={showAddSession} onOpenChange={setShowAddSession} />
 

@@ -8,6 +8,10 @@ import {
   Car,
   User as UserIcon,
   ArrowRight,
+  Trophy,
+  XCircle,
+  AlertCircle,
+  BookOpen,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
@@ -16,6 +20,8 @@ import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   Card,
+  StatusBadge,
+  resultatExamenTone,
   formatXOF,
 } from './shared'
 
@@ -69,12 +75,16 @@ function lifecycleIndex(statut: StatutEleve): number {
 export function StudentDashboardView() {
   const user = useAuthStore((s) => s.user)
   const seances = useDataStore((s) => s.seances)
+  const examens = useDataStore((s) => s.examens)
   const eleves = useDataStore((s) => s.eleves)
 
   if (!user || user.mode !== 'eleve') return null
 
   const me = eleves.find((e) => e.code === user.code)
   const prenom = user.nomComplet.split(' ')[0]
+  const myExamens = examens
+    .filter((e) => e.eleveCode === user.code)
+    .sort((a, b) => b.dateExamen.localeCompare(a.dateExamen))
 
   // Upcoming séances: eleveCode match + date >= today + statut Planifié, sorted by date+time
   const upcoming = seances
@@ -104,7 +114,7 @@ export function StudentDashboardView() {
       />
 
       {/* KPI row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {/* Séances effectuées */}
         <Card>
           <div className="flex items-center justify-between">
@@ -191,6 +201,24 @@ export function StudentDashboardView() {
               </span>
             )}
           </div>
+        </Card>
+
+        {/* Séances restantes */}
+        <Card>
+          <div className="flex items-center justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+              <BookOpen className="h-5 w-5" />
+            </div>
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Restantes
+            </span>
+          </div>
+          <p className="mt-3 text-2xl font-bold text-foreground">
+            {Math.max(0, (me?.seancesTotales ?? 0) - (me?.seancesFaites ?? 0))}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Séances restantes sur {me?.seancesTotales ?? 0}
+          </p>
         </Card>
       </div>
 
@@ -317,6 +345,53 @@ export function StudentDashboardView() {
           )}
         </Card>
       </div>
+
+      {/* Résultats d'examens */}
+      {myExamens.length > 0 && (
+        <Card className="mt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold text-foreground">Mes résultats d&apos;examens</h2>
+            <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              {myExamens.length} examen{myExamens.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {myExamens.map((ex) => {
+              const isAdmis = ex.resultat === 'Admis'
+              const isAjourne = ex.resultat === 'Ajourné'
+              const isEchec = ex.resultat === 'Échec'
+              return (
+                <div
+                  key={ex.id}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-background p-3"
+                >
+                  <div className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                    isAdmis && 'bg-success/10 text-success',
+                    isAjourne && 'bg-warning/10 text-warning',
+                    isEchec && 'bg-destructive/10 text-destructive',
+                    !isAdmis && !isAjourne && !isEchec && 'bg-muted text-muted-foreground',
+                  )}>
+                    {isAdmis ? <Trophy className="h-4 w-4" /> :
+                     isEchec ? <XCircle className="h-4 w-4" /> :
+                     isAjourne ? <AlertCircle className="h-4 w-4" /> :
+                     <Clock className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      {ex.typeExamen} — Permis {ex.typePermis}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {ex.dateExamen} · {ex.inspecteur !== '—' ? ex.inspecteur : 'Inspecteur non précisé'}
+                    </p>
+                  </div>
+                  <StatusBadge label={ex.resultat} tone={resultatExamenTone[ex.resultat]} />
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
     </>
   )
 }

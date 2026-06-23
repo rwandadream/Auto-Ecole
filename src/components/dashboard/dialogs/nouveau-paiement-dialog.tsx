@@ -25,7 +25,7 @@ export function NouveauPaiementDialog({
 
   const today = todayFrShort()
 
-  const [montant, setMontant] = useState<number>(0)
+  const [montant, setMontant] = useState('')
   const [modePaiement, setModePaiement] = useState<ModePaiement>('Espèces')
   const [reference, setReference] = useState('')
   const [datePaiement, setDatePaiement] = useState(today)
@@ -37,7 +37,7 @@ export function NouveauPaiementDialog({
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open && facture) {
-      setMontant(facture.reste)
+      setMontant(String(facture.reste))
       setModePaiement('Espèces')
       setReference('')
       setDatePaiement(today)
@@ -53,11 +53,12 @@ export function NouveauPaiementDialog({
       toast.error('Aucune facture sélectionnée.')
       return
     }
-    if (montant <= 0) {
+    const montantValue = Number(montant) || 0
+    if (montantValue <= 0) {
       toast.error('Veuillez saisir un montant supérieur à 0.')
       return
     }
-    if (montant > facture.reste) {
+    if (montantValue > facture.reste) {
       toast.error(`Le montant dépasse le reste à payer (${formatXOF(facture.reste)}).`)
       return
     }
@@ -69,12 +70,12 @@ export function NouveauPaiementDialog({
     addPaiement({
       factureId: facture.id,
       eleve: facture.eleve,
-      montant,
+      montant: montantValue,
       modePaiement,
       reference: reference.trim() || `REF-${Math.floor(Math.random() * 900000 + 100000)}`,
       datePaiement,
     })
-    toast.success(`Paiement de ${formatXOF(montant)} encaissé pour ${facture.eleve}.`)
+    toast.success(`Paiement de ${formatXOF(montantValue)} encaissé pour ${facture.eleve}.`)
     onOpenChange(false)
   }
 
@@ -118,11 +119,11 @@ export function NouveauPaiementDialog({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Montant encaissé (FCFA)" required>
               <FormInput
-                type="number"
-                min={0}
-                max={facture.reste}
+                type="text"
+                inputMode="numeric"
                 value={montant}
-                onChange={(e) => setMontant(Number(e.target.value))}
+                onChange={(e) => setMontant(e.target.value)}
+                placeholder="0"
               />
             </Field>
             <Field label="Mode de paiement" required>
@@ -150,7 +151,7 @@ export function NouveauPaiementDialog({
           <div className="flex items-center justify-between rounded-lg bg-primary/5 p-3">
             <span className="text-sm font-medium text-muted-foreground">Nouveau reste après encaissement</span>
             <span className="text-lg font-bold text-primary">
-              {formatXOF(Math.max(0, facture.reste - montant))}
+              {formatXOF(Math.max(0, facture.reste - (Number(montant) || 0)))}
             </span>
           </div>
         </div>

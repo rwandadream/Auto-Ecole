@@ -225,6 +225,7 @@ export function mapEleve(
     solde?: number | null
     moniteur_id?: string | null
     inspecteur?: string | null
+    acces_portail?: boolean | null
   },
   moniteurLabel = 'Non assigné',
 ): Eleve {
@@ -254,6 +255,7 @@ export function mapEleve(
     estParraine: row.est_parraine ?? false,
     parrainNom: row.parrain_nom ?? '',
     moniteur: moniteurLabel,
+    accesPortail: row.acces_portail !== false,
   }
 }
 
@@ -438,6 +440,7 @@ export function mapPaiement(row: {
   const eleve = row.eleve
   return {
     id: row.id,
+    factureId: row.facture_id ?? '',
     facture: row.facture?.numero ?? '',
     eleve: eleve ? labelPerson(eleve.prenom, eleve.nom) : '',
     montant: Number(row.montant),

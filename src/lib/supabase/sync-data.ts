@@ -25,7 +25,7 @@ import { faqContent } from '@/lib/faq-content'
 import { useDataStore, type AuditEntry } from '@/store/data-store'
 
 const ELEVE_COLS =
-  'id,code,dossier_code,nom,prenom,telephone,email,adresse,photo_cni,photo_profil,date_naissance,lieu_naissance,sexe,nationalite,type_piece,num_piece,type_permis,statut,est_parraine,parrain_nom,date_inscription,seances_faites,seances_totales,moniteur_id'
+  'id,code,dossier_code,nom,prenom,telephone,email,adresse,photo_cni,photo_profil,date_naissance,lieu_naissance,sexe,nationalite,type_piece,num_piece,type_permis,statut,est_parraine,parrain_nom,date_inscription,seances_faites,seances_totales,moniteur_id,acces_portail'
 
 export async function syncDataFromSupabase(): Promise<boolean> {
   assertSupabaseConfigured()

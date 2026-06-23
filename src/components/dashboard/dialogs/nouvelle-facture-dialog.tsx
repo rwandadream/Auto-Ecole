@@ -22,7 +22,7 @@ export function NouvelleFactureDialog({
 
   const [eleveCode, setEleveCode] = useState('')
   const [formationId, setFormationId] = useState('')
-  const [montant, setMontant] = useState<number>(0)
+  const [montant, setMontant] = useState('')
   const [dateEmission, setDateEmission] = useState(today)
   const [notes, setNotes] = useState('')
 
@@ -31,20 +31,21 @@ export function NouvelleFactureDialog({
     setFormationId(id)
     const f = formations.find((fo) => fo.id === id)
     if (f) {
-      setMontant(f.prix)
+      setMontant(String(f.prix))
     }
   }
 
   const resetForm = () => {
     setEleveCode('')
     setFormationId('')
-    setMontant(0)
+    setMontant('')
     setDateEmission(today)
     setNotes('')
   }
 
   const handleSubmit = () => {
-    if (!eleveCode || !formationId || montant <= 0) {
+    const montantValue = Number(montant) || 0
+    if (!eleveCode || !formationId || montantValue <= 0) {
       toast.error('Veuillez sélectionner un élève, une formation et un montant valide')
       return
     }
@@ -59,7 +60,7 @@ export function NouvelleFactureDialog({
       eleve: eleveNom,
       eleveCode,
       formation: formation.nom,
-      montant,
+      montant: montantValue,
       dateEmission,
     })
     toast.success('Facture émise')
@@ -110,13 +111,13 @@ export function NouvelleFactureDialog({
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Montant" required>
+          <Field label="Montant (FCFA)" required>
             <FormInput
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={montant}
-              min={0}
-              onChange={(e) => setMontant(Number(e.target.value))}
-              placeholder="0"
+              onChange={(e) => setMontant(e.target.value)}
+              placeholder="150000"
             />
           </Field>
           <Field label="Date d'émission" required>
@@ -136,7 +137,7 @@ export function NouvelleFactureDialog({
         {/* Aperçu en direct du montant total */}
         <div className="flex items-center justify-between rounded-lg bg-muted p-3">
           <span className="text-sm font-medium text-muted-foreground">Montant total</span>
-          <span className="text-lg font-bold text-primary">{formatXOF(montant)}</span>
+          <span className="text-lg font-bold text-primary">{formatXOF(Number(montant) || 0)}</span>
         </div>
       </div>
     </Modal>

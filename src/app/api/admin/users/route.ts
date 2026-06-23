@@ -43,6 +43,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Champs requis: email, password, name, role' }, { status: 400 })
     }
 
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Le mot de passe doit comporter au moins 8 caractères' }, { status: 400 })
+    }
+
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
     const adminClient = createAdminClient()
@@ -99,6 +103,12 @@ export async function PATCH(request: Request) {
 
     // Update password via Admin API if provided
     if (trimmedPassword) {
+      if (trimmedPassword.length < 8) {
+        return NextResponse.json(
+          { error: 'Le mot de passe doit comporter au moins 8 caractères' },
+          { status: 400 },
+        )
+      }
       const { error: pwError } = await adminClient.auth.admin.updateUserById(id, {
         password: trimmedPassword,
       })

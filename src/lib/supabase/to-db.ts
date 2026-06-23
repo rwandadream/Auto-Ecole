@@ -58,6 +58,7 @@ export function toDbEleve(
     seances_faites: eleve.seancesFaites,
     seances_totales: eleve.seancesTotales,
     moniteur_id: moniteurId ?? null,
+    acces_portail: eleve.accesPortail !== false,
   }
 }
 

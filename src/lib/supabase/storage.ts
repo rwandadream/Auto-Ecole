@@ -72,7 +72,9 @@ export async function resolveMediaUrl(stored: string): Promise<string> {
   if (!ref) return stored
 
   const supabase = createClient()
-  const { data, error } = await supabase.storage.from(ref.bucket).createSignedUrl(ref.path, 3600)
+  // CNI = national ID scan — shorter TTL for sensitive documents; others 1 h
+  const ttl = ref.bucket === 'cni' ? 600 : 3600
+  const { data, error } = await supabase.storage.from(ref.bucket).createSignedUrl(ref.path, ttl)
   if (error || !data?.signedUrl) return ''
   return data.signedUrl
 }

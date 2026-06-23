@@ -174,6 +174,7 @@ export type Database = {
       }
       eleves: {
         Row: {
+          acces_portail: boolean | null
           adresse: string | null
           code: string | null
           created_at: string | null
@@ -205,6 +206,7 @@ export type Database = {
           type_piece: string | null
         }
         Insert: {
+          acces_portail?: boolean | null
           adresse?: string | null
           code?: string | null
           created_at?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           type_piece?: string | null
         }
         Update: {
+          acces_portail?: boolean | null
           adresse?: string | null
           code?: string | null
           created_at?: string | null

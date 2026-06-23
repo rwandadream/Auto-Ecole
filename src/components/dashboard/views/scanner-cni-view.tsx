@@ -10,6 +10,7 @@ import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
 import { uploadMediaFromDataUrl } from '@/lib/supabase/storage'
 import { useCniScanner, type CniScanResult } from '@/hooks/use-cni-scanner'
+import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 function applyScanResult(
   parsed: Partial<CniScanResult>,
@@ -377,7 +378,7 @@ export function ScannerCniView() {
             </Field>
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : [{ code: 'A', libelle: 'Moto' }, { code: 'B', libelle: 'Voiture' }, { code: 'AB', libelle: 'Moto + Voiture' }, { code: 'C', libelle: 'Poids lourd' }]).map((p) => (
+                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
                   <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>

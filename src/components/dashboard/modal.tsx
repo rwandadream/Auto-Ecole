@@ -19,6 +19,7 @@ type ModalProps = {
   children: React.ReactNode
   footer?: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  scroll?: boolean
 }
 
 const sizeClasses = {
@@ -36,10 +37,16 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  scroll = true,
 }: ModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', sizeClasses[size])}>
+      <DialogContent
+        className={cn(
+          scroll ? 'max-h-[90vh] overflow-y-auto' : 'overflow-visible',
+          sizeClasses[size],
+        )}
+      >
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}

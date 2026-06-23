@@ -1,4 +1,4 @@
-import type { ViewKey } from '@/store/nav-store'
+import type { ViewKey, ParametresTab } from '@/store/nav-store'
 
 export type AppRole =
   | 'Administrateur principal'
@@ -18,6 +18,7 @@ export type AppAction =
   | 'manage_formations'
 
 const VIEW_ACCESS: Record<ViewKey, AppRole[]> = {
+  'moniteur-dashboard': ['Moniteur'],
   dashboard: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller', 'Administrateur'],
   eleves: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
   'eleve-detail': ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
@@ -32,9 +33,8 @@ const VIEW_ACCESS: Record<ViewKey, AppRole[]> = {
   bordereaux: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Administrateur'],
   facturation: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Administrateur'],
   comptabilite: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Administrateur'],
-  parametres: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  audit: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  assistance: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller', 'Administrateur'],
+  parametres: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller', 'Administrateur'],
+  parrainage: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
   'student-dashboard': ['Administrateur principal'],
   'student-planning': ['Administrateur principal'],
   'student-factures': ['Administrateur principal'],
@@ -59,7 +59,7 @@ function normalizeRole(role: string): AppRole {
 export function canAccessView(role: string, view: ViewKey): boolean {
   const r = normalizeRole(role)
   const allowed = VIEW_ACCESS[view]
-  return allowed ? allowed.includes(r) : true
+  return allowed ? allowed.includes(r) : false
 }
 
 export function canPerformAction(role: string, action: AppAction): boolean {
@@ -70,7 +70,37 @@ export function canPerformAction(role: string, action: AppAction): boolean {
 export function getDefaultViewForRole(role: string): ViewKey {
   const r = normalizeRole(role)
   if (r === 'Comptable') return 'facturation'
-  if (r === 'Moniteur') return 'planning'
+  if (r === 'Moniteur') return 'moniteur-dashboard'
   if (r === 'Conseiller') return 'eleves'
   return 'dashboard'
+}
+
+const ADMIN_PARAMETRES_TABS: ParametresTab[] = ['profil', 'equipe', 'catalogue', 'assistance', 'audit']
+const STAFF_PARAMETRES_TABS: ParametresTab[] = ['assistance']
+
+export function canAccessParametresTab(role: string, tab: ParametresTab): boolean {
+  const r = normalizeRole(role)
+  if (tab === 'assistance') {
+    return canAccessView(role, 'parametres')
+  }
+  if (tab === 'audit') {
+    return ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)
+  }
+  return ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)
+}
+
+export function getParametresTabsForRole(role: string): ParametresTab[] {
+  const r = normalizeRole(role)
+  if (['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)) {
+    return ADMIN_PARAMETRES_TABS
+  }
+  if (canAccessView(role, 'parametres')) {
+    return STAFF_PARAMETRES_TABS
+  }
+  return []
+}
+
+export function getDefaultParametresTabForRole(role: string): ParametresTab {
+  const tabs = getParametresTabsForRole(role)
+  return tabs[0] ?? 'assistance'
 }

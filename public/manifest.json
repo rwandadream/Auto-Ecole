@@ -1,0 +1,45 @@
+{
+  "name": "SARAH AUTO — ERP Auto-École",
+  "short_name": "SARAH AUTO",
+  "description": "Gestion auto-école : élèves, planning, examens, facturation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["business", "education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Planning",
+      "url": "/?view=planning",
+      "description": "Accès rapide au planning des séances"
+    },
+    {
+      "name": "Élèves",
+      "url": "/?view=eleves",
+      "description": "Liste des élèves"
+    }
+  ]
+}

@@ -107,6 +107,12 @@ function genEleveCode(existing: Eleve[]) {
   return `EL-${max + 1}`
 }
 
+function computeSeancesTotales(typePermis: string): number {
+  if (typePermis === 'BCDE') return 60
+  if (['C', 'D', 'E'].includes(typePermis)) return 30
+  return 20
+}
+
 function computeStatutFacture(paye: number, montant: number): StatutFacture {
   if (paye <= 0) return 'Non payée'
   if (paye >= montant) return 'Payée'
@@ -256,7 +262,7 @@ export const useDataStore = create<DataState>()(
           id: uid('e'),
           code,
           seancesFaites: 0,
-          seancesTotales: data.typePermis === 'AB' ? 40 : 20,
+          seancesTotales: computeSeancesTotales(data.typePermis),
           solde: data.solde ?? 0,
           statut: data.statut ?? 'Prospect',
           dateInscription: todayFrShort(),
@@ -295,7 +301,14 @@ export const useDataStore = create<DataState>()(
       updateEleve: (id, patch) => {
         const old = get().eleves.find((x) => x.id === id)
         if (!old) return
-        const updated = { ...old, ...patch }
+        const newPermis = patch.typePermis ?? old.typePermis
+        const updated = {
+          ...old,
+          ...patch,
+          seancesTotales: patch.typePermis && patch.typePermis !== old.typePermis
+            ? computeSeancesTotales(newPermis)
+            : (patch.seancesTotales ?? old.seancesTotales),
+        }
         set((s) => ({
           eleves: s.eleves.map((e) => (e.id === id ? updated : e)),
         }))
@@ -321,7 +334,7 @@ export const useDataStore = create<DataState>()(
           (f) => f.eleveCode === old.code || f.eleve === eleveLabel,
         )
         const removedFactureIds = new Set(removedFactures.map((f) => f.id))
-        const removedPaiements = get().paiements.filter((p) => p.eleve === eleveLabel)
+        const removedPaiements = get().paiements.filter((p) => removedFactureIds.has(p.factureId))
         const removedSeances = get().seances.filter(
           (s) => s.eleveCode === old.code || s.eleve === eleveLabel,
         )
@@ -404,7 +417,7 @@ export const useDataStore = create<DataState>()(
         if (!old) return
         const label = `${old.prenom} ${old.nom}`.trim()
         const affectedSeanceIds = new Set(
-          get().seances.filter((s) => s.moniteur === label).map((s) => s.id),
+          get().seances.filter((s) => s.moniteurId === id).map((s) => s.id),
         )
         const affectedEleveIds = new Set(
           get().eleves.filter((e) => e.moniteur === label).map((e) => e.id),
@@ -455,7 +468,7 @@ export const useDataStore = create<DataState>()(
         const matchesVehicule = (value: string) =>
           value === label || value.includes(old.immatriculation)
         const affectedSeanceIds = new Set(
-          get().seances.filter((s) => matchesVehicule(s.vehicule)).map((s) => s.id),
+          get().seances.filter((s) => s.vehiculeId === id).map((s) => s.id),
         )
         const affectedDepenseIds = new Set(
           get().depenses.filter((d) => matchesVehicule(d.vehicule)).map((d) => d.id),
@@ -594,7 +607,7 @@ export const useDataStore = create<DataState>()(
           .reduce((a, b) => Math.max(a, b), 17)
         const newSess: ExamenSession = {
           titre: `Session ${data.typeExamen}`,
-          lieu: data.centre,
+          lieu: data.lieu || data.centre,
           categorie: 'B',
           statut: 'brouillon',
           observations: '',
@@ -663,6 +676,7 @@ export const useDataStore = create<DataState>()(
         const factureRecord = get().factures.find((f) => f.id === data.factureId)
         const newP: Paiement = {
           ...data,
+          factureId: data.factureId,
           facture: factureRecord?.numero ?? data.factureId,
           id: uid('pa'),
         } as Paiement
@@ -701,9 +715,18 @@ export const useDataStore = create<DataState>()(
       deleteFacture: (id) => {
         const old = get().factures.find((f) => f.id === id)
         if (!old) return
-        set((s) => ({ factures: s.factures.filter((f) => f.id !== id) }))
+        const removedPaiements = get().paiements.filter((p) => p.factureId === id)
+        set((s) => ({
+          factures: s.factures.filter((f) => f.id !== id),
+          paiements: s.paiements.filter((p) => p.factureId !== id),
+        }))
         get().logAction('DELETE', 'factures', id, 'Suppression de la facture', snapshotRecord(old))
-        persistFacture(old, get().eleves, 'delete', () => set((s) => ({ factures: [...s.factures, old] })))
+        persistFacture(old, get().eleves, 'delete', () =>
+          set((s) => ({
+            factures: [...s.factures, old],
+            paiements: [...s.paiements, ...removedPaiements],
+          })),
+        )
       },
 
       addInspecteur: (data) => {

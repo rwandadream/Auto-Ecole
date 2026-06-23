@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRef } from 'react'
 import {
   Plus,
   Search,
@@ -15,6 +16,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Gift,
+  ShieldOff,
+  ShieldCheck,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { type StatutEleve } from '@/lib/domain/types'
@@ -69,6 +75,32 @@ const STATUT_FILTRES: StatutFiltre[] = [
   'Abandon',
 ]
 
+type CsvRow = { nom: string; prenom: string; telephone: string; typePermis: string; email: string; adresse: string; valid: boolean; error: string }
+
+function parseElevesCsv(text: string): CsvRow[] {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim())
+  if (lines.length === 0) return []
+  // Detect if first line is header
+  const firstLower = lines[0].toLowerCase()
+  const hasHeader = firstLower.includes('nom') || firstLower.includes('prenom') || firstLower.includes('prénom')
+  const dataLines = hasHeader ? lines.slice(1) : lines
+  return dataLines.map((line) => {
+    const cols = line.split(/[;,\t]/).map((c) => c.trim().replace(/^["']|["']$/g, ''))
+    const [nom = '', prenom = '', telephone = '', typePermis = 'B', email = '', adresse = ''] = cols
+    const valid = nom.length >= 2 && prenom.length >= 2 && telephone.length >= 8
+    return {
+      nom,
+      prenom,
+      telephone,
+      typePermis: typePermis || 'B',
+      email,
+      adresse,
+      valid,
+      error: !valid ? 'Nom, prénom ou téléphone manquant' : '',
+    }
+  })
+}
+
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
@@ -79,8 +111,62 @@ export function ElevesView() {
 
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
+  const addEleve = useDataStore((s) => s.addEleve)
+  const updateEleve = useDataStore((s) => s.updateEleve)
   const user = useAuthStore((s) => s.user)
   const canDeleteEleve = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_eleve')
+
+  // CSV import
+  const csvInputRef = useRef<HTMLInputElement>(null)
+  const [csvRows, setCsvRows] = useState<CsvRow[]>([])
+  const [showCsvPreview, setShowCsvPreview] = useState(false)
+  const [csvImporting, setCsvImporting] = useState(false)
+
+  const handleCsvFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const rows = parseElevesCsv(text)
+      if (rows.length === 0) { toast.error('Fichier CSV vide ou non reconnu.'); return }
+      setCsvRows(rows)
+      setShowCsvPreview(true)
+    }
+    reader.readAsText(file, 'UTF-8')
+    e.target.value = ''
+  }
+
+  const handleCsvImport = async () => {
+    const valid = csvRows.filter((r) => r.valid)
+    if (valid.length === 0) { toast.error('Aucune ligne valide à importer.'); return }
+    setCsvImporting(true)
+    for (const row of valid) {
+      addEleve({
+        nom: row.nom,
+        prenom: row.prenom,
+        telephone: row.telephone,
+        typePermis: row.typePermis,
+        email: row.email,
+        adresse: row.adresse,
+        sexe: 'M',
+        nationalite: 'Ivoirienne',
+        dateNaissance: '',
+        lieuNaissance: '',
+        typePiece: 'CNI',
+        numPiece: '',
+      })
+    }
+    setCsvImporting(false)
+    setShowCsvPreview(false)
+    setCsvRows([])
+    toast.success(`${valid.length} élève${valid.length > 1 ? 's' : ''} importé${valid.length > 1 ? 's' : ''} avec succès.`)
+  }
+
+  const toggleAccesPportail = (id: string, nom: string, current: boolean) => {
+    updateEleve(id, { accesPortail: !current })
+    toast.success(!current ? `Accès apprenant activé pour ${nom}.` : `Accès apprenant désactivé pour ${nom}.`)
+  }
 
   const elevesFiltres = useMemo(() => {
     return eleves.filter((e) => {
@@ -116,10 +202,17 @@ export function ElevesView() {
         title="Élèves"
         description="Registre central des apprenants — du prospect à l'admis"
         actions={
-          <ActionButton variant="primary" onClick={() => setActiveView('eleve-create')}>
-            <Plus className="h-4 w-4" />
-            Ajouter un élève
-          </ActionButton>
+          <div className="flex items-center gap-2">
+            <input ref={csvInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFile} />
+            <ActionButton variant="outline" onClick={() => csvInputRef.current?.click()}>
+              <Upload className="h-4 w-4" />
+              Importer CSV
+            </ActionButton>
+            <ActionButton variant="primary" onClick={() => setActiveView('eleve-create')}>
+              <Plus className="h-4 w-4" />
+              Ajouter un élève
+            </ActionButton>
+          </div>
         }
       />
 
@@ -225,7 +318,7 @@ export function ElevesView() {
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuItem
                         onSelect={() => {
                           setselectedEleveCode(e.code)
@@ -243,6 +336,13 @@ export function ElevesView() {
                       >
                         <Pencil className="mr-2 h-4 w-4" />
                         Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={() => toggleAccesPportail(e.id, `${e.prenom} ${e.nom}`, e.accesPortail !== false)}
+                      >
+                        {e.accesPortail !== false
+                          ? <><ShieldOff className="mr-2 h-4 w-4 text-warning" />Désactiver accès</>
+                          : <><ShieldCheck className="mr-2 h-4 w-4 text-success" />Activer accès</>}
                       </DropdownMenuItem>
                       {canDeleteEleve && (
                         <DropdownMenuItem
@@ -387,7 +487,7 @@ export function ElevesView() {
                             <MoreVertical className="h-4 w-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuItem
                             onSelect={() => {
                               setselectedEleveCode(e.code)
@@ -405,6 +505,13 @@ export function ElevesView() {
                           >
                             <Pencil className="mr-2 h-4 w-4" />
                             Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => toggleAccesPportail(e.id, `${e.prenom} ${e.nom}`, e.accesPortail !== false)}
+                          >
+                            {e.accesPortail !== false
+                              ? <><ShieldOff className="mr-2 h-4 w-4 text-warning" />Désactiver accès</>
+                              : <><ShieldCheck className="mr-2 h-4 w-4 text-success" />Activer accès</>}
                           </DropdownMenuItem>
                           {canDeleteEleve && (
                             <DropdownMenuItem
@@ -466,6 +573,58 @@ export function ElevesView() {
         </div>
       </Card>
 
+
+      {/* CSV import preview dialog */}
+      <AlertDialog open={showCsvPreview} onOpenChange={(v) => { if (!v) { setShowCsvPreview(false); setCsvRows([]) } }}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aperçu de l&apos;import CSV</AlertDialogTitle>
+            <AlertDialogDescription>
+              {csvRows.filter((r) => r.valid).length} ligne{csvRows.filter((r) => r.valid).length > 1 ? 's' : ''} valide{csvRows.filter((r) => r.valid).length > 1 ? 's' : ''} sur {csvRows.length} détectée{csvRows.length > 1 ? 's' : ''}.
+              Format attendu : <span className="font-mono text-xs">nom;prenom;telephone;type_permis;email;adresse</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted text-muted-foreground">
+                <tr>
+                  <th className="p-2 text-left">#</th>
+                  <th className="p-2 text-left">Nom</th>
+                  <th className="p-2 text-left">Prénom</th>
+                  <th className="p-2 text-left">Téléphone</th>
+                  <th className="p-2 text-left">Permis</th>
+                  <th className="p-2 text-center">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvRows.map((row, i) => (
+                  <tr key={i} className={row.valid ? 'even:bg-muted/30' : 'bg-destructive/10'}>
+                    <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
+                    <td className="p-2 font-medium">{row.nom || <span className="text-destructive">—</span>}</td>
+                    <td className="p-2">{row.prenom || <span className="text-destructive">—</span>}</td>
+                    <td className="p-2 font-mono">{row.telephone || <span className="text-destructive">—</span>}</td>
+                    <td className="p-2">{row.typePermis}</td>
+                    <td className="p-2 text-center">
+                      {row.valid
+                        ? <CheckCircle2 className="mx-auto h-4 w-4 text-success" />
+                        : <span title={row.error}><AlertCircle className="mx-auto h-4 w-4 text-destructive" /></span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCsvImport}
+              disabled={csvImporting || csvRows.filter((r) => r.valid).length === 0}
+            >
+              {csvImporting ? 'Import en cours…' : `Importer ${csvRows.filter((r) => r.valid).length} élève${csvRows.filter((r) => r.valid).length > 1 ? 's' : ''}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteEleveId !== null}

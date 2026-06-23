@@ -14,8 +14,7 @@ import {
   ScanLine,
   UserCog,
   Shield,
-  HelpCircle,
-  ScrollText,
+  Gift,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNavStore, type ViewKey } from '@/store/nav-store'
@@ -62,14 +61,13 @@ export const adminNavSections: AdminNavSection[] = [
       { label: 'Facturation', view: 'facturation', icon: Receipt, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
       { label: 'Comptabilité', view: 'comptabilite', icon: Wallet, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
       { label: 'Bordereaux', view: 'bordereaux', icon: FileText, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur'] },
+      { label: 'Parrainage', view: 'parrainage', icon: Gift, roles: ['Administrateur principal', 'Administrateur secondaire'] },
     ],
   },
   {
     title: 'Général',
     items: [
-      { label: 'Assistance', view: 'assistance', icon: HelpCircle, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller'] },
-      { label: "Journal d'audit", view: 'audit', icon: ScrollText, roles: ['Administrateur principal', 'Administrateur secondaire'] },
-      { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire'] },
+      { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller'] },
       { label: 'Déconnexion', icon: LogOut, isLogout: true },
     ],
   },

@@ -374,10 +374,18 @@ function ExamensIndividuels() {
 function SessionsCollectives() {
   const examenSessions = useDataStore((s) => s.examenSessions)
   const setActiveView = useNavStore((s) => s.setActiveView)
+  const [page, setPage] = useState(1)
+
+  const PAR_PAGE = 9
+  const totalPages = Math.max(1, Math.ceil(examenSessions.length / PAR_PAGE))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * PAR_PAGE
+  const sessionsPage = examenSessions.slice(debut, debut + PAR_PAGE)
 
   return (
+    <div>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {examenSessions.map((sess) => (
+      {sessionsPage.map((sess) => (
         <Card key={sess.id} className="flex flex-col gap-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
@@ -426,6 +434,22 @@ function SessionsCollectives() {
           </button>
         </Card>
       ))}
+    </div>
+    {examenSessions.length > PAR_PAGE && (
+      <div className="mt-4">
+        <Card className="p-0">
+          <PaginationFooter
+            pageCourante={pageCourante}
+            totalPages={totalPages}
+            total={examenSessions.length}
+            debut={debut}
+            pageDataLength={sessionsPage.length}
+            label="sessions"
+            setPage={setPage}
+          />
+        </Card>
+      </div>
+    )}
     </div>
   )
 }

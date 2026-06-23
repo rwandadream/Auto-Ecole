@@ -24,7 +24,8 @@ export function NouvelleSessionDialog({
 
   const [date, setDate] = useState(today)
   const [heure, setHeure] = useState('08:00')
-  const [centre, setCentre] = useState("Centre d'examen de Cocody")
+  const [centre, setCentre] = useState('ABIDJAN')
+  const [lieu, setLieu] = useState('2 PLATEAUX')
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Code')
   const [inspecteur, setInspecteur] = useState('Aminata Coulibaly')
   const [vehicule, setVehicule] = useState('—')
@@ -33,7 +34,8 @@ export function NouvelleSessionDialog({
   const reset = () => {
     setDate(today)
     setHeure('08:00')
-    setCentre("Centre d'examen de Cocody")
+    setCentre('ABIDJAN')
+    setLieu('2 PLATEAUX')
     setTypeExamen('Code')
     setInspecteur('Aminata Coulibaly')
     setVehicule('—')
@@ -70,6 +72,7 @@ export function NouvelleSessionDialog({
       date,
       heure,
       centre,
+      lieu,
       typeExamen,
       inspecteur,
       vehicule,
@@ -109,9 +112,14 @@ export function NouvelleSessionDialog({
           </Field>
         </div>
 
-        <Field label="Centre d'examen" required>
-          <FormInput value={centre} onChange={(e) => setCentre(e.target.value)} />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Centre (ville)" required>
+            <FormInput value={centre} onChange={(e) => setCentre(e.target.value)} placeholder="ABIDJAN" />
+          </Field>
+          <Field label="Lieu précis">
+            <FormInput value={lieu} onChange={(e) => setLieu(e.target.value)} placeholder="2 PLATEAUX" />
+          </Field>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Type d'examen">

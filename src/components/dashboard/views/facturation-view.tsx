@@ -32,6 +32,7 @@ import {
   statutFactureTone,
   ModePaiementBadge,
   KpiCardMinimal,
+  PaginationFooter,
 } from './shared'
 import {
   ResponsiveDataView,
@@ -54,7 +55,6 @@ const statutFilters: ('Tous' | StatutFacture)[] = [
   'Non payée',
   'Partielle',
   'Payée',
-  'Impayée',
 ]
 
 function AvatarCell({ name }: { name: string }) {
@@ -80,6 +80,9 @@ export function FacturationView() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null)
   const [deleteFactureId, setDeleteFactureId] = useState<string | null>(null)
   const [detailFactureId, setDetailFactureId] = useState<string | null>(null)
+  const [pageFactures, setPageFactures] = useState(1)
+  const [pagePaiements, setPagePaiements] = useState(1)
+  const PAR_PAGE = 10
   const deleteFacture = useDataStore((s) => s.deleteFacture)
   const user = useAuthStore((s) => s.user)
   const canDeleteFacture = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_facture')
@@ -96,7 +99,17 @@ export function FacturationView() {
     })
   }, [factures, search, statutFilter])
 
-  const impayeesCount = factures.filter((f) => f.statut === 'Impayée').length
+  const totalPagesFactures = Math.max(1, Math.ceil(filteredFactures.length / PAR_PAGE))
+  const pageFacturesCourante = Math.min(pageFactures, totalPagesFactures)
+  const debutFactures = (pageFacturesCourante - 1) * PAR_PAGE
+  const facturesPage = filteredFactures.slice(debutFactures, debutFactures + PAR_PAGE)
+
+  const totalPagesPaiements = Math.max(1, Math.ceil(paiements.length / PAR_PAGE))
+  const pagePaiementsCourante = Math.min(pagePaiements, totalPagesPaiements)
+  const debutPaiements = (pagePaiementsCourante - 1) * PAR_PAGE
+  const paiementsPage = paiements.slice(debutPaiements, debutPaiements + PAR_PAGE)
+
+  const impayeesCount = factures.filter((f) => f.statut === 'Non payée' || f.statut === 'Partielle').length
   const caTotal = useMemo(() => factures.reduce((sum, f) => sum + f.montant, 0), [factures])
   const encaisse = useMemo(() => paiements.reduce((sum, p) => sum + p.montant, 0), [paiements])
   const enAttente = useMemo(
@@ -170,7 +183,10 @@ export function FacturationView() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setPageFactures(1)
+                  }}
                   placeholder="Rechercher une facture, un élève…"
                   className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 />
@@ -181,7 +197,10 @@ export function FacturationView() {
                   {statutFilters.map((s) => (
                     <button
                       key={s}
-                      onClick={() => setStatutFilter(s)}
+                      onClick={() => {
+                        setStatutFilter(s)
+                        setPageFactures(1)
+                      }}
                       className={`h-7 rounded-md px-2.5 text-xs font-medium transition-colors ${
                         statutFilter === s
                           ? 'bg-background text-foreground shadow-sm'
@@ -210,7 +229,7 @@ export function FacturationView() {
                   Aucune facture trouvée.
                 </p>
               }
-              mobile={filteredFactures.map((f) => {
+              mobile={facturesPage.map((f) => {
                 const eleve = eleves.find((e) => e.code === f.eleveCode)
                 const telephone = eleve?.telephone ?? ''
                 const [prenom, ...restNom] = f.eleve.split(' ')
@@ -269,7 +288,7 @@ export function FacturationView() {
                           <Banknote className="h-4 w-4" />
                         </button>
                       )}
-                      {f.statut === 'Impayée' && telephone && (
+                      {(f.statut === 'Non payée' || f.statut === 'Partielle') && telephone && (
                         <button
                           onClick={() =>
                             relanceWhatsApp(
@@ -319,7 +338,7 @@ export function FacturationView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredFactures.map((f) => {
+                  {facturesPage.map((f) => {
                     const eleve = eleves.find((e) => e.code === f.eleveCode)
                     const telephone = eleve?.telephone ?? ''
                     const [prenom, ...restNom] = f.eleve.split(' ')
@@ -380,7 +399,7 @@ export function FacturationView() {
                               <Banknote className="h-4 w-4" />
                             </button>
                           )}
-                          {f.statut === 'Impayée' && telephone && (
+                          {(f.statut === 'Non payée' || f.statut === 'Partielle') && telephone && (
                             <button
                               onClick={() =>
                                 relanceWhatsApp(
@@ -426,6 +445,15 @@ export function FacturationView() {
                 </div>
               }
             />
+            <PaginationFooter
+              pageCourante={pageFacturesCourante}
+              totalPages={totalPagesFactures}
+              total={filteredFactures.length}
+              debut={debutFactures}
+              pageDataLength={facturesPage.length}
+              label="factures"
+              setPage={setPageFactures}
+            />
           </Card>
         </TabsContent>
 
@@ -439,7 +467,7 @@ export function FacturationView() {
                   Aucun paiement enregistré.
                 </p>
               }
-              mobile={paiements.map((p) => (
+              mobile={paiementsPage.map((p) => (
                 <MobileListCard key={p.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -473,7 +501,7 @@ export function FacturationView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {paiements.map((p) => (
+                  {paiementsPage.map((p) => (
                       <tr key={p.id} className="hover:bg-muted/40">
                         <td className="px-4 py-3">
                           <span className="font-mono text-sm font-bold text-foreground">{p.facture}</span>
@@ -504,6 +532,15 @@ export function FacturationView() {
               </table>
                 </div>
               }
+            />
+            <PaginationFooter
+              pageCourante={pagePaiementsCourante}
+              totalPages={totalPagesPaiements}
+              total={paiements.length}
+              debut={debutPaiements}
+              pageDataLength={paiementsPage.length}
+              label="paiements"
+              setPage={setPagePaiements}
             />
           </Card>
         </TabsContent>

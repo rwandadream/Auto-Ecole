@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Plus,
   Mail,
@@ -15,9 +15,12 @@ import {
   User,
   Users,
   BookOpen,
+  HelpCircle,
+  ScrollText,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   StatusBadge,
@@ -25,7 +28,6 @@ import {
   Card,
   formatXOF,
   initials,
-  ScrollableTabs,
   type BadgeTone,
 } from './shared'
 import {
@@ -53,13 +55,20 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useDataStore } from '@/store/data-store'
 import { useAuthStore } from '@/store/auth-store'
+import { useNavStore, type ParametresTab } from '@/store/nav-store'
 import { type Role } from '@/lib/domain/types'
-import { canPerformAction } from '@/lib/permissions'
+import {
+  canPerformAction,
+  canAccessParametresTab,
+  getParametresTabsForRole,
+} from '@/lib/permissions'
 import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 import { NouvelUtilisateurDialog } from '@/components/dashboard/dialogs/nouvel-utilisateur-dialog'
 import { FormationDialog } from '@/components/dashboard/dialogs/formation-dialog'
 import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
 import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
+import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
+import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
 
 const roleTone: Record<Role, BadgeTone> = {
   'Administrateur principal': 'primary',
@@ -76,6 +85,17 @@ const ROLES: Role[] = [
   'Moniteur',
   'Conseiller',
 ]
+
+const PARAMETRES_TAB_META: Record<
+  ParametresTab,
+  { label: string; icon: React.ComponentType<{ className?: string }>; section?: string }
+> = {
+  profil: { label: 'Mon profil', icon: User, section: 'Compte' },
+  equipe: { label: 'Équipe', icon: Users, section: 'Administration' },
+  catalogue: { label: 'Catalogue', icon: BookOpen, section: 'Administration' },
+  assistance: { label: 'Assistance', icon: HelpCircle, section: 'Support' },
+  audit: { label: "Journal d'audit", icon: ScrollText, section: 'Sécurité' },
+}
 
 function ReadOnlyField({
   label,
@@ -242,6 +262,21 @@ export function ParametresView() {
   const canManageUsers = canPerformAction(role, 'manage_users')
   const canManageFormations = canPerformAction(role, 'manage_formations')
 
+  const parametresTab = useNavStore((s) => s.parametresTab)
+  const setParametresTab = useNavStore((s) => s.setParametresTab)
+
+  const visibleTabs = useMemo(
+    () => getParametresTabsForRole(role).filter((tab) => canAccessParametresTab(role, tab)),
+    [role],
+  )
+
+  useEffect(() => {
+    if (visibleTabs.length === 0) return
+    if (!visibleTabs.includes(parametresTab)) {
+      setParametresTab(visibleTabs[0])
+    }
+  }, [visibleTabs, parametresTab, setParametresTab])
+
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)
   const [showUserDialog, setShowUserDialog] = useState(false)
@@ -312,38 +347,31 @@ export function ParametresView() {
         description="Configuration de l'ERP et gestion de l'équipe"
       />
 
-      <Tabs defaultValue="profil" className="flex flex-col gap-6 lg:flex-row">
-        <div className="w-full lg:w-64 lg:shrink-0">
-          <ScrollableTabs className="lg:overflow-visible">
-            <TabsList className="inline-flex h-auto w-max min-w-full flex-row gap-1 rounded-xl border border-border bg-card p-2 lg:flex lg:w-full lg:flex-col">
-            <TabsTrigger
-              value="profil"
-              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-            >
-              <User className="h-4 w-4" />
-              Mon profil
-            </TabsTrigger>
-            <TabsTrigger
-              value="equipe"
-              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-            >
-              <Users className="h-4 w-4" />
-              Équipe
-            </TabsTrigger>
-            <TabsTrigger
-              value="catalogue"
-              className="flex h-10 w-full items-center justify-start gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-            >
-              <BookOpen className="h-4 w-4" />
-              Catalogue
-            </TabsTrigger>
+      <Tabs
+        value={parametresTab}
+        onValueChange={(v) => setParametresTab(v as ParametresTab)}
+        className="flex flex-col gap-6"
+      >
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex h-auto w-auto items-center gap-1 rounded-xl bg-muted p-1">
+            {visibleTabs.map((tab) => {
+              const meta = PARAMETRES_TAB_META[tab]
+              const Icon = meta.icon
+              return (
+                <TabsTrigger
+                  key={tab}
+                  value={tab}
+                  className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-all text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">{meta.label}</span>
+                </TabsTrigger>
+              )
+            })}
           </TabsList>
-          </ScrollableTabs>
         </div>
 
-        {/* Contenu des tabs */}
-        <div className="min-w-0 flex-1">
-        <TabsContent value="profil">
+        <TabsContent value="profil" className="mt-0">
           <Card>
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
               {/* Avatar */}
@@ -385,7 +413,7 @@ export function ParametresView() {
         </TabsContent>
 
         {/* -------- Tab 2 : Équipe -------- */}
-        <TabsContent value="equipe">
+        <TabsContent value="equipe" className="mt-0">
           <Card className="p-0">
             <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -532,7 +560,7 @@ export function ParametresView() {
         </TabsContent>
 
         {/* -------- Tab 3 : Catalogue -------- */}
-        <TabsContent value="catalogue">
+        <TabsContent value="catalogue" className="mt-0">
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             {/* Types de permis */}
             <Card className="xl:col-span-1">
@@ -697,7 +725,13 @@ export function ParametresView() {
           {canManageUsers && <MediaMigrationPanel />}
         </TabsContent>
 
-        </div>
+        <TabsContent value="assistance" className="mt-0">
+          <AssistancePanel />
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-0">
+          <AuditLogPanel />
+        </TabsContent>
       </Tabs>
 
       {/* -------- Dialogs -------- */}

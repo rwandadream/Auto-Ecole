@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   Plus,
   Car,
@@ -11,6 +11,9 @@ import {
   Pencil,
   Trash2,
   Search,
+  AlertTriangle,
+  ShieldCheck as ShieldOkIcon,
+  BookOpen,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { type EtatVehicule } from '@/lib/domain/types'
@@ -25,6 +28,7 @@ import {
   Card,
   KpiCard,
   PaginationFooter,
+  formatXOF,
 } from './shared'
 import {
   ResponsiveDataView,
@@ -66,8 +70,26 @@ function etatTone(etat: EtatVehicule): React.ComponentProps<typeof StatusBadge>[
   }
 }
 
+const MOIS_FR: Record<string, number> = {
+  janv: 0, févr: 1, mars: 2, avr: 3, mai: 4, juin: 5,
+  juil: 6, août: 7, sept: 8, oct: 9, nov: 10, déc: 11,
+}
+
+function parseDateFr(s: string): Date | null {
+  const parts = s.trim().split(/[\s.]+/)
+  if (parts.length < 3) return null
+  const day = parseInt(parts[0])
+  const month = MOIS_FR[parts[1].toLowerCase().replace('.', '')]
+  const year = parseInt(parts[2])
+  if (isNaN(day) || month === undefined || isNaN(year)) return null
+  return new Date(year, month, day)
+}
+
+const CATS_ENTRETIEN = ['Entretien', 'Réparations', 'Carburant', 'Assurance'] as const
+
 export function VehiculesView() {
   const vehicules = useDataStore((s) => s.vehicules)
+  const depenses = useDataStore((s) => s.depenses)
   const deleteVehicule = useDataStore((s) => s.deleteVehicule)
   const user = useAuthStore((s) => s.user)
   const canDeleteVehicule = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_vehicule')
@@ -79,6 +101,38 @@ export function VehiculesView() {
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Carnet de bord: map vehicule.id → maintenance depenses
+  const carnetByVehicule = useMemo(() => {
+    const map = new Map<string, {
+      depenses: typeof depenses;
+      dernierDate: Date | null;
+      joursDepuis: number | null;
+      alerte: boolean;
+      totalEntretien: number;
+    }>()
+    for (const v of vehicules) {
+      const label = `${v.marque} ${v.modele} (${v.immatriculation})`
+      const vDeps = depenses
+        .filter((d) => d.vehicule === label && (CATS_ENTRETIEN as readonly string[]).includes(d.categorie))
+        .sort((a, b) => {
+          const da = parseDateFr(a.date)
+          const db = parseDateFr(b.date)
+          if (!da || !db) return 0
+          return db.getTime() - da.getTime()
+        })
+      const dernierDate = vDeps.length > 0 ? parseDateFr(vDeps[0].date) : null
+      const joursDepuis = dernierDate ? Math.floor((Date.now() - dernierDate.getTime()) / 86400000) : null
+      const alerte = joursDepuis !== null && joursDepuis > 90
+      const totalEntretien = vDeps
+        .filter((d) => d.categorie === 'Entretien' || d.categorie === 'Réparations')
+        .reduce((sum, d) => sum + d.montant, 0)
+      map.set(v.id, { depenses: vDeps, dernierDate, joursDepuis, alerte, totalEntretien })
+    }
+    return map
+  }, [vehicules, depenses])
+
+  const vehiculesAlerte = useMemo(() => vehicules.filter((v) => carnetByVehicule.get(v.id)?.alerte), [vehicules, carnetByVehicule])
 
   const totalVehicules = vehicules.length
   const disponibles = vehicules.filter((v) => v.etat === 'Disponible').length
@@ -384,6 +438,75 @@ export function VehiculesView() {
           setPage={setPage}
         />
       </Card>
+
+      {/* Carnet de bord */}
+      <div className="mt-6">
+        <div className="mb-3 flex items-center gap-2">
+          <BookOpen className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-bold text-foreground">Carnet de bord — Entretien</h2>
+          {vehiculesAlerte.length > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+              <AlertTriangle className="h-3 w-3" />
+              {vehiculesAlerte.length} véhicule{vehiculesAlerte.length > 1 ? 's' : ''} en retard
+            </span>
+          )}
+        </div>
+        <Card className="overflow-hidden p-0">
+          <div className="divide-y divide-border">
+            {vehicules.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">Aucun véhicule enregistré.</p>
+            ) : vehicules.map((v) => {
+              const info = carnetByVehicule.get(v.id)
+              const alerte = info?.alerte ?? false
+              const joursDepuis = info?.joursDepuis
+              const dernierDate = info?.dernierDate
+              const recentDeps = info?.depenses.slice(0, 3) ?? []
+              return (
+                <div key={v.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${alerte ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
+                      {alerte ? <AlertTriangle className="h-4 w-4" /> : <ShieldOkIcon className="h-4 w-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{v.marque} {v.modele}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{v.immatriculation}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {dernierDate ? (
+                        <>
+                          <p className={`text-sm font-bold ${alerte ? 'text-destructive' : 'text-foreground'}`}>
+                            {joursDepuis}j sans entretien
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Dernière op. : {info?.depenses[0]?.date}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">Aucune dépense enregistrée</p>
+                      )}
+                    </div>
+                    {info && info.totalEntretien > 0 && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        {formatXOF(info.totalEntretien)} entretien/réparations
+                      </span>
+                    )}
+                  </div>
+                  {recentDeps.length > 0 && (
+                    <div className="mt-2 space-y-1 pl-11">
+                      {recentDeps.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span>{d.date} — {d.categorie}</span>
+                          <span className="font-medium text-foreground">{formatXOF(d.montant)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
 
       <VehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
       <VehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />

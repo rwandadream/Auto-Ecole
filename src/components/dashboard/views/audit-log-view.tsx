@@ -7,6 +7,7 @@ import {
   ViewHeader,
   StatusBadge,
   Card,
+  PaginationFooter,
   type BadgeTone,
 } from '@/components/dashboard/views/shared'
 
@@ -84,6 +85,7 @@ export function AuditLogPanel() {
   const [entityFilter, setEntityFilter] = useState<string>('Tous')
   const [actionFilter, setActionFilter] = useState<string>('Tous')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   const filtered = auditLog.filter((entry) => {
     const q = search.trim().toLowerCase()
@@ -96,6 +98,12 @@ export function AuditLogPanel() {
     const matchesAction = actionFilter === 'Tous' || entry.action === actionFilter
     return matchesSearch && matchesEntity && matchesAction
   })
+
+  const PAR_PAGE = 15
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAR_PAGE))
+  const pageCourante = Math.min(page, totalPages)
+  const debut = (pageCourante - 1) * PAR_PAGE
+  const filteredPage = filtered.slice(debut, debut + PAR_PAGE)
 
   return (
     <div className="space-y-4">
@@ -117,7 +125,10 @@ export function AuditLogPanel() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               aria-label="Rechercher dans le journal"
               placeholder="Rechercher dans la description, l'utilisateur, l'entité..."
               className="h-9 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
@@ -126,7 +137,10 @@ export function AuditLogPanel() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex">
             <select
               value={entityFilter}
-              onChange={(e) => setEntityFilter(e.target.value)}
+              onChange={(e) => {
+                setEntityFilter(e.target.value)
+                setPage(1)
+              }}
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
             >
               {ENTITY_OPTIONS.map((o) => (
@@ -137,7 +151,10 @@ export function AuditLogPanel() {
             </select>
             <select
               value={actionFilter}
-              onChange={(e) => setActionFilter(e.target.value)}
+              onChange={(e) => {
+                setActionFilter(e.target.value)
+                setPage(1)
+              }}
               className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
             >
               {ACTION_OPTIONS.map((o) => (
@@ -152,7 +169,7 @@ export function AuditLogPanel() {
 
       {/* Table */}
       <Card className="p-0">
-        <div className="custom-scrollbar max-h-96 overflow-auto">
+        <div className="custom-scrollbar overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-left">
@@ -178,7 +195,7 @@ export function AuditLogPanel() {
                   </td>
                 </tr>
               )}
-              {filtered.map((entry) => (
+              {filteredPage.map((entry) => (
                 <Fragment key={entry.id}>
                   <tr className="hover:bg-muted/40">
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
@@ -226,6 +243,15 @@ export function AuditLogPanel() {
             </tbody>
           </table>
         </div>
+        <PaginationFooter
+          pageCourante={pageCourante}
+          totalPages={totalPages}
+          total={filtered.length}
+          debut={debut}
+          pageDataLength={filteredPage.length}
+          label="entrées"
+          setPage={setPage}
+        />
       </Card>
     </div>
   )

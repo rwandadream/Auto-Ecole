@@ -5,7 +5,7 @@ import { Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore, type Examen } from '@/store/data-store'
-import { type ResultatExamen } from '@/lib/domain/types'
+import { type ResultatExamen, PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 export function ModifierExamenDialog({
   examen,
@@ -83,10 +83,9 @@ export function ModifierExamenDialog({
           </Field>
           <Field label="Type de permis">
             <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="AB">AB</option>
-              <option value="C">C</option>
+              {PERMIS_CATEGORIES.map((p) => (
+                <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+              ))}
             </FormSelect>
           </Field>
         </div>

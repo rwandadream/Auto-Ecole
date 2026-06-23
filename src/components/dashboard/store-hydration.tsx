@@ -19,7 +19,13 @@ export function StoreHydration({ children }: { children: React.ReactNode }) {
       const { user, isAuthenticated } = useAuthStore.getState()
 
       if (!restoredAdmin && isAuthenticated && user?.mode === 'eleve') {
-        await syncDataForEleve(user.code, user.telephone)
+        // Re-validate the student session server-side. If the RPC fails (network
+        // error, tampered localStorage, deactivated account) clear the session
+        // rather than letting stale / forged credentials grant UI access.
+        const synced = await syncDataForEleve(user.code, user.telephone)
+        if (!synced) {
+          useAuthStore.setState({ isAuthenticated: false, user: null })
+        }
       } else if (!restoredAdmin && isAuthenticated && user?.mode === 'admin') {
         useAuthStore.setState({ isAuthenticated: false, user: null })
       }

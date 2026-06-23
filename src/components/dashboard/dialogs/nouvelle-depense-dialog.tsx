@@ -34,7 +34,7 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
 
   const [categorie, setCategorie] = useState<CategorieDepense>('Carburant')
   const [description, setDescription] = useState('')
-  const [montant, setMontant] = useState<number>(0)
+  const [montant, setMontant] = useState('')
   const [modePaiement, setModePaiement] = useState<ModePaiement>('Espèces')
   const [vehicule, setVehicule] = useState('—')
   const [date, setDate] = useState(today)
@@ -50,7 +50,7 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
         if (target) {
           setCategorie(target.categorie)
           setDescription(target.description)
-          setMontant(target.montant)
+          setMontant(String(target.montant))
           setModePaiement(target.modePaiement)
           setVehicule(target.vehicule)
           setDate(target.date)
@@ -59,7 +59,7 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
       } else {
         setCategorie('Carburant')
         setDescription('')
-        setMontant(0)
+        setMontant('')
         setModePaiement('Espèces')
         setVehicule('—')
         setDate(today)
@@ -71,7 +71,7 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
   const reset = () => {
     setCategorie('Carburant')
     setDescription('')
-    setMontant(0)
+    setMontant('')
     setModePaiement('Espèces')
     setVehicule('—')
     setDate(today)
@@ -84,14 +84,15 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
   }
 
   const handleSubmit = () => {
-    if (!description.trim() || montant <= 0) {
+    const montantValue = Number(montant) || 0
+    if (!description.trim() || montantValue <= 0) {
       toast.error('Veuillez renseigner la description et un montant valide.')
       return
     }
     const payload = {
       categorie,
       description: description.trim(),
-      montant,
+      montant: montantValue,
       modePaiement,
       vehicule,
       date,
@@ -99,10 +100,10 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
     }
     if (isEdit && depenseId) {
       updateDepense(depenseId, payload)
-      toast.success(`Dépense « ${description} » modifiée (${formatXOF(montant)}).`)
+      toast.success(`Dépense « ${description} » modifiée (${formatXOF(montantValue)}).`)
     } else {
       addDepense(payload)
-      toast.success(`Dépense « ${description} » enregistrée (${formatXOF(montant)}).`)
+      toast.success(`Dépense « ${description} » enregistrée (${formatXOF(montantValue)}).`)
     }
     reset()
     onOpenChange(false)
@@ -186,11 +187,11 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Montant (FCFA)" required>
             <FormInput
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               value={montant}
-              onChange={(e) => setMontant(Number(e.target.value))}
-              placeholder="0"
+              onChange={(e) => setMontant(e.target.value)}
+              placeholder="150000"
             />
           </Field>
           <Field label="Date">
@@ -232,7 +233,7 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
 
         <div className="flex items-center justify-between rounded-lg bg-muted p-3">
           <span className="text-sm font-medium text-muted-foreground">Montant total</span>
-          <span className="text-lg font-bold text-primary">{formatXOF(montant)}</span>
+          <span className="text-lg font-bold text-primary">{formatXOF(Number(montant) || 0)}</span>
         </div>
       </div>
     </Modal>

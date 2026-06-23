@@ -17,13 +17,16 @@ import {
   Users,
   Package,
   MoreHorizontal,
+  FileDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { generateRapportMensuelPdf, type RapportMensuelData } from '@/lib/utils-docs'
 import {
   ViewHeader,
   ActionButton,
   Card,
   formatXOF,
+  PaginationFooter,
   type KpiTone,
 } from './shared'
 import {
@@ -170,18 +173,112 @@ function JustificatifImage({ stored }: { stored: string }) {
   )
 }
 
+const MOIS_FR = [
+  'Janvier','Février','Mars','Avril','Mai','Juin',
+  'Juillet','Août','Septembre','Octobre','Novembre','Décembre',
+]
+
 export function ComptabiliteView() {
   const depenses = useDataStore((s) => s.depenses)
+  const paiements = useDataStore((s) => s.paiements)
+  const factures = useDataStore((s) => s.factures)
+  const eleves = useDataStore((s) => s.eleves)
+  const inscriptions = useDataStore((s) => s.inscriptions)
+  const formations = useDataStore((s) => s.formations)
   const deleteDepense = useDataStore((s) => s.deleteDepense)
   const user = useAuthStore((s) => s.user)
   const canDeleteDepense = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_depense')
   const [search, setSearch] = useState('')
+  const [pageDepenses, setPageDepenses] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [previewJustificatif, setPreviewJustificatif] = useState<string | null>(null)
+
+  const now = new Date()
+  const [rapportMois, setRapportMois] = useState(now.getMonth())
+  const [rapportAnnee, setRapportAnnee] = useState(now.getFullYear())
+
+  const handleRapportPdf = async () => {
+    const moisLabel = MOIS_FR[rapportMois]
+    const t = toast.loading(`Génération du rapport ${moisLabel} ${rapportAnnee}…`)
+    try {
+      const depensesMois = depenses.filter((d) => {
+        if (!d.date) return false
+        const parts = d.date.split(' ')
+        const moisMap: Record<string, number> = {
+          janv: 0, févr: 1, mars: 2, avr: 3, mai: 4, juin: 5,
+          juil: 6, août: 7, sept: 8, oct: 9, nov: 10, déc: 11,
+        }
+        const m = moisMap[parts[1]?.toLowerCase().slice(0, 4)] ?? -1
+        const a = parseInt(parts[2] ?? '0', 10)
+        return m === rapportMois && a === rapportAnnee
+      })
+
+      const paiementsMois = paiements.filter((p) => {
+        if (!p.datePaiement) return false
+        const parts = p.datePaiement.split(' ')
+        const moisMap: Record<string, number> = {
+          janv: 0, févr: 1, mars: 2, avr: 3, mai: 4, juin: 5,
+          juil: 6, août: 7, sept: 8, oct: 9, nov: 10, déc: 11,
+        }
+        const m = moisMap[parts[1]?.toLowerCase().slice(0, 4)] ?? -1
+        const a = parseInt(parts[2] ?? '0', 10)
+        return m === rapportMois && a === rapportAnnee
+      })
+
+      const parMode: Record<string, number> = {}
+      for (const p of paiementsMois) {
+        parMode[p.modePaiement] = (parMode[p.modePaiement] ?? 0) + p.montant
+      }
+      const totalEncaisse = paiementsMois.reduce((s, p) => s + p.montant, 0)
+      const totalFacture = factures.reduce((s, f) => s + f.montant, 0)
+
+      const parCategorie: Record<string, number> = {}
+      for (const d of depensesMois) {
+        parCategorie[d.categorie] = (parCategorie[d.categorie] ?? 0) + d.montant
+      }
+
+      const formationCount: Record<string, { count: number; chiffre: number; nom: string }> = {}
+      for (const insc of inscriptions) {
+        const f = formations.find((f) => f.id === insc.formationId)
+        if (!f) continue
+        if (!formationCount[f.id]) formationCount[f.id] = { count: 0, chiffre: 0, nom: f.nom }
+        formationCount[f.id].count += 1
+        formationCount[f.id].chiffre += insc.tarif
+      }
+
+      const rapportData: RapportMensuelData = {
+        mois: moisLabel,
+        annee: rapportAnnee,
+        recettes: { totalFacture, totalEncaisse, parMode },
+        depenses: {
+          total: depensesMois.reduce((s, d) => s + d.montant, 0),
+          parCategorie,
+          lignes: depensesMois.map((d) => ({
+            date: d.date,
+            categorie: d.categorie,
+            description: d.description,
+            montant: d.montant,
+            mode: d.modePaiement,
+          })),
+        },
+        eleves: {
+          total: eleves.length,
+          enFormation: eleves.filter((e) => e.statut === 'En formation').length,
+          admis: eleves.filter((e) => e.statut === 'Admis').length,
+          inscrits: eleves.filter((e) => e.statut === 'Inscrit').length,
+        },
+        formations: Object.values(formationCount).sort((a, b) => b.chiffre - a.chiffre),
+      }
+      await generateRapportMensuelPdf(rapportData)
+      toast.success('Rapport PDF généré.', { id: t })
+    } catch {
+      toast.error('Erreur génération PDF.', { id: t })
+    }
+  }
 
   // Compute totals per category
   const categorieTotals = useMemo(() => {
@@ -226,16 +323,47 @@ export function ComptabiliteView() {
     )
   }, [depenses, search])
 
+  const PAR_PAGE_DEP = 10
+  const totalPagesDepenses = Math.max(1, Math.ceil(filteredDepenses.length / PAR_PAGE_DEP))
+  const pageDepensesCourante = Math.min(pageDepenses, totalPagesDepenses)
+  const debutDepenses = (pageDepensesCourante - 1) * PAR_PAGE_DEP
+  const depensesPage = filteredDepenses.slice(debutDepenses, debutDepenses + PAR_PAGE_DEP)
+
   return (
     <>
       <ViewHeader
         title="Comptabilité"
         description="Registre des dépenses et comptabilité analytique"
         actions={
-          <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
-            <Plus className="h-4 w-4" />
-            Nouvelle dépense
-          </ActionButton>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-input bg-background px-2">
+              <select
+                value={rapportMois}
+                onChange={(e) => setRapportMois(Number(e.target.value))}
+                className="h-9 bg-transparent text-sm text-foreground outline-none"
+                aria-label="Mois du rapport"
+              >
+                {MOIS_FR.map((m, i) => <option key={m} value={i}>{m}</option>)}
+              </select>
+              <input
+                type="number"
+                value={rapportAnnee}
+                onChange={(e) => setRapportAnnee(Number(e.target.value))}
+                className="h-9 w-16 bg-transparent text-sm text-foreground outline-none"
+                min={2020}
+                max={2040}
+                aria-label="Année du rapport"
+              />
+            </div>
+            <ActionButton variant="outline" onClick={handleRapportPdf}>
+              <FileDown className="h-4 w-4" />
+              Rapport PDF
+            </ActionButton>
+            <ActionButton variant="primary" onClick={() => setShowAdd(true)}>
+              <Plus className="h-4 w-4" />
+              Nouvelle dépense
+            </ActionButton>
+          </div>
         }
       />
 
@@ -312,7 +440,7 @@ export function ComptabiliteView() {
               Aucune dépense trouvée.
             </p>
           }
-          mobile={filteredDepenses.map((d) => {
+          mobile={depensesPage.map((d) => {
             const cfg = categorieConfig[d.categorie]
             const mp = modePaiementBadge[d.modePaiement]
             return (
@@ -397,7 +525,7 @@ export function ComptabiliteView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredDepenses.map((d) => {
+              {depensesPage.map((d) => {
                 const cfg = categorieConfig[d.categorie]
                 const mp = modePaiementBadge[d.modePaiement]
                 return (
@@ -479,6 +607,15 @@ export function ComptabiliteView() {
           </table>
             </div>
           }
+        />
+        <PaginationFooter
+          pageCourante={pageDepensesCourante}
+          totalPages={totalPagesDepenses}
+          total={filteredDepenses.length}
+          debut={debutDepenses}
+          pageDataLength={depensesPage.length}
+          label="dépenses"
+          setPage={setPageDepenses}
         />
       </Card>
 

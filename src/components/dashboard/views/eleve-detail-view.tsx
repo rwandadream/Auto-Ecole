@@ -1,8 +1,10 @@
 'use client'
 
-import { ArrowLeft, Pencil, Phone, Mail, MapPin, Calendar, User, CreditCard, Car, Gift } from 'lucide-react'
+import { ArrowLeft, Pencil, Phone, Mail, MapPin, Calendar, User, CreditCard, Car, Gift, FileDown } from 'lucide-react'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
+import { generateFicheElevePdf } from '@/lib/utils-docs'
+import { toast } from 'sonner'
 import {
   StatusBadge,
   Card,
@@ -69,6 +71,42 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
   const totalPaye = eleveFactures.reduce((sum, f) => sum + f.paye, 0)
   const totalReste = eleveFactures.reduce((sum, f) => sum + f.reste, 0)
 
+  const handlePrintFiche = async () => {
+    const t = toast.loading('Génération du PDF…')
+    try {
+      await generateFicheElevePdf({
+        ...eleve,
+        seances: eleveSeances.map((s) => ({
+          date: s.date,
+          heureDebut: s.heureDebut,
+          heureFin: s.heureFin,
+          moniteur: s.moniteur,
+          statut: s.statut,
+          notes: s.notes,
+        })),
+        examens: eleveExamens.map((e) => ({
+          dateExamen: e.dateExamen,
+          typeExamen: e.typeExamen,
+          typePermis: e.typePermis,
+          inspecteur: e.inspecteur,
+          resultat: e.resultat,
+        })),
+        factures: eleveFactures.map((f) => ({
+          numero: f.numero,
+          formation: f.formation,
+          montant: f.montant,
+          paye: f.paye,
+          reste: f.reste,
+          statut: f.statut,
+          dateEmission: f.dateEmission,
+        })),
+      })
+      toast.success('Fiche PDF générée.', { id: t })
+    } catch {
+      toast.error('Erreur lors de la génération PDF.', { id: t })
+    }
+  }
+
   return (
     <div>
       {/* Back button + actions */}
@@ -80,10 +118,16 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
           <ArrowLeft className="h-4 w-4" />
           Retour à la liste
         </button>
-        <ActionButton variant="primary" onClick={() => setActiveView('eleve-edit')}>
-          <Pencil className="h-4 w-4" />
-          Modifier
-        </ActionButton>
+        <div className="flex items-center gap-2">
+          <ActionButton variant="outline" onClick={handlePrintFiche}>
+            <FileDown className="h-4 w-4" />
+            Imprimer la fiche
+          </ActionButton>
+          <ActionButton variant="primary" onClick={() => setActiveView('eleve-edit')}>
+            <Pencil className="h-4 w-4" />
+            Modifier
+          </ActionButton>
+        </div>
       </div>
 
       {/* En-tête : avatar + identité + statut */}
