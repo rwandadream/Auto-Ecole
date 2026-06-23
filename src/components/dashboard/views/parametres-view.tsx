@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
 import {
   ViewHeader,
   StatusBadge,
@@ -71,19 +70,20 @@ import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
 import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
 
 const roleTone: Record<Role, BadgeTone> = {
-  'Administrateur principal': 'primary',
-  'Administrateur secondaire': 'primary',
+  'Super Administrateur': 'primary',
+  'Directeur': 'primary',
+  'Responsable adjoint': 'primary',
   Comptable: 'secondary',
   Moniteur: 'warning',
-  Conseiller: 'neutral',
+  'Secrétaire': 'neutral',
 }
 
 const ROLES: Role[] = [
-  'Administrateur principal',
-  'Administrateur secondaire',
+  'Directeur',
+  'Responsable adjoint',
   'Comptable',
   'Moniteur',
-  'Conseiller',
+  'Secrétaire',
 ]
 
 const PARAMETRES_TAB_META: Record<
@@ -135,7 +135,7 @@ function ProfileEditDialog({
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<Role>('Administrateur principal')
+  const [role, setRole] = useState<Role>('Directeur')
   const [actif, setActif] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -146,7 +146,7 @@ function ProfileEditDialog({
     if (open && user && user.mode === 'admin') {
       setName(user.name)
       setEmail(user.email)
-      setRole((user.role as Role) || 'Administrateur principal')
+      setRole((user.role as Role) || 'Directeur')
       const profile = profiles.find((p) => p.id === user.id)
       setActif(profile?.actif ?? true)
     }
@@ -263,7 +263,6 @@ export function ParametresView() {
   const canManageFormations = canPerformAction(role, 'manage_formations')
 
   const parametresTab = useNavStore((s) => s.parametresTab)
-  const setParametresTab = useNavStore((s) => s.setParametresTab)
 
   const visibleTabs = useMemo(
     () => getParametresTabsForRole(role).filter((tab) => canAccessParametresTab(role, tab)),
@@ -273,9 +272,9 @@ export function ParametresView() {
   useEffect(() => {
     if (visibleTabs.length === 0) return
     if (!visibleTabs.includes(parametresTab)) {
-      setParametresTab(visibleTabs[0])
+      useNavStore.getState().setParametresTab(visibleTabs[0])
     }
-  }, [visibleTabs, parametresTab, setParametresTab])
+  }, [visibleTabs, parametresTab])
 
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)
@@ -349,7 +348,7 @@ export function ParametresView() {
 
       <Tabs
         value={parametresTab}
-        onValueChange={(v) => setParametresTab(v as ParametresTab)}
+        onValueChange={(v) => useNavStore.getState().setParametresTab(v as ParametresTab)}
         className="flex flex-col gap-6"
       >
         <div className="overflow-x-auto">
@@ -447,7 +446,7 @@ export function ParametresView() {
                         <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                       </div>
                     </div>
-                    {canManageUsers && (
+                    {canManageUsers && p.role !== 'Super Administrateur' && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -518,7 +517,7 @@ export function ParametresView() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end">
-                          {canManageUsers ? (
+                          {canManageUsers && p.role !== 'Super Administrateur' ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -545,7 +544,9 @@ export function ParametresView() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">
+                              {p.role === 'Super Administrateur' ? '🛡' : '—'}
+                            </span>
                           )}
                         </div>
                       </td>

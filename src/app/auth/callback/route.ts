@@ -10,7 +10,11 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const safeNext = next.startsWith('/') ? next : '/'
+      let safeNext = '/'
+      try {
+        const url = new URL(next, 'http://localhost')
+        safeNext = url.pathname + url.search
+      } catch { /* ignore */ }
       return NextResponse.redirect(`${origin}${safeNext}`)
     }
   }

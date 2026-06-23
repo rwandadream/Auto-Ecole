@@ -34,7 +34,7 @@ interface NavState {
   selectedEleveCode: string | null
   parametresTab: ParametresTab
   setActiveView: (view: ViewKey) => void
-  setselectedEleveCode: (code: string | null) => void
+  setSelectedEleveCode: (code: string | null) => void
   toggleCollapsed: () => void
   setMobileNavOpen: (open: boolean) => void
   closeMobileNav: () => void
@@ -49,7 +49,7 @@ export const useNavStore = create<NavState>((set) => ({
   selectedEleveCode: null,
   parametresTab: 'profil',
   setActiveView: (view) => set({ activeView: view, mobileNavOpen: false }),
-  setselectedEleveCode: (code) => set({ selectedEleveCode: code }),
+  setSelectedEleveCode: (code) => set({ selectedEleveCode: code }),
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
   setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
   closeMobileNav: () => set({ mobileNavOpen: false }),

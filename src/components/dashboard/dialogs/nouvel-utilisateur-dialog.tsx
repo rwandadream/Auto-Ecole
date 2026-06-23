@@ -7,15 +7,15 @@ import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSel
 import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
 import { type Role } from '@/lib/domain/types'
-import { DEMO_PASSWORD } from '@/lib/constants'
-import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
+import { refreshProfiles } from '@/lib/supabase/sync-data'
 
-const ROLES: Role[] = [
-  'Administrateur principal',
-  'Administrateur secondaire',
+// Le rôle Super Administrateur ne peut pas être attribué via l'interface
+const ASSIGNABLE_ROLES: Role[] = [
+  'Directeur',
+  'Responsable adjoint',
   'Comptable',
   'Moniteur',
-  'Conseiller',
+  'Secrétaire',
 ]
 
 type Props = {
@@ -31,7 +31,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<Role>('Moniteur')
   const [actif, setActif] = useState(true)
-  const [password, setPassword] = useState(DEMO_PASSWORD)
+  const [password, setPassword] = useState('')
 
   const isEdit = !!profileId
 
@@ -53,7 +53,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
         setEmail('')
         setRole('Moniteur')
         setActif(true)
-        setPassword(DEMO_PASSWORD)
+        setPassword('')
       }
     }
   }
@@ -63,7 +63,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
     setEmail('')
     setRole('Moniteur')
     setActif(true)
-    setPassword(DEMO_PASSWORD)
+    setPassword('')
   }
 
   const handleCancel = () => {
@@ -74,6 +74,10 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
   const handleSubmit = async () => {
     if (!name.trim() || !email.trim()) {
       toast.error("Veuillez renseigner le nom complet et l'email.")
+      return
+    }
+    if (!isEdit && !password.trim()) {
+      toast.error('Veuillez définir un mot de passe pour ce compte.')
       return
     }
 
@@ -95,7 +99,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
           toast.error(json.error ?? "Impossible de modifier l'utilisateur")
           return
         }
-        await syncDataFromSupabase()
+        await refreshProfiles()
         toast.success(`Utilisateur ${name} modifié avec succès.`)
       } else {
         const res = await fetch('/api/admin/users', {
@@ -103,7 +107,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email.trim().toLowerCase(),
-            password: password.trim() || DEMO_PASSWORD,
+            password: password.trim(),
             name: name.trim(),
             role,
             actif,
@@ -114,7 +118,7 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
           toast.error(json.error ?? "Impossible de créer l'utilisateur")
           return
         }
-        await syncDataFromSupabase()
+        await refreshProfiles()
         toast.success(`Utilisateur ${name} créé avec succès.`)
       }
 
@@ -169,13 +173,13 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={isEdit ? 'Laisser vide pour ne pas changer' : DEMO_PASSWORD}
+            placeholder={isEdit ? 'Laisser vide pour ne pas changer' : 'Minimum 8 caractères'}
           />
         </Field>
 
         <Field label="Rôle" required>
           <FormSelect value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            {ROLES.map((r) => (
+            {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>

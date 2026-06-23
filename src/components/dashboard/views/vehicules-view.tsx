@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Plus,
   Car,
@@ -35,23 +35,15 @@ import {
   MobileListCard,
   MobileListCardRow,
 } from '@/components/dashboard/responsive-data-view'
+import { usePagination } from '@/hooks/usePagination'
 import { VehiculeDialog } from '@/components/dashboard/dialogs/nouveau-vehicule-dialog'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 type EtatFiltre = 'Tous' | EtatVehicule
 
@@ -96,7 +88,6 @@ export function VehiculesView() {
 
   const [recherche, setRecherche] = useState('')
   const [etatFiltre, setEtatFiltre] = useState<EtatFiltre>('Tous')
-  const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -150,11 +141,7 @@ export function VehiculesView() {
     })
   }, [vehicules, recherche, etatFiltre])
 
-  const parPage = 8
-  const totalPages = Math.max(1, Math.ceil(vehiculesFiltres.length / parPage))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * parPage
-  const vehiculesPage = vehiculesFiltres.slice(debut, debut + parPage)
+  const { page: pageCourante, setPage, totalPages, pageItems: vehiculesPage, debut } = usePagination(vehiculesFiltres)
 
   return (
     <div>
@@ -511,34 +498,19 @@ export function VehiculesView() {
       <VehiculeDialog open={showAdd} onOpenChange={setShowAdd} />
       <VehiculeDialog vehiculeId={editId} open={showEdit} onOpenChange={setShowEdit} />
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(v) => { if (!v) setDeleteId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce véhicule ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. Le véhicule sera définitivement retiré du parc automobile.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteId) {
-                  deleteVehicule(deleteId)
-                  toast.success('Véhicule supprimé.')
-                  setDeleteId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer ce véhicule ?"
+        description="Cette action est irréversible. Le véhicule sera définitivement retiré du parc automobile."
+        onConfirm={() => {
+          if (deleteId) {
+            deleteVehicule(deleteId)
+            toast.success('Véhicule supprimé.')
+            setDeleteId(null)
+          }
+        }}
+      />
     </div>
   )
 }

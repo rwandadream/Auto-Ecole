@@ -32,8 +32,9 @@ export function MediaMigrationPanel() {
         `Migration terminée : ${result.depensesMigrated} justificatif(s), ${result.elevesMigrated} élève(s).`,
       )
       if (result.errors.length > 0) {
-        toast.warning(`${result.errors.length} erreur(s) — voir la console.`)
-        console.warn('[migrate-inline-media]', result.errors)
+        toast.warning(
+          `${result.errors.length} erreur(s) : ${result.errors.slice(0, 2).join(' · ')}`,
+        )
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Migration impossible')

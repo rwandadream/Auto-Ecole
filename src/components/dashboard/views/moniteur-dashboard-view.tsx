@@ -2,33 +2,28 @@
 
 import {
   CalendarClock,
-  CheckCircle2,
   Clock,
   Users,
   Car,
   MapPin,
   TrendingUp,
   CalendarX,
-  User as UserIcon,
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
 import { cn } from '@/lib/utils'
-import { ViewHeader, Card, StatusBadge, statutSeanceTone, formatXOF, dureeLabel } from './shared'
+import { ViewHeader, Card, StatusBadge, statutSeanceTone } from './shared'
 
 const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-const TODAY = new Date().toISOString().slice(0, 10)
-const START_OF_WEEK = (() => {
-  const d = new Date()
-  d.setDate(d.getDate() - d.getDay() + 1)
-  return d.toISOString().slice(0, 10)
-})()
-const END_OF_WEEK = (() => {
-  const d = new Date()
-  d.setDate(d.getDate() - d.getDay() + 7)
-  return d.toISOString().slice(0, 10)
-})()
+
+function getWeekBounds() {
+  const now = new Date()
+  const today = now.toISOString().slice(0, 10)
+  const startD = new Date(now); startD.setDate(now.getDate() - now.getDay() + 1)
+  const endD = new Date(now); endD.setDate(now.getDate() - now.getDay() + 7)
+  return { today, startOfWeek: startD.toISOString().slice(0, 10), endOfWeek: endD.toISOString().slice(0, 10) }
+}
 
 function formatDateFr(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso
@@ -76,17 +71,18 @@ export function MoniteurDashboardView() {
   const eleves = useDataStore((s) => s.eleves)
   const moniteurs = useDataStore((s) => s.moniteurs)
 
+  const { today: TODAY, startOfWeek: START_OF_WEEK, endOfWeek: END_OF_WEEK } = useMemo(getWeekBounds, [])
   const prenom = user?.mode === 'admin' ? user.name.split(' ')[0] : 'Moniteur'
 
   // Find the moniteur record matching the logged-in user by name
   const moniteurRecord = useMemo(() => {
     if (user?.mode !== 'admin') return null
-    const nameLower = user.name.toLowerCase()
+    const nameLower = user.name.toLowerCase().trim()
+    // Exact match only — partial matching causes false positives (e.g. "Ali" matches "Alioune")
     return moniteurs.find((m) => {
-      const full = `${m.prenom} ${m.nom}`.toLowerCase()
-      const fullRev = `${m.nom} ${m.prenom}`.toLowerCase()
-      return full === nameLower || fullRev === nameLower ||
-        full.includes(nameLower) || nameLower.includes(m.prenom.toLowerCase())
+      const full = `${m.prenom} ${m.nom}`.toLowerCase().trim()
+      const fullRev = `${m.nom} ${m.prenom}`.toLowerCase().trim()
+      return full === nameLower || fullRev === nameLower
     }) ?? null
   }, [user, moniteurs])
 

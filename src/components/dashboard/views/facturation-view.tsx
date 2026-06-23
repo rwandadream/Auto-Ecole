@@ -12,16 +12,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 import {
   ViewHeader,
   StatusBadge,
@@ -80,8 +72,6 @@ export function FacturationView() {
   const [paiementFactureId, setPaiementFactureId] = useState<string | null>(null)
   const [deleteFactureId, setDeleteFactureId] = useState<string | null>(null)
   const [detailFactureId, setDetailFactureId] = useState<string | null>(null)
-  const [pageFactures, setPageFactures] = useState(1)
-  const [pagePaiements, setPagePaiements] = useState(1)
   const PAR_PAGE = 10
   const deleteFacture = useDataStore((s) => s.deleteFacture)
   const user = useAuthStore((s) => s.user)
@@ -99,15 +89,14 @@ export function FacturationView() {
     })
   }, [factures, search, statutFilter])
 
-  const totalPagesFactures = Math.max(1, Math.ceil(filteredFactures.length / PAR_PAGE))
-  const pageFacturesCourante = Math.min(pageFactures, totalPagesFactures)
-  const debutFactures = (pageFacturesCourante - 1) * PAR_PAGE
-  const facturesPage = filteredFactures.slice(debutFactures, debutFactures + PAR_PAGE)
-
-  const totalPagesPaiements = Math.max(1, Math.ceil(paiements.length / PAR_PAGE))
-  const pagePaiementsCourante = Math.min(pagePaiements, totalPagesPaiements)
-  const debutPaiements = (pagePaiementsCourante - 1) * PAR_PAGE
-  const paiementsPage = paiements.slice(debutPaiements, debutPaiements + PAR_PAGE)
+  const {
+    page: pageFacturesCourante, setPage: setPageFactures,
+    totalPages: totalPagesFactures, pageItems: facturesPage, debut: debutFactures,
+  } = usePagination(filteredFactures, PAR_PAGE)
+  const {
+    page: pagePaiementsCourante, setPage: setPagePaiements,
+    totalPages: totalPagesPaiements, pageItems: paiementsPage, debut: debutPaiements,
+  } = usePagination(paiements, PAR_PAGE)
 
   const impayeesCount = factures.filter((f) => f.statut === 'Non payée' || f.statut === 'Partielle').length
   const caTotal = useMemo(() => factures.reduce((sum, f) => sum + f.montant, 0), [factures])
@@ -119,7 +108,7 @@ export function FacturationView() {
 
   const handleBulkRelanceWhatsApp = () => {
     const cibles = filteredFactures.filter(
-      (f) => f.statut === 'Impayée' || f.statut === 'Non payée',
+      (f) => f.statut === 'Non payée' || f.statut === 'Partielle',
     )
     if (cibles.length === 0) {
       toast.info('Aucune facture impayée à relancer')
@@ -557,35 +546,19 @@ export function FacturationView() {
         onOpenChange={(v) => { if (!v) setDetailFactureId(null) }}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleteFactureId !== null}
         onOpenChange={(v) => { if (!v) setDeleteFactureId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette facture ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La facture et son solde seront définitivement supprimés.
-              Les paiements déjà encaissés ne seront pas affectés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteFactureId) {
-                  deleteFacture(deleteFactureId)
-                  toast.success('Facture supprimée.')
-                  setDeleteFactureId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer cette facture ?"
+        description="Cette action est irréversible. La facture et son solde seront définitivement supprimés. Les paiements déjà encaissés ne seront pas affectés."
+        onConfirm={() => {
+          if (deleteFactureId) {
+            deleteFacture(deleteFactureId)
+            toast.success('Facture supprimée.')
+            setDeleteFactureId(null)
+          }
+        }}
+      />
     </>
   )
 }

@@ -1,12 +1,17 @@
 import type { ViewKey, ParametresTab } from '@/store/nav-store'
 
 export type AppRole =
-  | 'Administrateur principal'
-  | 'Administrateur secondaire'
+  | 'Super Administrateur'
+  | 'Directeur'
+  | 'Responsable adjoint'
   | 'Comptable'
   | 'Moniteur'
-  | 'Conseiller'
+  | 'Secrétaire'
+  // Alias legacy (rétrocompatibilité pendant transition)
   | 'Administrateur'
+  | 'Administrateur principal'
+  | 'Administrateur secondaire'
+  | 'Conseiller'
 
 export type AppAction =
   | 'delete_eleve'
@@ -17,43 +22,70 @@ export type AppAction =
   | 'manage_users'
   | 'manage_formations'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Matrice d'accès aux vues
+// ─────────────────────────────────────────────────────────────────────────────
 const VIEW_ACCESS: Record<ViewKey, AppRole[]> = {
-  'moniteur-dashboard': ['Moniteur'],
-  dashboard: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller', 'Administrateur'],
-  eleves: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
-  'eleve-detail': ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
-  'eleve-edit': ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
-  'eleve-create': ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
-  scanner: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller', 'Administrateur'],
-  moniteurs: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Administrateur'],
-  vehicules: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Administrateur'],
-  inspecteurs: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Administrateur'],
-  planning: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Administrateur'],
-  examens: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Administrateur'],
-  bordereaux: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Administrateur'],
-  facturation: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Administrateur'],
-  comptabilite: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Administrateur'],
-  parametres: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller', 'Administrateur'],
-  parrainage: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  'student-dashboard': ['Administrateur principal'],
-  'student-planning': ['Administrateur principal'],
-  'student-factures': ['Administrateur principal'],
-  'student-profil': ['Administrateur principal'],
+  // Tableau de bord : tout le monde
+  dashboard: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable', 'Moniteur', 'Secrétaire'],
+  // Dashboard moniteur : super admin + moniteur uniquement
+  'moniteur-dashboard': ['Super Administrateur', 'Moniteur'],
+  // Élèves : tout le monde sauf comptable
+  eleves: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'],
+  'eleve-detail': ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'],
+  'eleve-edit': ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'],
+  'eleve-create': ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'],
+  scanner: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'],
+  // Moniteurs / Véhicules / Inspecteurs : direction + moniteur
+  moniteurs: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'],
+  vehicules: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'],
+  inspecteurs: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'],
+  // Activité : direction + moniteur (pas secrétaire ni comptable)
+  planning: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'],
+  examens: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'],
+  // Finances : direction + comptable
+  bordereaux: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable', 'Moniteur'],
+  facturation: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable'],
+  comptabilite: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable'],
+  // Parrainage : direction seulement
+  parrainage: ['Super Administrateur', 'Directeur', 'Responsable adjoint'],
+  // Paramètres : tout le monde (onglets filtrés ensuite)
+  parametres: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable', 'Moniteur', 'Secrétaire'],
+  // Portail élève (simulation) : super admin + directeur
+  'student-dashboard': ['Super Administrateur', 'Directeur'],
+  'student-planning': ['Super Administrateur', 'Directeur'],
+  'student-factures': ['Super Administrateur', 'Directeur'],
+  'student-profil': ['Super Administrateur', 'Directeur'],
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Actions destructives : SUPER ADMIN EXCLUSIVEMENT
+// ─────────────────────────────────────────────────────────────────────────────
 const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
-  delete_eleve: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  delete_facture: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  delete_depense: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Administrateur'],
-  delete_moniteur: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  delete_vehicule: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  manage_users: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
-  manage_formations: ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'],
+  delete_eleve: ['Super Administrateur'],
+  delete_facture: ['Super Administrateur'],
+  delete_depense: ['Super Administrateur'],
+  delete_moniteur: ['Super Administrateur'],
+  delete_vehicule: ['Super Administrateur'],
+  manage_users: ['Super Administrateur'],
+  manage_formations: ['Super Administrateur'],
 }
 
-function normalizeRole(role: string): AppRole {
-  if (role === 'Administrateur') return 'Administrateur principal'
+export function normalizeRole(role: string): AppRole {
+  // Alias legacy → nouveaux noms
+  if (role === 'Administrateur' || role === 'Administrateur principal') return 'Directeur'
+  if (role === 'Administrateur secondaire') return 'Responsable adjoint'
+  if (role === 'Conseiller') return 'Secrétaire'
   return role as AppRole
+}
+
+export function isSuperAdmin(role: string): boolean {
+  return role === 'Super Administrateur'
+}
+
+export function isDirecteurOrAbove(role: string): boolean {
+  const r = normalizeRole(role)
+  return ['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)
 }
 
 export function canAccessView(role: string, view: ViewKey): boolean {
@@ -71,32 +103,27 @@ export function getDefaultViewForRole(role: string): ViewKey {
   const r = normalizeRole(role)
   if (r === 'Comptable') return 'facturation'
   if (r === 'Moniteur') return 'moniteur-dashboard'
-  if (r === 'Conseiller') return 'eleves'
+  if (r === 'Secrétaire') return 'eleves'
   return 'dashboard'
 }
 
 const ADMIN_PARAMETRES_TABS: ParametresTab[] = ['profil', 'equipe', 'catalogue', 'assistance', 'audit']
-const STAFF_PARAMETRES_TABS: ParametresTab[] = ['assistance']
+const STAFF_PARAMETRES_TABS: ParametresTab[] = ['profil', 'assistance']
 
 export function canAccessParametresTab(role: string, tab: ParametresTab): boolean {
   const r = normalizeRole(role)
-  if (tab === 'assistance') {
-    return canAccessView(role, 'parametres')
-  }
+  if (tab === 'assistance' || tab === 'profil') return canAccessView(role, 'parametres')
   if (tab === 'audit') {
-    return ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)
+    return ['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)
   }
-  return ['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)
+  // equipe, catalogue → direction uniquement
+  return ['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)
 }
 
 export function getParametresTabsForRole(role: string): ParametresTab[] {
   const r = normalizeRole(role)
-  if (['Administrateur principal', 'Administrateur secondaire', 'Administrateur'].includes(r)) {
-    return ADMIN_PARAMETRES_TABS
-  }
-  if (canAccessView(role, 'parametres')) {
-    return STAFF_PARAMETRES_TABS
-  }
+  if (['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)) return ADMIN_PARAMETRES_TABS
+  if (canAccessView(role, 'parametres')) return STAFF_PARAMETRES_TABS
   return []
 }
 

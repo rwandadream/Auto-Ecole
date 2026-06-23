@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Bell, HelpCircle, ChevronDown, Calendar, LogOut, User, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -21,7 +21,7 @@ import { useNavStore } from '@/store/nav-store'
 import { useDataStore } from '@/store/data-store'
 import { initials } from '@/components/dashboard/views/shared'
 import { currentMonthRange } from '@/lib/format'
-import { canAccessParametresTab, getParametresTabsForRole } from '@/lib/permissions'
+import { getParametresTabsForRole } from '@/lib/permissions'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
@@ -35,13 +35,9 @@ export function Header() {
     user?.mode === 'admin' &&
     getParametresTabsForRole(user.role).includes('audit')
 
-  // Recent audit entries for the notifications popover
-  const auditLog = useDataStore((s) => s.auditLog)
-  const recentAudit = useMemo(() => auditLog.slice(0, 8), [auditLog])
-  const unreadCount = useMemo(
-    () => auditLog.filter((a) => a.action === 'INSERT').length,
-    [auditLog]
-  )
+  // Recent audit entries — computed directly in the selector to avoid stale array references
+  const recentAudit = useDataStore((s) => s.auditLog.slice(0, 8))
+  const unreadCount = useDataStore((s) => s.auditLog.filter((a) => a.action === 'INSERT').length)
 
   const userName = user?.mode === 'admin' ? user.name : 'Utilisateur'
   const userRole = user?.mode === 'admin' ? user.role : '—'
@@ -162,7 +158,9 @@ export function Header() {
                   <User className="mr-2 h-4 w-4" />
                   Mon profil
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => openParametres('profil')}>
+                <DropdownMenuItem onSelect={() => openParametres(
+                  getParametresTabsForRole(user.role).includes('equipe') ? 'equipe' : 'assistance'
+                )}>
                   <Settings className="mr-2 h-4 w-4" />
                   Paramètres
                 </DropdownMenuItem>

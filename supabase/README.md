@@ -29,8 +29,13 @@ Exécutez **dans cet ordre** via le SQL Editor Supabase ou le MCP :
 | 19 | `20260627000003_rls_policy_consolidation.sql` | Fusion policies SELECT + WITH CHECK admin (perf RLS) |
 | 20 | `20260627000004_portail_rate_limit.sql` | Rate limiting `login_eleve_portail` (5 essais / 15 min) |
 | 21 | `20260628000001_reference_tables_dynamic.sql` | Tables `modes_paiement`, `categories_depense`, `app_config` + seed FAQ |
+| 22 | `20260629000001_acces_portail.sql` | Colonne `eleves.acces_portail` + blocage login portail si désactivé |
+| 23 | `20260630000001_super_admin_role.sql` | Rôle `super_administrateur`, `is_super_admin()`, policies RLS |
+| 24 | `seed_superadmin.sql` | Compte super admin (une seule fois, idempotent) |
 
 > L'ancien `20260621000004_seed_demo.sql` et `seed_full_mock.sql` ont été remplacés par `seed_reference_data.sql`.
+
+> **Super admin** : exécuter les fichiers **23 puis 24** dans le [SQL Editor](https://supabase.com/dashboard/project/myzgspejgqzvmbuqqwks/sql/new). Automatisation alternative : `set SUPABASE_ACCESS_TOKEN=sbp_…` puis `node scripts/run-superadmin-setup.mjs`.
 
 ## Déploiement Vercel + Supabase Auth
 
@@ -78,6 +83,7 @@ Supabase est **obligatoire** : l'application ne démarre pas sans ces variables.
 
 | Email | Rôle | Mot de passe |
 |-------|------|--------------|
+| `superadmin@sarahauto.ci` | Super administrateur | `SuperAdmin2026!` |
 | `admin@sarahauto.ci` | Admin principal | `Sarah2026!` |
 | `a.diallo@sarahauto.ci` | Admin principal | `Sarah2026!` |
 | `l.kouame@sarahauto.ci` | Admin secondaire (inactif) | `Sarah2026!` |
@@ -88,7 +94,9 @@ Supabase est **obligatoire** : l'application ne démarre pas sans ces variables.
 
 Portail élève : code `EL-2401` + téléphone `+225 07 12 34 56`
 
-Création d'utilisateurs supplémentaires : UI **Paramètres → Utilisateurs** (API `/api/admin/users` + RPC `create_staff_user`).
+**Connexion super admin** : écran d’accueil → onglet **Administration** → email / mot de passe ci-dessus (formulaire standard, même flux que les autres staff).
+
+Création d'utilisateurs supplémentaires : UI **Paramètres → Équipe** (réservé au super admin ; API `/api/admin/users` + RPC `create_staff_user`).
 
 Réinitialisation mot de passe staff : lien **Mot de passe oublié ?** sur l'écran de connexion admin (redirect `/auth/reset-password`).
 

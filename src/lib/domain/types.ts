@@ -22,11 +22,12 @@ export type CategorieDepense =
   | 'Fournitures'
   | 'Autres'
 export type Role =
-  | 'Administrateur principal'
-  | 'Administrateur secondaire'
+  | 'Super Administrateur'
+  | 'Directeur'
+  | 'Responsable adjoint'
   | 'Comptable'
   | 'Moniteur'
-  | 'Conseiller'
+  | 'Secrétaire'
 
 export type Permis = {
   id: string
@@ -217,7 +218,6 @@ export type Profile = {
   email: string
   role: Role
   actif: boolean
-  password?: string
 }
 
 export type FaqItem = {

@@ -125,10 +125,11 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
 
         <Field label="Prix (F CFA)" required>
           <FormInput
+            type="text"
+            inputMode="numeric"
             value={prix}
             onChange={(e) => setPrix(e.target.value)}
             placeholder="350000"
-            inputMode="numeric"
           />
         </Field>
 

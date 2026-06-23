@@ -22,16 +22,8 @@ import {
 } from '@/components/dashboard/responsive-data-view'
 import { SaisieResultatsDialog } from '@/components/dashboard/dialogs/saisie-resultats-dialog'
 import { NouvelleSessionDialog } from '@/components/dashboard/dialogs/nouvelle-session-dialog'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 // --- Info cell helper ---
 function InfoCell({ label, value }: { label: string; value: string }) {
@@ -44,7 +36,7 @@ function InfoCell({ label, value }: { label: string; value: string }) {
 }
 
 function canDeleteSession(role: string): boolean {
-  return role === 'Administrateur principal' || role === 'Administrateur secondaire' || role === 'Administrateur'
+  return role === 'Super Administrateur'
 }
 
 // --- Main component ---
@@ -55,13 +47,7 @@ export function BordereauxView() {
   const [saisieSession, setSaisieSession] = useState<typeof examenSessions[number] | null>(null)
   const [showAddSession, setShowAddSession] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
-
-  const PAR_PAGE = 5
-  const totalPages = Math.max(1, Math.ceil(examenSessions.length / PAR_PAGE))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * PAR_PAGE
-  const sessionsPage = examenSessions.slice(debut, debut + PAR_PAGE)
+  const { page: pageCourante, setPage, totalPages, pageItems: sessionsPage, debut } = usePagination(examenSessions, 5)
 
   const showDelete = user?.mode === 'admin' && canDeleteSession(user.role)
   const deletingSession = deletingId ? examenSessions.find((s) => s.id === deletingId) : null
@@ -218,7 +204,7 @@ export function BordereauxView() {
         ))}
       </div>
 
-      {examenSessions.length > PAR_PAGE && (
+      {totalPages > 1 && (
         <Card className="p-0">
           <PaginationFooter
             pageCourante={pageCourante}
@@ -235,34 +221,17 @@ export function BordereauxView() {
       <SaisieResultatsDialog session={saisieSession} open={!!saisieSession} onOpenChange={(v) => { if (!v) setSaisieSession(null) }} />
       <NouvelleSessionDialog open={showAddSession} onOpenChange={setShowAddSession} />
 
-      <AlertDialog open={!!deletingId} onOpenChange={(v) => { if (!v) setDeletingId(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette session ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingSession ? (
-                <>
-                  Vous êtes sur le point de supprimer la session{' '}
-                  <strong>{deletingSession.numeroBordereau}</strong> ({deletingSession.candidats.length} candidat
-                  {deletingSession.candidats.length > 1 ? 's' : ''}). Cette action est irréversible et sera tracée
-                  dans le journal d&apos;audit.
-                </>
-              ) : (
-                'Cette action est irréversible.'
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              variant="destructive"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(v) => { if (!v) setDeletingId(null) }}
+        title="Supprimer cette session ?"
+        description={
+          deletingSession
+            ? <>Vous êtes sur le point de supprimer la session <strong>{deletingSession.numeroBordereau}</strong> ({deletingSession.candidats.length} candidat{deletingSession.candidats.length > 1 ? 's' : ''}). Cette action est irréversible.</>
+            : 'Cette action est irréversible.'
+        }
+        onConfirm={handleConfirmDelete}
+      />
     </>
   )
 }

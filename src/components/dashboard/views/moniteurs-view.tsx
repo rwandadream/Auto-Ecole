@@ -19,6 +19,7 @@ import { canPerformAction } from '@/lib/permissions'
 import { useDataStore } from '@/store/data-store'
 import { useAuthStore } from '@/store/auth-store'
 import { cn } from '@/lib/utils'
+import { usePagination } from '@/hooks/usePagination'
 import {
   ViewHeader,
   StatusBadge,
@@ -35,22 +36,13 @@ import {
   MobileListCardRow,
 } from '@/components/dashboard/responsive-data-view'
 import { MoniteurDialog } from '@/components/dashboard/dialogs/nouveau-moniteur-dialog'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 type StatutFiltre = 'Tous' | StatutMoniteur
 
@@ -66,7 +58,6 @@ export function MoniteursView() {
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
   const [specialiteFiltre, setSpecialiteFiltre] = useState<(typeof SPECIALITE_FILTRES)[number]>('Tous')
-  const [page, setPage] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -92,11 +83,7 @@ export function MoniteursView() {
     })
   }, [moniteurs, recherche, statutFiltre, specialiteFiltre])
 
-  const parPage = 8
-  const totalPages = Math.max(1, Math.ceil(moniteursFiltres.length / parPage))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * parPage
-  const moniteursPage = moniteursFiltres.slice(debut, debut + parPage)
+  const { page: pageCourante, setPage, totalPages, pageItems: moniteursPage, debut } = usePagination(moniteursFiltres)
 
   return (
     <div>
@@ -418,34 +405,19 @@ export function MoniteursView() {
       <MoniteurDialog open={showAdd} onOpenChange={setShowAdd} />
       <MoniteurDialog moniteurId={editId} open={showEdit} onOpenChange={setShowEdit} />
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(v) => { if (!v) setDeleteId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce moniteur ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. Le moniteur sera définitivement retiré de l&apos;équipe pédagogique.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteId) {
-                  deleteMoniteur(deleteId)
-                  toast.success('Moniteur supprimé.')
-                  setDeleteId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer ce moniteur ?"
+        description="Cette action est irréversible. Le moniteur sera définitivement retiré de l'équipe pédagogique."
+        onConfirm={() => {
+          if (deleteId) {
+            deleteMoniteur(deleteId)
+            toast.success('Moniteur supprimé.')
+            setDeleteId(null)
+          }
+        }}
+      />
     </div>
   )
 }

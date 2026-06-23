@@ -70,7 +70,7 @@ export function EleveCreateView() {
     toast.success('Élève créé et facture émise automatiquement')
     // Naviguer vers la fiche du nouvel élève
     if (newEleve?.code) {
-      useNavStore.getState().setselectedEleveCode(newEleve.code)
+      useNavStore.getState().setSelectedEleveCode(newEleve.code)
       setActiveView('eleve-detail')
     } else {
       setActiveView('eleves')

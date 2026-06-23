@@ -21,7 +21,7 @@ export function GlobalSearch() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const setActiveView = useNavStore((s) => s.setActiveView)
-  const setselectedEleveCode = useNavStore((s) => s.setselectedEleveCode)
+  const setSelectedEleveCode = useNavStore((s) => s.setSelectedEleveCode)
 
   const eleves = useDataStore((s) => s.eleves)
   const factures = useDataStore((s) => s.factures)
@@ -116,7 +116,7 @@ export function GlobalSearch() {
   }
 
   const handleSelect = (r: SearchResult) => {
-    if (r.eleveCode) setselectedEleveCode(r.eleveCode)
+    if (r.eleveCode) setSelectedEleveCode(r.eleveCode)
     setActiveView(r.view)
     setQuery('')
     setOpen(false)

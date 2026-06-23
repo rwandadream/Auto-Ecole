@@ -256,15 +256,3 @@ export function AuditLogPanel() {
     </div>
   )
 }
-
-export function AuditLogView() {
-  return (
-    <div>
-      <ViewHeader
-        title="Journal d'audit"
-        description="Traçabilité de toutes les modifications"
-      />
-      <AuditLogPanel />
-    </div>
-  )
-}

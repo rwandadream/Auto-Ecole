@@ -4,7 +4,7 @@
 // ============================================================
 
 import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import autoTable, { type CellHookData } from 'jspdf-autotable'
 import { formatAmountFr, formatXOFFcfa, nowFrLocale } from '@/lib/format'
 
 /** Palette ERP SARAH AUTO (alignée sur globals.css) */
@@ -355,8 +355,7 @@ export async function generateBordereauPdf(s: SessionData) {
   )
 
   // Colour-code result cells
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const didFillCell = (data: any) => {
+  const didFillCell = (data: CellHookData) => {
     if (!hasResults || data.section !== 'body' || data.column.index !== 4) return
     const r = String(data.cell.raw)
     if (r === 'Admis')    { data.cell.styles.textColor = GREEN; data.cell.styles.fontStyle = 'bold' }
@@ -522,11 +521,6 @@ export type RapportMensuelData = {
   }
   formations: Array<{ nom: string; count: number; chiffre: number }>
 }
-
-const MOIS_FR = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-]
 
 export async function generateRapportMensuelPdf(d: RapportMensuelData) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })

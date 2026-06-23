@@ -60,6 +60,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 type StatutFiltre = 'Tous' | StatutEleve
 
@@ -104,10 +106,9 @@ function parseElevesCsv(text: string): CsvRow[] {
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
-  const { setActiveView, setselectedEleveCode } = useNavStore()
+  const { setActiveView, setSelectedEleveCode } = useNavStore()
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
-  const [page, setPage] = useState(1)
 
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
@@ -184,17 +185,16 @@ export function ElevesView() {
   }, [eleves, recherche, statutFiltre])
 
   const totalEleves = eleves.length
-  const enFormation = eleves.filter((e) => e.statut === 'En formation').length
-  const admis = eleves.filter((e) => e.statut === 'Admis').length
-  const examensTermines = examens.filter((x) => x.resultat !== 'En attente')
-  const tauxReussite = examensTermines.length > 0
-    ? Math.round((examensTermines.filter((x) => x.resultat === 'Admis').length / examensTermines.length) * 1000) / 10
-    : null
-  const parPage = 8
-  const totalPages = Math.max(1, Math.ceil(elevesFiltres.length / parPage))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * parPage
-  const elevesPage = elevesFiltres.slice(debut, debut + parPage)
+  const { enFormation, admis, tauxReussite } = useMemo(() => {
+    const enFormation = eleves.filter((e) => e.statut === 'En formation').length
+    const admis = eleves.filter((e) => e.statut === 'Admis').length
+    const termines = examens.filter((x) => x.resultat !== 'En attente')
+    const tauxReussite = termines.length > 0
+      ? Math.round((termines.filter((x) => x.resultat === 'Admis').length / termines.length) * 1000) / 10
+      : null
+    return { enFormation, admis, tauxReussite }
+  }, [eleves, examens])
+  const { page: pageCourante, setPage, totalPages, pageItems: elevesPage, debut } = usePagination(elevesFiltres)
 
   return (
     <div>
@@ -321,7 +321,7 @@ export function ElevesView() {
                     <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuItem
                         onSelect={() => {
-                          setselectedEleveCode(e.code)
+                          setSelectedEleveCode(e.code)
                           setActiveView('eleve-detail')
                         }}
                       >
@@ -330,7 +330,7 @@ export function ElevesView() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={() => {
-                          setselectedEleveCode(e.code)
+                          setSelectedEleveCode(e.code)
                           setActiveView('eleve-edit')
                         }}
                       >
@@ -490,7 +490,7 @@ export function ElevesView() {
                         <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuItem
                             onSelect={() => {
-                              setselectedEleveCode(e.code)
+                              setSelectedEleveCode(e.code)
                               setActiveView('eleve-detail')
                             }}
                           >
@@ -499,7 +499,7 @@ export function ElevesView() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => {
-                              setselectedEleveCode(e.code)
+                              setSelectedEleveCode(e.code)
                               setActiveView('eleve-edit')
                             }}
                           >
@@ -626,35 +626,19 @@ export function ElevesView() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleteEleveId !== null}
         onOpenChange={(v) => { if (!v) setDeleteEleveId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cet élève ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. L&apos;élève sera définitivement retiré du registre,
-              ainsi que ses factures, paiements, séances, examens et inscriptions associés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteEleveId) {
-                  deleteEleve(deleteEleveId)
-                  toast.success('Élève supprimé.')
-                  setDeleteEleveId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer cet élève ?"
+        description="Cette action est irréversible. L'élève sera définitivement retiré du registre, ainsi que ses factures, paiements, séances, examens et inscriptions associés."
+        onConfirm={() => {
+          if (deleteEleveId) {
+            deleteEleve(deleteEleveId)
+            toast.success('Élève supprimé.')
+            setDeleteEleveId(null)
+          }
+        }}
+      />
     </div>
   )
 }

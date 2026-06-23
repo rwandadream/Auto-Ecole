@@ -5,9 +5,6 @@ import type {
   StatutMoniteur,
 } from '@/lib/domain/types'
 
-/** Mot de passe par défaut pour la création d'utilisateur staff (UI) */
-export const DEMO_PASSWORD = 'Sarah2026!'
-
 export const MODES_PAIEMENT: ModePaiement[] = [
   'Espèces',
   'Orange Money',

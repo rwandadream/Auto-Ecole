@@ -36,10 +36,6 @@ export function persistAudit(entry: AuditEntry) {
   persistRemoteSilent(() => supabaseRepos.auditLog.create(entry), undefined, 'Journal d\'audit')
 }
 
-export function persistEleveCreate(eleve: Eleve, moniteurId: string | null, rollback: () => void) {
-  persistRemoteSilent(() => supabaseRepos.eleves.create(eleve, moniteurId), rollback, 'Création élève')
-}
-
 export function persistEleveCreateAwait(
   eleve: Eleve,
   moniteurId: string | null,
@@ -127,7 +123,7 @@ export function persistSeance(
     }
     const eleveId = findEleveId(eleves, s.eleveCode)
     const moniteurId = s.moniteurId || findMoniteurId(moniteurs, s.moniteur) || ''
-    const vehiculeId = s.vehiculeId ? findVehiculeId(vehicules, s.vehicule) : findVehiculeId(vehicules, s.vehicule)
+    const vehiculeId = s.vehiculeId || findVehiculeId(vehicules, s.vehicule) || ''
     if (mode === 'create') {
       await supabaseRepos.seances.create(s, eleveId, moniteurId, vehiculeId)
       await syncDataFromSupabase()

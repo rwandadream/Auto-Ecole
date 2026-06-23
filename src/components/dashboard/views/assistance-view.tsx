@@ -144,15 +144,3 @@ export function AssistancePanel() {
     </div>
   )
 }
-
-export function AssistanceView() {
-  return (
-    <>
-      <ViewHeader
-        title="Assistance"
-        description="Centre d'aide et foire aux questions"
-      />
-      <AssistancePanel />
-    </>
-  )
-}

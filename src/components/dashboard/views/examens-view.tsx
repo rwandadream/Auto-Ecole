@@ -5,7 +5,9 @@ import { Plus, FileText, MoreVertical, Pencil, Trash2, Eye, Search } from 'lucid
 import { toast } from 'sonner'
 import { type ResultatExamen } from '@/lib/domain/types'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
 import { useNavStore } from '@/store/nav-store'
+import { isSuperAdmin } from '@/lib/permissions'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import {
@@ -31,16 +33,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 // --- Sub-component: Examens individuels table ---
 const RESULTAT_FILTRES: Array<'Tous' | ResultatExamen> = ['Tous', 'En attente', 'Admis', 'Échec']
@@ -49,14 +43,15 @@ const TYPE_FILTRES = ['Tous', 'Code', 'Conduite'] as const
 function ExamensIndividuels() {
   const examens = useDataStore((s) => s.examens)
   const deleteExamen = useDataStore((s) => s.deleteExamen)
-  const { setActiveView, setselectedEleveCode } = useNavStore()
+  const { setActiveView, setSelectedEleveCode } = useNavStore()
+  const user = useAuthStore((s) => s.user)
+  const canDelete = isSuperAdmin(user?.mode === 'admin' ? user.role : '')
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editExamen, setEditExamen] = useState<(typeof examens)[number] | null>(null)
   const [showEdit, setShowEdit] = useState(false)
   const [search, setSearch] = useState('')
   const [resultatFiltre, setResultatFiltre] = useState<'Tous' | ResultatExamen>('Tous')
   const [typeFiltre, setTypeFiltre] = useState<(typeof TYPE_FILTRES)[number]>('Tous')
-  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     return examens.filter((x) => {
@@ -74,11 +69,7 @@ function ExamensIndividuels() {
     })
   }, [examens, search, resultatFiltre, typeFiltre])
 
-  const parPage = 8
-  const totalPages = Math.max(1, Math.ceil(filtered.length / parPage))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * parPage
-  const examensPage = filtered.slice(debut, debut + parPage)
+  const { page: pageCourante, setPage, totalPages, pageItems: examensPage, debut } = usePagination(filtered)
 
   return (
     <>
@@ -170,7 +161,7 @@ function ExamensIndividuels() {
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem
                       onSelect={() => {
-                        setselectedEleveCode(x.eleveCode)
+                        setSelectedEleveCode(x.eleveCode)
                         setActiveView('eleve-detail')
                       }}
                     >
@@ -186,13 +177,15 @@ function ExamensIndividuels() {
                       <Pencil className="mr-2 h-4 w-4" />
                       Modifier
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onSelect={() => setDeleteId(x.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Supprimer
-                    </DropdownMenuItem>
+                    {canDelete && (
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => setDeleteId(x.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -278,7 +271,7 @@ function ExamensIndividuels() {
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onSelect={() => {
-                            setselectedEleveCode(x.eleveCode)
+                            setSelectedEleveCode(x.eleveCode)
                             setActiveView('eleve-detail')
                           }}
                         >
@@ -294,13 +287,15 @@ function ExamensIndividuels() {
                           <Pencil className="mr-2 h-4 w-4" />
                           Modifier
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onSelect={() => setDeleteId(x.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
+                        {canDelete && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => setDeleteId(x.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -329,34 +324,19 @@ function ExamensIndividuels() {
         />
       </Card>
 
-      <AlertDialog
+      <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(v) => { if (!v) setDeleteId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cet examen ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. L&apos;examen sera définitivement retiré de l&apos;historique.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteId) {
-                  deleteExamen(deleteId)
-                  toast.success('Examen supprimé.')
-                  setDeleteId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer cet examen ?"
+        description="Cette action est irréversible. L'examen sera définitivement retiré de l'historique."
+        onConfirm={() => {
+          if (deleteId) {
+            deleteExamen(deleteId)
+            toast.success('Examen supprimé.')
+            setDeleteId(null)
+          }
+        }}
+      />
 
       <ModifierExamenDialog
         examen={editExamen}
@@ -374,13 +354,7 @@ function ExamensIndividuels() {
 function SessionsCollectives() {
   const examenSessions = useDataStore((s) => s.examenSessions)
   const setActiveView = useNavStore((s) => s.setActiveView)
-  const [page, setPage] = useState(1)
-
-  const PAR_PAGE = 9
-  const totalPages = Math.max(1, Math.ceil(examenSessions.length / PAR_PAGE))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * PAR_PAGE
-  const sessionsPage = examenSessions.slice(debut, debut + PAR_PAGE)
+  const { page: pageCourante, setPage, totalPages, pageItems: sessionsPage, debut } = usePagination(examenSessions, 9)
 
   return (
     <div>
@@ -435,7 +409,7 @@ function SessionsCollectives() {
         </Card>
       ))}
     </div>
-    {examenSessions.length > PAR_PAGE && (
+    {totalPages > 1 && (
       <div className="mt-4">
         <Card className="p-0">
           <PaginationFooter

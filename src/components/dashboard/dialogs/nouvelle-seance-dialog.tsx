@@ -8,6 +8,9 @@ import { useDataStore } from '@/store/data-store'
 import { DEFAULT_LIEU_RDV } from '@/lib/domain/constants'
 import { getConflictMessage, isMoniteurAvailable, isVehiculeAvailable } from '@/lib/planning-utils'
 
+const STANDARD_SLOTS = ['07:00', '09:00', '11:00', '13:00', '15:00', '17:00']
+const SLOT_DURATION = 120
+
 export function NouvelleSeanceDialog({
   open,
   onOpenChange,
@@ -52,8 +55,6 @@ export function NouvelleSeanceDialog({
   }, [vehicules, seances, slotCheck, date, heureDebut, heureFin])
 
   // Créneaux suggérés : prochains 7 jours, heures fixes, moniteur sélectionné dispo
-  const STANDARD_SLOTS = ['07:00', '09:00', '11:00', '13:00', '15:00', '17:00']
-  const SLOT_DURATION = 120 // minutes -> 2h
 
   function addMinutes(time: string, min: number) {
     const [h, m] = time.split(':').map(Number)
@@ -95,7 +96,7 @@ export function NouvelleSeanceDialog({
       }
     }
     return slots
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [moniteurId, seances, vehiculesDisponibles])
 
   const resetForm = () => {

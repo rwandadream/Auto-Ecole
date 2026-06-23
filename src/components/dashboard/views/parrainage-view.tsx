@@ -81,7 +81,7 @@ function ProgressBar({ value, className }: { value: number; className?: string }
 
 export function ParrainageView() {
   const eleves = useDataStore((s) => s.eleves)
-  const { setActiveView, setselectedEleveCode } = useNavStore()
+  const { setActiveView, setSelectedEleveCode } = useNavStore()
 
   const [commissionUnitaire, setCommissionUnitaire] = useState<number>(loadCommission)
   const [showCommissionModal, setShowCommissionModal] = useState(false)
@@ -182,7 +182,7 @@ export function ParrainageView() {
   }
 
   const goToEleve = (code: string) => {
-    setselectedEleveCode(code)
+    setSelectedEleveCode(code)
     setActiveView('eleve-detail')
   }
 

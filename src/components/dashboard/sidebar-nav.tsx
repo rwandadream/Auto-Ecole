@@ -21,6 +21,7 @@ import { useNavStore, type ViewKey } from '@/store/nav-store'
 import { useAuthStore } from '@/store/auth-store'
 import { useDataStore } from '@/store/data-store'
 import { BrandLogo } from '@/components/dashboard/brand-logo'
+import { normalizeRole } from '@/lib/permissions'
 
 export type AdminNavItem = {
   label: string
@@ -36,38 +37,33 @@ export type AdminNavSection = {
   items: AdminNavItem[]
 }
 
-function normalizeRole(role: string): string {
-  if (role === 'Administrateur') return 'Administrateur principal'
-  return role
-}
-
 export const adminNavSections: AdminNavSection[] = [
   {
     title: 'Pilotage',
     items: [
       { label: 'Tableau de bord', view: 'dashboard', icon: LayoutGrid },
-      { label: 'Élèves', view: 'eleves', icon: Users, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
-      { label: 'Scanner CNI', view: 'scanner', icon: ScanLine, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur', 'Conseiller'] },
-      { label: 'Moniteurs', view: 'moniteurs', icon: UserCog, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
-      { label: 'Véhicules', view: 'vehicules', icon: Car, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
-      { label: 'Inspecteurs', view: 'inspecteurs', icon: Shield, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
+      { label: 'Élèves', view: 'eleves', icon: Users, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'] },
+      { label: 'Scanner CNI', view: 'scanner', icon: ScanLine, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur', 'Secrétaire'] },
+      { label: 'Moniteurs', view: 'moniteurs', icon: UserCog, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'] },
+      { label: 'Véhicules', view: 'vehicules', icon: Car, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'] },
+      { label: 'Inspecteurs', view: 'inspecteurs', icon: Shield, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'] },
     ],
   },
   {
     title: 'Activité',
     items: [
-      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
-      { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck, roles: ['Administrateur principal', 'Administrateur secondaire', 'Moniteur'] },
-      { label: 'Facturation', view: 'facturation', icon: Receipt, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
-      { label: 'Comptabilité', view: 'comptabilite', icon: Wallet, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable'] },
-      { label: 'Bordereaux', view: 'bordereaux', icon: FileText, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur'] },
-      { label: 'Parrainage', view: 'parrainage', icon: Gift, roles: ['Administrateur principal', 'Administrateur secondaire'] },
+      { label: 'Planning & Séances', view: 'planning', icon: CalendarDays, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'] },
+      { label: 'Examens & Sessions', view: 'examens', icon: ClipboardCheck, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Moniteur'] },
+      { label: 'Facturation', view: 'facturation', icon: Receipt, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable'] },
+      { label: 'Comptabilité', view: 'comptabilite', icon: Wallet, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable'] },
+      { label: 'Bordereaux', view: 'bordereaux', icon: FileText, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable', 'Moniteur'] },
+      { label: 'Parrainage', view: 'parrainage', icon: Gift, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint'] },
     ],
   },
   {
     title: 'Général',
     items: [
-      { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Administrateur principal', 'Administrateur secondaire', 'Comptable', 'Moniteur', 'Conseiller'] },
+      { label: 'Paramètres', view: 'parametres', icon: Settings, roles: ['Super Administrateur', 'Directeur', 'Responsable adjoint', 'Comptable', 'Moniteur', 'Secrétaire'] },
       { label: 'Déconnexion', icon: LogOut, isLogout: true },
     ],
   },

@@ -193,7 +193,6 @@ export function mapProfile(row: {
     email: row.email,
     role: mapRoleFromDb(row.role ?? '') as Role,
     actif: row.actif ?? true,
-    password: '',
   }
 }
 

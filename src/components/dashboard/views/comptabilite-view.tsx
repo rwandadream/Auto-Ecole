@@ -41,16 +41,8 @@ import { useAuthStore } from '@/store/auth-store'
 import { resolveMediaUrl } from '@/lib/supabase/storage'
 import { DepenseDialog } from '@/components/dashboard/dialogs/nouvelle-depense-dialog'
 import { Modal, ModalCancelButton } from '@/components/dashboard/modal'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 const categorieConfig: Record<
   CategorieDepense,
@@ -189,7 +181,6 @@ export function ComptabiliteView() {
   const user = useAuthStore((s) => s.user)
   const canDeleteDepense = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_depense')
   const [search, setSearch] = useState('')
-  const [pageDepenses, setPageDepenses] = useState(1)
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -323,11 +314,10 @@ export function ComptabiliteView() {
     )
   }, [depenses, search])
 
-  const PAR_PAGE_DEP = 10
-  const totalPagesDepenses = Math.max(1, Math.ceil(filteredDepenses.length / PAR_PAGE_DEP))
-  const pageDepensesCourante = Math.min(pageDepenses, totalPagesDepenses)
-  const debutDepenses = (pageDepensesCourante - 1) * PAR_PAGE_DEP
-  const depensesPage = filteredDepenses.slice(debutDepenses, debutDepenses + PAR_PAGE_DEP)
+  const {
+    page: pageDepensesCourante, setPage: setPageDepenses,
+    totalPages: totalPagesDepenses, pageItems: depensesPage, debut: debutDepenses,
+  } = usePagination(filteredDepenses, 10)
 
   return (
     <>
@@ -346,12 +336,15 @@ export function ComptabiliteView() {
                 {MOIS_FR.map((m, i) => <option key={m} value={i}>{m}</option>)}
               </select>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={rapportAnnee}
-                onChange={(e) => setRapportAnnee(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value.replace(/\D/g, ''))
+                  if (v >= 2020 && v <= 2040) setRapportAnnee(v)
+                  else if (e.target.value === '') setRapportAnnee(2020)
+                }}
                 className="h-9 w-16 bg-transparent text-sm text-foreground outline-none"
-                min={2020}
-                max={2040}
                 aria-label="Année du rapport"
               />
             </div>
@@ -642,35 +635,19 @@ export function ComptabiliteView() {
       {/* Detail modal (read-only) */}
       <DepenseDetailModal depenseId={detailId} open={detailId !== null} onOpenChange={(v) => { if (!v) setDetailId(null) }} />
 
-      {/* Delete confirmation */}
-      <AlertDialog
+      <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(v) => { if (!v) setDeleteId(null) }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette dépense ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La dépense sera définitivement retirée du registre comptable.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => {
-                if (deleteId) {
-                  deleteDepense(deleteId)
-                  toast.success('Dépense supprimée.')
-                  setDeleteId(null)
-                }
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Supprimer cette dépense ?"
+        description="Cette action est irréversible. La dépense sera définitivement retirée du registre comptable."
+        onConfirm={() => {
+          if (deleteId) {
+            deleteDepense(deleteId)
+            toast.success('Dépense supprimée.')
+            setDeleteId(null)
+          }
+        }}
+      />
     </>
   )
 }

@@ -1,11 +1,36 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { mapRoleFromDb, mapRoleToDb } from '@/lib/supabase/roles'
 
-const ADMIN_ROLES = ['administrateur_principal', 'administrateur_secondaire']
+const ASSIGNABLE_ROLES = [
+  'Directeur',
+  'Responsable adjoint',
+  'Comptable',
+  'Moniteur',
+  'Secrétaire',
+] as const
 
-async function requireAdminSession() {
+const createUserSchema = z.object({
+  email: z.string().email('Email invalide').max(254),
+  password: z.string().min(8, 'Le mot de passe doit comporter au moins 8 caractères').max(128),
+  name: z.string().min(1, 'Nom requis').max(100),
+  role: z.enum(ASSIGNABLE_ROLES, { error: 'Rôle invalide' }),
+  actif: z.boolean().optional(),
+})
+
+const updateUserSchema = z.object({
+  id: z.string().uuid('ID invalide'),
+  name: z.string().min(1, 'Nom requis').max(100),
+  role: z.enum(ASSIGNABLE_ROLES, { error: 'Rôle invalide' }),
+  actif: z.boolean(),
+  password: z.string().min(8, 'Le mot de passe doit comporter au moins 8 caractères').max(128).optional(),
+})
+
+const SUPER_ADMIN_ROLE = 'super_administrateur'
+
+async function requireSuperAdminSession() {
   const serverClient = await createServerClient()
   const { data: { user: caller }, error: authError } = await serverClient.auth.getUser()
   if (authError || !caller) {
@@ -18,8 +43,8 @@ async function requireAdminSession() {
     .eq('id', caller.id)
     .maybeSingle()
 
-  if (!callerProfile?.actif || !ADMIN_ROLES.includes(callerProfile.role ?? '')) {
-    return { response: NextResponse.json({ error: 'Réservé aux administrateurs' }, { status: 403 }) }
+  if (!callerProfile?.actif || callerProfile.role !== SUPER_ADMIN_ROLE) {
+    return { response: NextResponse.json({ error: 'Réservé au super administrateur' }, { status: 403 }) }
   }
 
   return { callerId: caller.id }
@@ -27,25 +52,15 @@ async function requireAdminSession() {
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireAdminSession()
+    const auth = await requireSuperAdminSession()
     if ('response' in auth) return auth.response
 
     const body = await request.json()
-    const { email, password, name, role, actif } = body as {
-      email?: string
-      password?: string
-      name?: string
-      role?: string
-      actif?: boolean
+    const parsed = createUserSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Données invalides' }, { status: 400 })
     }
-
-    if (!email || !password || !name || !role) {
-      return NextResponse.json({ error: 'Champs requis: email, password, name, role' }, { status: 400 })
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Le mot de passe doit comporter au moins 8 caractères' }, { status: 400 })
-    }
+    const { email, password, name, role, actif } = parsed.data
 
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
@@ -82,23 +97,27 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const auth = await requireAdminSession()
+    const auth = await requireSuperAdminSession()
     if ('response' in auth) return auth.response
 
     const body = await request.json()
-    const { id, name, role, actif, password } = body as {
-      id?: string
-      name?: string
-      role?: string
-      actif?: boolean
-      password?: string
+    const parsed = updateUserSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Données invalides' }, { status: 400 })
     }
-
-    if (!id || !name || !role || actif === undefined) {
-      return NextResponse.json({ error: 'Champs requis: id, name, role, actif' }, { status: 400 })
-    }
+    const { id, name, role, actif, password } = parsed.data
 
     const adminClient = createAdminClient()
+
+    // Vérifier que la cible n'est pas un super admin (ne peut pas être modifié ici)
+    const { data: targetProfile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .maybeSingle()
+    if (targetProfile?.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.json({ error: 'Le compte super administrateur ne peut pas être modifié via cette interface' }, { status: 403 })
+    }
     const trimmedPassword = password?.trim()
 
     // Update password via Admin API if provided
@@ -144,7 +163,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = await requireAdminSession()
+    const auth = await requireSuperAdminSession()
     if ('response' in auth) return auth.response
 
     const id = new URL(request.url).searchParams.get('id')
@@ -160,6 +179,17 @@ export async function DELETE(request: Request) {
     }
 
     const adminClient = createAdminClient()
+
+    // Refuser la suppression d'un autre super admin
+    const { data: targetProfile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', id)
+      .maybeSingle()
+    if (targetProfile?.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.json({ error: 'Le compte super administrateur ne peut pas être supprimé via cette interface' }, { status: 403 })
+    }
+
     const { error } = await adminClient.auth.admin.deleteUser(id)
     if (error) {
       return NextResponse.json({ error: error.message ?? 'Suppression impossible' }, { status: 400 })

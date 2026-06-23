@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
+import { useAuthStore } from '@/store/auth-store'
+import { isSuperAdmin } from '@/lib/permissions'
 import {
   ViewHeader,
   StatusBadge,
@@ -36,29 +38,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
+import { usePagination } from '@/hooks/usePagination'
+import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 type StatutFilter = 'Tous' | 'Actif' | 'Inactif'
 
 export function InspecteursView() {
   const inspecteurs = useDataStore((s) => s.inspecteurs)
   const deleteInspecteur = useDataStore((s) => s.deleteInspecteur)
+  const user = useAuthStore((s) => s.user)
+  const canDelete = isSuperAdmin(user?.mode === 'admin' ? user.role : '')
 
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statutFilter, setStatutFilter] = useState<StatutFilter>('Tous')
-  const [page, setPage] = useState(1)
 
   const total = inspecteurs.length
   const actifs = inspecteurs.filter((i) => i.actif).length
@@ -79,11 +74,7 @@ export function InspecteursView() {
     return matchesSearch && matchesStatut
   })
 
-  const parPage = 8
-  const totalPages = Math.max(1, Math.ceil(filtered.length / parPage))
-  const pageCourante = Math.min(page, totalPages)
-  const debut = (pageCourante - 1) * parPage
-  const inspecteursPage = filtered.slice(debut, debut + parPage)
+  const { page: pageCourante, setPage, totalPages, pageItems: inspecteursPage, debut } = usePagination(filtered)
 
   const deletingTarget = inspecteurs.find((i) => i.id === deletingId)
 
@@ -203,13 +194,15 @@ export function InspecteursView() {
                         <Pencil className="mr-2 h-4 w-4" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeletingId(i.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Supprimer
-                      </DropdownMenuItem>
+                      {canDelete && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeletingId(i.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -295,13 +288,15 @@ export function InspecteursView() {
                               <Pencil className="mr-2 h-4 w-4" />
                               Modifier
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setDeletingId(i.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Supprimer
-                            </DropdownMenuItem>
+                            {canDelete && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setDeletingId(i.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -332,32 +327,17 @@ export function InspecteursView() {
         inspecteurId={editingId}
       />
 
-      <AlertDialog open={!!deletingId} onOpenChange={(v) => { if (!v) setDeletingId(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer l'inspecteur ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingTarget ? (
-                <>
-                  Vous êtes sur le point de supprimer <strong>{deletingTarget.prenom} {deletingTarget.nom}</strong>.
-                  Cette action est irréversible et sera tracée dans le journal d'audit.
-                </>
-              ) : (
-                'Cette action est irréversible.'
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              variant="destructive"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(v) => { if (!v) setDeletingId(null) }}
+        title="Supprimer l'inspecteur ?"
+        description={
+          deletingTarget
+            ? `Vous êtes sur le point de supprimer ${deletingTarget.prenom} ${deletingTarget.nom}. Cette action est irréversible.`
+            : 'Cette action est irréversible.'
+        }
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

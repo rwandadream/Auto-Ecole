@@ -167,7 +167,7 @@ export function ScannerCniView() {
       await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId)
       toast.success('Élève créé et facture émise')
       if (newEleve.code) {
-        useNavStore.getState().setselectedEleveCode(newEleve.code)
+        useNavStore.getState().setSelectedEleveCode(newEleve.code)
         setActiveView('eleve-detail')
       } else {
         resetScan()
@@ -215,7 +215,7 @@ export function ScannerCniView() {
             />
 
             {previewUrl && !isProcessing && (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img src={previewUrl} alt="Aperçu CNI scannée" className="absolute inset-0 h-full w-full object-contain bg-black/80" />
             )}
 
