@@ -28,8 +28,8 @@ const DISPLAY_NAMES: Record<string, Role> = {
   Conseiller: 'Secrétaire',
 }
 
-export function mapRoleFromDb(role: string): Role {
-  const trimmed = role.trim()
+export function mapRoleFromDb(role: string | null | undefined): Role {
+  const trimmed = (role ?? '').trim()
   if (!trimmed) return 'Secrétaire'
   return FROM_DB[trimmed] ?? DISPLAY_NAMES[trimmed] ?? 'Secrétaire'
 }

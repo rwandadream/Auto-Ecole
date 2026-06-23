@@ -2,6 +2,14 @@
 
 import { ChevronLeft, ChevronRight, Banknote, Smartphone, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  BADGE_STYLES,
+  getBadgeStyle,
+  resolveBadgeTone,
+  getRoleBadgeTone,
+  roleTone,
+  type BadgeTone,
+} from '@/lib/ui/badge-tones'
 import type {
   StatutFacture,
   StatutSeance,
@@ -9,9 +17,10 @@ import type {
   StatutMoniteur,
   ResultatExamen,
   ModePaiement,
-  Role,
 } from '@/lib/domain/types'
-import { mapRoleFromDb } from '@/lib/supabase/roles'
+
+export type { BadgeTone }
+export { resolveBadgeTone, getRoleBadgeTone, roleTone }
 
 type ViewHeaderProps = {
   title: string
@@ -34,42 +43,13 @@ export function ViewHeader({ title, description, actions, className }: ViewHeade
   )
 }
 
-// Shared status badge styles (consistent across views)
-export type BadgeTone = 'primary' | 'success' | 'warning' | 'destructive' | 'secondary' | 'neutral'
-
-const toneStyles: Record<BadgeTone, { badge: string; dot: string }> = {
-  primary: { badge: 'bg-primary/10 text-primary', dot: 'bg-primary' },
-  success: { badge: 'bg-success/10 text-success', dot: 'bg-success' },
-  warning: { badge: 'bg-warning/10 text-warning', dot: 'bg-warning' },
-  destructive: { badge: 'bg-destructive/10 text-destructive', dot: 'bg-destructive' },
-  secondary: { badge: 'bg-secondary text-secondary-foreground', dot: 'bg-secondary-foreground' },
-  neutral: { badge: 'bg-muted text-muted-foreground', dot: 'bg-muted-foreground' },
-}
-
-function resolveBadgeTone(tone?: string): BadgeTone {
-  if (tone === 'muted') return 'neutral'
-  if (tone && tone in toneStyles) return tone as BadgeTone
-  return 'neutral'
-}
-
-export const roleTone: Record<Role, BadgeTone> = {
-  'Super Administrateur': 'primary',
-  Directeur: 'primary',
-  'Responsable adjoint': 'primary',
-  Comptable: 'secondary',
-  Moniteur: 'warning',
-  Secrétaire: 'neutral',
-}
-
-export function getRoleBadgeTone(role: string): BadgeTone {
-  return resolveBadgeTone(roleTone[mapRoleFromDb(role)])
-}
-
-export function StatusBadge({ label, tone }: { label: string; tone?: BadgeTone }) {
-  const style = toneStyles[resolveBadgeTone(tone)]
+export function StatusBadge({ label, tone = 'neutral' }: { label: string; tone?: BadgeTone | string | null }) {
+  const style = getBadgeStyle(tone)
+  const badge = style.badge ?? BADGE_STYLES.neutral.badge
+  const dot = style.dot ?? BADGE_STYLES.neutral.dot
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', style.badge)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', badge)}>
+      <span className={cn('h-1.5 w-1.5 rounded-full', dot)} />
       {label}
     </span>
   )
@@ -212,9 +192,11 @@ export function KpiCard({
   tone?: KpiTone
 }) {
   const resolvedTone = resolveBadgeTone(tone)
+  const iconTone =
+    kpiToneClasses[resolvedTone] ?? kpiToneClasses.neutral
   return (
     <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${kpiToneClasses[resolvedTone]}`}>
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${iconTone}`}>
         {icon}
       </div>
       <div className="min-w-0">
@@ -244,10 +226,12 @@ export function KpiCardMinimal({
   tone?: KpiTone
 }) {
   const resolvedTone = resolveBadgeTone(tone)
+  const valueColor =
+    kpiMinimalValueColor[resolvedTone] ?? kpiMinimalValueColor.neutral
   return (
     <Card className="p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${kpiMinimalValueColor[resolvedTone]}`}>{value}</p>
+      <p className={`mt-2 text-2xl font-bold ${valueColor}`}>{value}</p>
     </Card>
   )
 }

@@ -56,6 +56,7 @@ import { useDataStore } from '@/store/data-store'
 import { useAuthStore } from '@/store/auth-store'
 import { useNavStore, type ParametresTab } from '@/store/nav-store'
 import { type Role } from '@/lib/domain/types'
+import { mapRoleFromDb } from '@/lib/supabase/roles'
 import {
   canPerformAction,
   canAccessParametresTab,
@@ -427,7 +428,10 @@ export function ParametresView() {
               emptyState={
                 <p className="p-6 text-center text-sm text-muted-foreground">Aucun utilisateur enregistré.</p>
               }
-              mobile={profiles.map((p) => (
+              mobile={profiles.map((p) => {
+                const roleLabel = mapRoleFromDb(p.role)
+                const roleBadgeTone = getRoleBadgeTone(p.role)
+                return (
                 <MobileListCard key={p.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -439,7 +443,7 @@ export function ParametresView() {
                         <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                       </div>
                     </div>
-                    {canManageUsers && p.role !== 'Super Administrateur' && (
+                    {canManageUsers && roleLabel !== 'Super Administrateur' && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -467,14 +471,14 @@ export function ParametresView() {
                   </div>
                   <div className="mt-3 space-y-2">
                     <MobileListCardRow label="Rôle">
-                      <StatusBadge label={p.role} tone={getRoleBadgeTone(p.role)} />
+                      <StatusBadge label={roleLabel} tone={roleBadgeTone} />
                     </MobileListCardRow>
                     <MobileListCardRow label="Statut">
                       <StatusBadge label={p.actif ? 'Actif' : 'Inactif'} tone={p.actif ? 'success' : 'neutral'} />
                     </MobileListCardRow>
                   </div>
                 </MobileListCard>
-              ))}
+              )})}
               desktop={
             <div className="custom-scrollbar overflow-x-auto">
               <table className="w-full min-w-[800px] text-sm">
@@ -488,7 +492,10 @@ export function ParametresView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {profiles.map((p) => (
+                  {profiles.map((p) => {
+                    const roleLabel = mapRoleFromDb(p.role)
+                    const roleBadgeTone = getRoleBadgeTone(p.role)
+                    return (
                     <tr key={p.id} className="hover:bg-muted/40">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
@@ -500,7 +507,7 @@ export function ParametresView() {
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{p.email}</td>
                       <td className="px-4 py-3">
-                        <StatusBadge label={p.role} tone={getRoleBadgeTone(p.role)} />
+                        <StatusBadge label={roleLabel} tone={roleBadgeTone} />
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge
@@ -510,7 +517,7 @@ export function ParametresView() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end">
-                          {canManageUsers && p.role !== 'Super Administrateur' ? (
+                          {canManageUsers && roleLabel !== 'Super Administrateur' ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -538,13 +545,13 @@ export function ParametresView() {
                             </DropdownMenu>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              {p.role === 'Super Administrateur' ? '🛡' : '—'}
+                              {roleLabel === 'Super Administrateur' ? '🛡' : '—'}
                             </span>
                           )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
