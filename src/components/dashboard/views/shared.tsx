@@ -9,7 +9,9 @@ import type {
   StatutMoniteur,
   ResultatExamen,
   ModePaiement,
+  Role,
 } from '@/lib/domain/types'
+import { mapRoleFromDb } from '@/lib/supabase/roles'
 
 type ViewHeaderProps = {
   title: string
@@ -44,8 +46,27 @@ const toneStyles: Record<BadgeTone, { badge: string; dot: string }> = {
   neutral: { badge: 'bg-muted text-muted-foreground', dot: 'bg-muted-foreground' },
 }
 
-export function StatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
-  const style = toneStyles[tone]
+function resolveBadgeTone(tone?: string): BadgeTone {
+  if (tone === 'muted') return 'neutral'
+  if (tone && tone in toneStyles) return tone as BadgeTone
+  return 'neutral'
+}
+
+export const roleTone: Record<Role, BadgeTone> = {
+  'Super Administrateur': 'primary',
+  Directeur: 'primary',
+  'Responsable adjoint': 'primary',
+  Comptable: 'secondary',
+  Moniteur: 'warning',
+  Secrétaire: 'neutral',
+}
+
+export function getRoleBadgeTone(role: string): BadgeTone {
+  return resolveBadgeTone(roleTone[mapRoleFromDb(role)])
+}
+
+export function StatusBadge({ label, tone }: { label: string; tone?: BadgeTone }) {
+  const style = toneStyles[resolveBadgeTone(tone)]
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', style.badge)}>
       <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
@@ -190,9 +211,10 @@ export function KpiCard({
   icon: React.ReactNode
   tone?: KpiTone
 }) {
+  const resolvedTone = resolveBadgeTone(tone)
   return (
     <Card className="flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${kpiToneClasses[tone]}`}>
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${kpiToneClasses[resolvedTone]}`}>
         {icon}
       </div>
       <div className="min-w-0">
@@ -221,10 +243,11 @@ export function KpiCardMinimal({
   value: string
   tone?: KpiTone
 }) {
+  const resolvedTone = resolveBadgeTone(tone)
   return (
     <Card className="p-4">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${kpiMinimalValueColor[tone]}`}>{value}</p>
+      <p className={`mt-2 text-2xl font-bold ${kpiMinimalValueColor[resolvedTone]}`}>{value}</p>
     </Card>
   )
 }

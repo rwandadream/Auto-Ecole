@@ -8,15 +8,30 @@ const FROM_DB: Record<string, Role> = {
   moniteur: 'Moniteur',
   secretaire: 'Secrétaire',
   // Anciens noms conservés pour rétrocompatibilité pendant la transition
+  administrateur: 'Directeur',
   administrateur_principal: 'Directeur',
   administrateur_secondaire: 'Responsable adjoint',
   conseiller: 'Secrétaire',
 }
 
+const DISPLAY_NAMES: Record<string, Role> = {
+  'Super Administrateur': 'Super Administrateur',
+  Directeur: 'Directeur',
+  'Responsable adjoint': 'Responsable adjoint',
+  Comptable: 'Comptable',
+  Moniteur: 'Moniteur',
+  Secrétaire: 'Secrétaire',
+  Administrateur: 'Directeur',
+  'Administrateur principal': 'Directeur',
+  'Administrateur Principal': 'Directeur',
+  'Administrateur secondaire': 'Responsable adjoint',
+  Conseiller: 'Secrétaire',
+}
+
 export function mapRoleFromDb(role: string): Role {
-  const mapped = FROM_DB[role]
-  if (!mapped) console.warn(`[roles] Rôle inconnu en BDD : "${role}" — fallback Secrétaire`)
-  return mapped ?? 'Secrétaire'
+  const trimmed = role.trim()
+  if (!trimmed) return 'Secrétaire'
+  return FROM_DB[trimmed] ?? DISPLAY_NAMES[trimmed] ?? 'Secrétaire'
 }
 
 export function mapRoleToDb(role: string): string {

@@ -4,7 +4,6 @@ import { Fragment, useState } from 'react'
 import { History, Search, ShieldCheck, ChevronDown } from 'lucide-react'
 import { useDataStore } from '@/store/data-store'
 import {
-  ViewHeader,
   StatusBadge,
   Card,
   PaginationFooter,

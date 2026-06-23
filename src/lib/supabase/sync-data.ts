@@ -112,18 +112,6 @@ export async function syncDataFromSupabase(): Promise<boolean> {
     return false
   }
 
-  const secondaryErrors = [
-    seancesRes.error && `seances: ${seancesRes.error.message}`,
-    examensRes.error && `examens: ${examensRes.error.message}`,
-    facturesRes.error && `factures: ${facturesRes.error.message}`,
-    paiementsRes.error && `paiements: ${paiementsRes.error.message}`,
-    depensesRes.error && `depenses: ${depensesRes.error.message}`,
-    auditRes.error && `audit_log: ${auditRes.error.message}`,
-  ].filter(Boolean)
-  if (secondaryErrors.length > 0) {
-    console.warn('[sync] Données partiellement chargées —', secondaryErrors.join(', '))
-  }
-
   const moniteursRaw = moniteursRes.data ?? []
   const vehiculesRaw = vehiculesRes.data ?? []
   const elevesRaw = elevesRes.data ?? []
@@ -210,10 +198,7 @@ export async function syncDataFromSupabase(): Promise<boolean> {
     paiements: paiementsRaw.map(mapPaiement),
     depenses: (depensesRes.data ?? []).map(mapDepense),
     auditLog,
-    faq: (() => {
-      if (faqRes.error) console.warn('[sync] FAQ inaccessible (RLS ?) — contenu statique utilisé :', faqRes.error.message)
-      return faqRes.error || !faqRes.data?.length ? [...faqContent] : faqRes.data.map(mapFaqItem)
-    })(),
+    faq: faqRes.error || !faqRes.data?.length ? [...faqContent] : faqRes.data.map(mapFaqItem),
     modesPaiement: modesPaiementRes.data ?? [],
     categoriesDepense: categoriesDepenseRes.data ?? [],
     appConfig: Object.fromEntries((appConfigRes.data ?? []).map((r) => [r.key, r.value])),

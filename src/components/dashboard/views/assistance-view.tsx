@@ -9,7 +9,6 @@ import {
   LifeBuoy,
 } from 'lucide-react'
 import {
-  ViewHeader,
   Card,
 } from './shared'
 import {

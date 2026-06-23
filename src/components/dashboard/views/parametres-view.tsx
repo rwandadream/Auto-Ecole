@@ -27,7 +27,7 @@ import {
   Card,
   formatXOF,
   initials,
-  type BadgeTone,
+  getRoleBadgeTone,
 } from './shared'
 import {
   ResponsiveDataView,
@@ -68,15 +68,6 @@ import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
 import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
 import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
 import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
-
-const roleTone: Record<Role, BadgeTone> = {
-  'Super Administrateur': 'primary',
-  'Directeur': 'primary',
-  'Responsable adjoint': 'primary',
-  Comptable: 'secondary',
-  Moniteur: 'warning',
-  'Secrétaire': 'neutral',
-}
 
 const ROLES: Role[] = [
   'Directeur',
@@ -474,7 +465,7 @@ export function ParametresView() {
                   </div>
                   <div className="mt-3 space-y-2">
                     <MobileListCardRow label="Rôle">
-                      <StatusBadge label={p.role} tone={roleTone[p.role]} />
+                      <StatusBadge label={p.role} tone={getRoleBadgeTone(p.role)} />
                     </MobileListCardRow>
                     <MobileListCardRow label="Statut">
                       <StatusBadge label={p.actif ? 'Actif' : 'Inactif'} tone={p.actif ? 'success' : 'neutral'} />
@@ -507,7 +498,7 @@ export function ParametresView() {
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">{p.email}</td>
                       <td className="px-4 py-3">
-                        <StatusBadge label={p.role} tone={roleTone[p.role]} />
+                        <StatusBadge label={p.role} tone={getRoleBadgeTone(p.role)} />
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge

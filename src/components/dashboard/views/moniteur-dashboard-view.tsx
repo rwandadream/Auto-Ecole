@@ -71,7 +71,7 @@ export function MoniteurDashboardView() {
   const eleves = useDataStore((s) => s.eleves)
   const moniteurs = useDataStore((s) => s.moniteurs)
 
-  const { today: TODAY, startOfWeek: START_OF_WEEK, endOfWeek: END_OF_WEEK } = useMemo(getWeekBounds, [])
+  const { today: TODAY, startOfWeek: START_OF_WEEK, endOfWeek: END_OF_WEEK } = useMemo(() => getWeekBounds(), [])
   const prenom = user?.mode === 'admin' ? user.name.split(' ')[0] : 'Moniteur'
 
   // Find the moniteur record matching the logged-in user by name
