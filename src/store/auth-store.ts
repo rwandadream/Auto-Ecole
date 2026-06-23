@@ -174,6 +174,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
       }),
       onRehydrateStorage: () => (state) => {
+        if (state?.user?.mode === 'admin') {
+          state.user.role = mapRoleFromDb(state.user.role)
+        }
         if (state?.user) {
           syncAuditUser(state.user)
         }

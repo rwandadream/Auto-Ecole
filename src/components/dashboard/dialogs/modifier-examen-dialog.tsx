@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore, type Examen } from '@/store/data-store'
 import { type ResultatExamen, PERMIS_CATEGORIES } from '@/lib/domain/types'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 export function ModifierExamenDialog({
   examen,
@@ -26,18 +27,17 @@ export function ModifierExamenDialog({
   const [resultat, setResultat] = useState<ResultatExamen>('En attente')
   const [notes, setNotes] = useState('')
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (examen && open) {
-      setTypeExamen(examen.typeExamen as 'Code' | 'Conduite')
-      setTypePermis(examen.typePermis)
-      setDateExamen(examen.dateExamen)
-      setInspecteur(examen.inspecteur)
-      setResultat(examen.resultat)
-      setNotes(examen.notes ?? '')
-    }
+  const seedForm = () => {
+    if (!examen) return
+    setTypeExamen(examen.typeExamen as 'Code' | 'Conduite')
+    setTypePermis(examen.typePermis)
+    setDateExamen(examen.dateExamen)
+    setInspecteur(examen.inspecteur)
+    setResultat(examen.resultat)
+    setNotes(examen.notes ?? '')
   }
+
+  useDialogReset(open, seedForm)
 
   if (!examen) return null
 

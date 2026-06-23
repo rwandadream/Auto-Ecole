@@ -7,6 +7,7 @@ import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSel
 import { useDataStore } from '@/store/data-store'
 import { STATUTS_MONITEUR } from '@/lib/constants'
 import type { StatutMoniteur } from '@/lib/domain/types'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -28,30 +29,28 @@ export function MoniteurDialog({ open, onOpenChange, moniteurId = null }: Props)
 
   const isEdit = !!moniteurId
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (moniteurId) {
-        const target = moniteurs.find((m) => m.id === moniteurId)
-        if (target) {
-          setNom(target.nom)
-          setPrenom(target.prenom)
-          setTelephone(target.telephone)
-          setEmail(target.email)
-          setSpecialite(target.specialite as 'Conduite' | 'Code')
-          setStatut(target.statut)
-        }
-      } else {
-        setNom('')
-        setPrenom('')
-        setTelephone('')
-        setEmail('')
-        setSpecialite('Conduite')
-        setStatut('Disponible')
+  const seedForm = () => {
+    if (moniteurId) {
+      const target = moniteurs.find((m) => m.id === moniteurId)
+      if (target) {
+        setNom(target.nom)
+        setPrenom(target.prenom)
+        setTelephone(target.telephone)
+        setEmail(target.email)
+        setSpecialite(target.specialite as 'Conduite' | 'Code')
+        setStatut(target.statut)
+        return
       }
     }
+    setNom('')
+    setPrenom('')
+    setTelephone('')
+    setEmail('')
+    setSpecialite('Conduite')
+    setStatut('Disponible')
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setNom('')

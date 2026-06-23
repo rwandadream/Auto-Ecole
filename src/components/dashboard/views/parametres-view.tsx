@@ -68,6 +68,7 @@ import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
 import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
 import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
 import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 const ROLES: Role[] = [
   'Directeur',
@@ -130,14 +131,16 @@ function ProfileEditDialog({
   const [actif, setActif] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (!open || !user || user.mode !== 'admin') return
+  const seedProfileForm = () => {
+    if (!user || user.mode !== 'admin') return
     setName(user.name)
     setEmail(user.email)
     setRole((user.role as Role) || 'Directeur')
     const profile = profiles.find((p) => p.id === user.id)
     setActif(profile?.actif ?? true)
-  }, [open, user, profiles])
+  }
+
+  useDialogReset(open, seedProfileForm)
 
   const handleCancel = () => {
     onOpenChange(false)

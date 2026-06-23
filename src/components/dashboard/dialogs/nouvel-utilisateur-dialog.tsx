@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
 import { type Role } from '@/lib/domain/types'
 import { refreshProfiles } from '@/lib/supabase/sync-data'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 // Le rôle Super Administrateur ne peut pas être attribué via l'interface
 const ASSIGNABLE_ROLES: Role[] = [
@@ -35,28 +36,26 @@ export function NouvelUtilisateurDialog({ open, onOpenChange, profileId = null }
 
   const isEdit = !!profileId
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (profileId) {
-        const target = profiles.find((p) => p.id === profileId)
-        if (target) {
-          setName(target.name)
-          setEmail(target.email)
-          setRole(target.role)
-          setActif(target.actif)
-          setPassword('')
-        }
-      } else {
-        setName('')
-        setEmail('')
-        setRole('Moniteur')
-        setActif(true)
+  const seedForm = () => {
+    if (profileId) {
+      const target = profiles.find((p) => p.id === profileId)
+      if (target) {
+        setName(target.name)
+        setEmail(target.email)
+        setRole(target.role)
+        setActif(target.actif)
         setPassword('')
+        return
       }
     }
+    setName('')
+    setEmail('')
+    setRole('Moniteur')
+    setActif(true)
+    setPassword('')
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setName('')

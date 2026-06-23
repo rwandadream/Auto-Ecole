@@ -264,7 +264,7 @@ export const modePaiementConfig: Record<
 }
 
 export function ModePaiementBadge({ mode }: { mode: ModePaiement }) {
-  const cfg = modePaiementConfig[mode]
+  const cfg = modePaiementConfig[mode] ?? modePaiementConfig['Espèces']
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg} ${cfg.fg}`}>
       {cfg.icon}

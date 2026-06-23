@@ -12,6 +12,7 @@ import { readImageAsBase64, MAX_IMAGE_BYTES } from '@/lib/image-utils'
 import { uploadMedia } from '@/lib/supabase/storage'
 import { createClient } from '@/lib/supabase/client'
 import type { CategorieDepense, ModePaiement } from '@/lib/domain/types'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -41,32 +42,30 @@ export function DepenseDialog({ open, onOpenChange, depenseId = null }: Props) {
   const [justificatif, setJustificatif] = useState('')
   const [uploading, setUploading] = useState(false)
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (depenseId) {
-        const target = depenses.find((d) => d.id === depenseId)
-        if (target) {
-          setCategorie(target.categorie)
-          setDescription(target.description)
-          setMontant(String(target.montant))
-          setModePaiement(target.modePaiement)
-          setVehicule(target.vehicule)
-          setDate(target.date)
-          setJustificatif(target.justificatif ?? '')
-        }
-      } else {
-        setCategorie('Carburant')
-        setDescription('')
-        setMontant('')
-        setModePaiement('Espèces')
-        setVehicule('—')
-        setDate(today)
-        setJustificatif('')
+  const seedForm = () => {
+    if (depenseId) {
+      const target = depenses.find((d) => d.id === depenseId)
+      if (target) {
+        setCategorie(target.categorie)
+        setDescription(target.description)
+        setMontant(String(target.montant))
+        setModePaiement(target.modePaiement)
+        setVehicule(target.vehicule)
+        setDate(target.date)
+        setJustificatif(target.justificatif ?? '')
+        return
       }
     }
+    setCategorie('Carburant')
+    setDescription('')
+    setMontant('')
+    setModePaiement('Espèces')
+    setVehicule('—')
+    setDate(today)
+    setJustificatif('')
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setCategorie('Carburant')

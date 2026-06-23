@@ -5,6 +5,7 @@ import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -23,22 +24,20 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
 
   const isEdit = !!permisId
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (permisId) {
-        const target = permis.find((p) => p.id === permisId)
-        if (target) {
-          setCode(target.code)
-          setLibelle(target.libelle)
-        }
-      } else {
-        setCode(permis[0]?.code ?? 'B')
-        setLibelle('')
+  const seedForm = () => {
+    if (permisId) {
+      const target = permis.find((p) => p.id === permisId)
+      if (target) {
+        setCode(target.code)
+        setLibelle(target.libelle)
+        return
       }
     }
+    setCode(permis[0]?.code ?? 'B')
+    setLibelle('')
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setCode(permis[0]?.code ?? 'B')

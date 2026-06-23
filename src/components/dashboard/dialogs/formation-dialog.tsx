@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormTextarea } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -26,26 +27,24 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
 
   const isEdit = !!formationId
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (formationId) {
-        const target = formations.find((f) => f.id === formationId)
-        if (target) {
-          setNom(target.nom)
-          setDescription(target.description)
-          setPrix(String(target.prix))
-          setActif(target.actif)
-        }
-      } else {
-        setNom('')
-        setDescription('')
-        setPrix('')
-        setActif(true)
+  const seedForm = () => {
+    if (formationId) {
+      const target = formations.find((f) => f.id === formationId)
+      if (target) {
+        setNom(target.nom)
+        setDescription(target.description)
+        setPrix(String(target.prix))
+        setActif(target.actif)
+        return
       }
     }
+    setNom('')
+    setDescription('')
+    setPrix('')
+    setActif(true)
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setNom('')

@@ -8,6 +8,7 @@ import { useDataStore } from '@/store/data-store'
 import { MODES_PAIEMENT } from '@/lib/constants'
 import { formatXOF, todayFrShort } from '@/lib/format'
 import type { ModePaiement } from '@/lib/domain/types'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 export function NouveauPaiementDialog({
   factureId,
@@ -32,17 +33,15 @@ export function NouveauPaiementDialog({
 
   const facture = factures.find((f) => f.id === factureId)
 
-  // Reset montant au reste à payer quand on ouvre (sans useEffect)
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open && facture) {
-      setMontant(String(facture.reste))
-      setModePaiement('Espèces')
-      setReference('')
-      setDatePaiement(today)
-    }
+  const seedForm = () => {
+    if (!facture) return
+    setMontant(String(facture.reste))
+    setModePaiement('Espèces')
+    setReference('')
+    setDatePaiement(today)
   }
+
+  useDialogReset(open, seedForm)
 
   const handleCancel = () => {
     onOpenChange(false)

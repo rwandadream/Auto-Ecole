@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput } from '@/components/dashboard/modal'
 import { Switch } from '@/components/ui/switch'
 import { useDataStore } from '@/store/data-store'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -27,29 +28,26 @@ export function NouvelInspecteurDialog({ open, onOpenChange, inspecteurId = null
 
   const isEdit = !!inspecteurId
 
-  // Pre-fill when editing
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (inspecteurId) {
-        const target = inspecteurs.find((i) => i.id === inspecteurId)
-        if (target) {
-          setNom(target.nom)
-          setPrenom(target.prenom)
-          setTelephone(target.telephone)
-          setEmail(target.email)
-          setActif(target.actif)
-        }
-      } else {
-        setNom('')
-        setPrenom('')
-        setTelephone('')
-        setEmail('')
-        setActif(true)
+  const seedForm = () => {
+    if (inspecteurId) {
+      const target = inspecteurs.find((i) => i.id === inspecteurId)
+      if (target) {
+        setNom(target.nom)
+        setPrenom(target.prenom)
+        setTelephone(target.telephone)
+        setEmail(target.email)
+        setActif(target.actif)
+        return
       }
     }
+    setNom('')
+    setPrenom('')
+    setTelephone('')
+    setEmail('')
+    setActif(true)
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setNom('')

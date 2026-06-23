@@ -5,6 +5,7 @@ import { ClipboardCheck, Calendar, Clock, User, Car } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore, type Seance } from '@/store/data-store'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 export function SuiviSeanceDialog({
   seance,
@@ -22,15 +23,13 @@ export function SuiviSeanceDialog({
   const [statut, setStatut] = useState<Seance['statut']>('Planifié')
   const [notes, setNotes] = useState('')
 
-  // Synchroniser le formulaire quand la séance change ou que le dialog s'ouvre
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (seance && open) {
-      setStatut(seance.statut)
-      setNotes(seance.notes ?? '')
-    }
+  const seedForm = () => {
+    if (!seance) return
+    setStatut(seance.statut)
+    setNotes(seance.notes ?? '')
   }
+
+  useDialogReset(open, seedForm)
 
   if (!seance) return null
 

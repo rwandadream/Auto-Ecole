@@ -5,6 +5,7 @@ import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
+import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 type Props = {
   open: boolean
@@ -26,26 +27,24 @@ export function VehiculeDialog({ open, onOpenChange, vehiculeId = null }: Props)
 
   const isEdit = !!vehiculeId
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    if (open) {
-      if (vehiculeId) {
-        const target = vehicules.find((v) => v.id === vehiculeId)
-        if (target) {
-          setMarque(target.marque)
-          setModele(target.modele)
-          setImmatriculation(target.immatriculation)
-          setEtat(target.etat)
-        }
-      } else {
-        setMarque('')
-        setModele('')
-        setImmatriculation('')
-        setEtat('Disponible')
+  const seedForm = () => {
+    if (vehiculeId) {
+      const target = vehicules.find((v) => v.id === vehiculeId)
+      if (target) {
+        setMarque(target.marque)
+        setModele(target.modele)
+        setImmatriculation(target.immatriculation)
+        setEtat(target.etat)
+        return
       }
     }
+    setMarque('')
+    setModele('')
+    setImmatriculation('')
+    setEtat('Disponible')
   }
+
+  useDialogReset(open, seedForm)
 
   const reset = () => {
     setMarque('')
