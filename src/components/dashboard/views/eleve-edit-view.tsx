@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowLeft, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
@@ -15,7 +15,8 @@ const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-
 
 export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const setActiveView = useNavStore((s) => s.setActiveView)
-  const eleve = useDataStore((s) => s.eleves).find((e) => e.code === eleveCode)
+  const eleves = useDataStore((s) => s.eleves)
+  const eleve = useMemo(() => eleves.find((e) => e.code === eleveCode), [eleves, eleveCode])
   const updateEleve = useDataStore((s) => s.updateEleve)
   const permis = useDataStore((s) => s.permis)
 

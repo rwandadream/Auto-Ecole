@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Plus,
   Mail,
@@ -270,6 +270,12 @@ export function ParametresView() {
       useNavStore.getState().setParametresTab(tab)
     }
   }
+
+  useEffect(() => {
+    if (!visibleTabs.includes(parametresTab)) {
+      useNavStore.getState().setParametresTab(activeTab)
+    }
+  }, [visibleTabs, parametresTab, activeTab])
 
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)

@@ -662,7 +662,11 @@ function DepenseDetailModal({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
-  const depense = useDataStore((s) => s.depenses).find((d) => d.id === depenseId)
+  const depenses = useDataStore((s) => s.depenses)
+  const depense = useMemo(
+    () => (depenseId ? depenses.find((d) => d.id === depenseId) : undefined),
+    [depenses, depenseId],
+  )
   if (!depense) {
     return (
       <Modal open={open} onOpenChange={onOpenChange} title="Détail de la dépense" size="md">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Bell, HelpCircle, ChevronDown, Calendar, LogOut, User, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -35,9 +35,12 @@ export function Header() {
     user?.mode === 'admin' &&
     getParametresTabsForRole(user.role).includes('audit')
 
-  // Recent audit entries — computed directly in the selector to avoid stale array references
-  const recentAudit = useDataStore((s) => s.auditLog.slice(0, 8))
-  const unreadCount = useDataStore((s) => s.auditLog.filter((a) => a.action === 'INSERT').length)
+  const auditLog = useDataStore((s) => s.auditLog)
+  const recentAudit = useMemo(() => auditLog.slice(0, 8), [auditLog])
+  const unreadCount = useMemo(
+    () => auditLog.filter((a) => a.action === 'INSERT').length,
+    [auditLog],
+  )
 
   const userName = user?.mode === 'admin' ? user.name : 'Utilisateur'
   const userRole = user?.mode === 'admin' ? user.role : '—'

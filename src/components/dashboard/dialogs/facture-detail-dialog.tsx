@@ -34,8 +34,13 @@ export function FactureDetailDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
-  const facture = useDataStore((s) => s.factures.find((f) => f.id === factureId))
+  const factures = useDataStore((s) => s.factures)
+  const eleves = useDataStore((s) => s.eleves)
   const allPaiements = useDataStore((s) => s.paiements)
+  const facture = useMemo(
+    () => (factureId ? factures.find((f) => f.id === factureId) : undefined),
+    [factures, factureId],
+  )
   const paiements = useMemo(
     () =>
       allPaiements.filter((p) => {
@@ -44,7 +49,10 @@ export function FactureDetailDialog({
       }),
     [allPaiements, factureId, facture],
   )
-  const eleve = useDataStore((s) => s.eleves.find((e) => e.code === facture?.eleveCode))
+  const eleve = useMemo(
+    () => (facture?.eleveCode ? eleves.find((e) => e.code === facture.eleveCode) : undefined),
+    [eleves, facture],
+  )
 
   if (!facture) {
     return (

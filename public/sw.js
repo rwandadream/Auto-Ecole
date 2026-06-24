@@ -1,4 +1,4 @@
-const CACHE = 'sarah-auto-v3'
+const CACHE = 'sarah-auto-v4'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(self.skipWaiting())
