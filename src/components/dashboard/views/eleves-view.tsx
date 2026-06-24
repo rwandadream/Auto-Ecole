@@ -106,7 +106,8 @@ function parseElevesCsv(text: string): CsvRow[] {
 export function ElevesView() {
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
-  const { setActiveView, setSelectedEleveCode } = useNavStore()
+  const setActiveView = useNavStore((s) => s.setActiveView)
+  const setSelectedEleveCode = useNavStore((s) => s.setSelectedEleveCode)
   const [recherche, setRecherche] = useState('')
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
 

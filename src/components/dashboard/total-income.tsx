@@ -5,7 +5,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -13,6 +12,7 @@ import {
 import { useDataStore } from '@/store/data-store'
 import { formatXOF } from '@/lib/format'
 import { parseFlexibleDate } from '@/lib/stats'
+import { useClientMounted } from '@/hooks/use-client-mounted'
 
 const moisLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
 
@@ -64,6 +64,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
 export function TotalIncome() {
   const paiements = useDataStore((s) => s.paiements)
   const depenses = useDataStore((s) => s.depenses)
+  const mounted = useClientMounted()
 
   const data = useMemo(() => {
     const currentYear = new Date().getFullYear()
@@ -113,8 +114,12 @@ export function TotalIncome() {
       </div>
 
       <div className="mt-6 h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 20, right: 0, left: -10, bottom: 0 }}>
+        {!mounted ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Chargement du graphique…
+          </div>
+        ) : (
+          <BarChart width={680} height={300} data={data} margin={{ top: 20, right: 0, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
             <XAxis
               dataKey="month"
@@ -145,7 +150,7 @@ export function TotalIncome() {
               maxBarSize={36}
             />
           </BarChart>
-        </ResponsiveContainer>
+        )}
       </div>
     </div>
   )

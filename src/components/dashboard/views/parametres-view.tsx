@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Plus,
   Mail,
@@ -264,11 +264,12 @@ export function ParametresView() {
     ? parametresTab
     : visibleTabs[0] ?? 'profil'
 
-  useEffect(() => {
-    if (visibleTabs.length > 0 && parametresTab !== activeTab) {
-      useNavStore.getState().setParametresTab(activeTab)
+  const handleTabChange = (v: string) => {
+    const tab = v as ParametresTab
+    if (visibleTabs.includes(tab)) {
+      useNavStore.getState().setParametresTab(tab)
     }
-  }, [visibleTabs, parametresTab, activeTab])
+  }
 
   // Dialog state
   const [showProfileEdit, setShowProfileEdit] = useState(false)
@@ -342,7 +343,7 @@ export function ParametresView() {
 
       <Tabs
         value={activeTab}
-        onValueChange={(v) => useNavStore.getState().setParametresTab(v as ParametresTab)}
+        onValueChange={handleTabChange}
         className="flex flex-col gap-6"
       >
         <div className="overflow-x-auto">

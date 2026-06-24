@@ -30,6 +30,8 @@ const updateUserSchema = z.object({
 
 const SUPER_ADMIN_ROLE = 'super_administrateur'
 
+export const maxDuration = 10
+
 async function requireSuperAdminSession() {
   const serverClient = await createServerClient()
   const { data: { user: caller }, error: authError } = await serverClient.auth.getUser()

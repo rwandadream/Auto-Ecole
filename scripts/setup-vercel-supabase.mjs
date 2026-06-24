@@ -19,9 +19,14 @@ import { execSync } from 'node:child_process'
 const PROJECT_REF = 'myzgspejgqzvmbuqqwks'
 const SUPABASE_URL = `https://${PROJECT_REF}.supabase.co`
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ?? 'sb_publishable_yS_nyOgtCs_MWcXRiowAGQ_VYUxiexC'
 const PRODUCTION_URL = (process.env.VERCEL_PRODUCTION_URL ?? 'https://auto-ecole-pi.vercel.app').replace(/\/$/, '')
 const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN
+
+if (!PUBLISHABLE_KEY) {
+  console.error('❌ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY manquant.')
+  console.error('   Exportez la clé publishable Supabase avant d\'exécuter ce script.')
+  process.exit(1)
+}
 
 if (!ACCESS_TOKEN) {
   console.error('❌ SUPABASE_ACCESS_TOKEN manquant.')

@@ -48,12 +48,16 @@ export const useNavStore = create<NavState>((set) => ({
   mobileNavOpen: false,
   selectedEleveCode: null,
   parametresTab: 'profil',
-  setActiveView: (view) => set({ activeView: view, mobileNavOpen: false }),
+  setActiveView: (view) =>
+    set((s) =>
+      s.activeView === view && !s.mobileNavOpen ? s : { activeView: view, mobileNavOpen: false },
+    ),
   setSelectedEleveCode: (code) => set({ selectedEleveCode: code }),
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
   setMobileNavOpen: (open) => set({ mobileNavOpen: open }),
   closeMobileNav: () => set({ mobileNavOpen: false }),
-  setParametresTab: (tab) => set({ parametresTab: tab }),
+  setParametresTab: (tab) =>
+    set((s) => (s.parametresTab === tab ? s : { parametresTab: tab })),
   openParametres: (tab = 'profil') =>
     set({ activeView: 'parametres', parametresTab: tab, mobileNavOpen: false }),
 }))

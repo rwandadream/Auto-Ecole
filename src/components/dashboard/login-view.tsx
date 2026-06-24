@@ -82,7 +82,8 @@ const ROLES: { key: TabKey; label: string; icon: typeof User }[] = [
 ]
 
 export function LoginView() {
-  const { loginAdmin, loginEleve } = useAuthStore()
+  const loginAdmin = useAuthStore((s) => s.loginAdmin)
+  const loginEleve = useAuthStore((s) => s.loginEleve)
 
   const [activeTab, setActiveTab] = useState<TabKey>('admin')
   const [email, setEmail] = useState('')

@@ -43,7 +43,8 @@ const TYPE_FILTRES = ['Tous', 'Code', 'Conduite'] as const
 function ExamensIndividuels() {
   const examens = useDataStore((s) => s.examens)
   const deleteExamen = useDataStore((s) => s.deleteExamen)
-  const { setActiveView, setSelectedEleveCode } = useNavStore()
+  const setActiveView = useNavStore((s) => s.setActiveView)
+  const setSelectedEleveCode = useNavStore((s) => s.setSelectedEleveCode)
   const user = useAuthStore((s) => s.user)
   const canDelete = isSuperAdmin(user?.mode === 'admin' ? user.role : '')
   const [deleteId, setDeleteId] = useState<string | null>(null)
