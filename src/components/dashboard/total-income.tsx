@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -93,15 +94,15 @@ export function TotalIncome() {
   const ticks = Array.from({ length: 6 }, (_, i) => (yAxisMax / 5) * i)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Revenus & Dépenses</h2>
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-foreground sm:text-lg">Revenus & Dépenses</h2>
           <p className="text-sm text-muted-foreground">
-            Comparaison mensuelle sur l'année en cours (XOF)
+            Comparaison mensuelle sur l&apos;année en cours (XOF)
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-primary" />
             <span className="text-xs font-medium text-muted-foreground">Revenus</span>
@@ -113,43 +114,47 @@ export function TotalIncome() {
         </div>
       </div>
 
-      <div className="mt-6 h-[300px] w-full">
+      <div className="mt-6 h-[240px] w-full min-w-0 sm:h-[300px]">
         {!mounted ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Chargement du graphique…
           </div>
         ) : (
-          <BarChart width={680} height={300} data={data} margin={{ top: 20, right: 0, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-            <XAxis
-              dataKey="month"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#64748B', fontSize: 12 }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#64748B', fontSize: 12 }}
-              tickFormatter={(value) => formatValue(value)}
-              domain={[0, yAxisMax]}
-              ticks={ticks}
-            />
-            <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
-            <Bar
-              dataKey="revenus"
-              stackId="finance"
-              fill="#2563EB"
-              maxBarSize={36}
-            />
-            <Bar
-              dataKey="depenses"
-              stackId="finance"
-              fill="#1E293B"
-              radius={[6, 6, 0, 0]}
-              maxBarSize={36}
-            />
-          </BarChart>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 4, left: -18, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748B', fontSize: 11 }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748B', fontSize: 11 }}
+                tickFormatter={(value) => formatValue(value)}
+                domain={[0, yAxisMax]}
+                ticks={ticks}
+                width={48}
+              />
+              <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
+              <Bar
+                dataKey="revenus"
+                stackId="finance"
+                fill="#2563EB"
+                maxBarSize={36}
+              />
+              <Bar
+                dataKey="depenses"
+                stackId="finance"
+                fill="#1E293B"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={36}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
     </div>

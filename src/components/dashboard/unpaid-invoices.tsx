@@ -68,13 +68,13 @@ export function UnpaidInvoices() {
   return (
     <div className="rounded-xl border border-border bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
+      <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
             <AlertCircle className="h-5 w-5 text-destructive" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Relances impayés</h2>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-foreground sm:text-lg">Relances impayés</h2>
             <p className="text-sm text-muted-foreground">
               Rappels WhatsApp en un clic pour les factures en attente
             </p>
@@ -83,7 +83,7 @@ export function UnpaidInvoices() {
         <button
           onClick={handleToutRelancer}
           disabled={rows.length === 0}
-          className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-auto"
         >
           <Send className="h-4 w-4" />
           Tout relancer

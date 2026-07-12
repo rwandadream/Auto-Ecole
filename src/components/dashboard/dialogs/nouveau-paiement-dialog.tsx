@@ -100,18 +100,18 @@ export function NouveauPaiementDialog({
       {facture ? (
         <div className="space-y-4">
           {/* Récap facture */}
-          <div className="grid grid-cols-3 gap-3 rounded-lg bg-muted p-3">
+          <div className="grid grid-cols-1 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted-foreground">Montant facture</p>
-              <p className="text-sm font-bold text-foreground">{formatXOF(facture.montant)}</p>
+              <p className="break-all text-sm font-bold text-foreground">{formatXOF(facture.montant)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Déjà payé</p>
-              <p className="text-sm font-bold text-success">{formatXOF(facture.paye)}</p>
+              <p className="break-all text-sm font-bold text-success">{formatXOF(facture.paye)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Reste à payer</p>
-              <p className="text-sm font-bold text-destructive">{formatXOF(facture.reste)}</p>
+              <p className="break-all text-sm font-bold text-destructive">{formatXOF(facture.reste)}</p>
             </div>
           </div>
 

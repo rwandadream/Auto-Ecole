@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -95,59 +96,62 @@ export function RevenueAnalytics() {
   const ticks = Array.from({ length: 6 }, (_, i) => (yAxisMax / 5) * i)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Évolution du chiffre d'affaires</h2>
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-foreground sm:text-lg">Évolution du chiffre d&apos;affaires</h2>
           <p className="text-sm text-muted-foreground">Recettes encaissées (XOF) — cette semaine</p>
         </div>
-        <button className="flex h-9 items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+        <button className="flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:w-auto">
           Cette semaine
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
       </div>
 
-      <div className="mt-6 h-[300px] w-full">
+      <div className="mt-6 h-[240px] w-full min-w-0 sm:h-[300px]">
         {!mounted ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Chargement du graphique…
           </div>
         ) : (
-          <BarChart width={680} height={300} data={data} margin={{ top: 20, right: 0, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-            <XAxis
-              dataKey="day"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#64748B', fontSize: 12 }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#64748B', fontSize: 12 }}
-              tickFormatter={(value) => formatValue(value)}
-              domain={[0, yAxisMax]}
-              ticks={ticks}
-            />
-            <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
-              {data.map((_, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={index === peakIndex && hasPeak ? 'var(--accent-emphasis)' : 'var(--primary)'}
-                  fillOpacity={index === peakIndex && hasPeak ? 1 : 0.85}
-                />
-              ))}
-            </Bar>
-          </BarChart>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 4, left: -18, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <XAxis
+                dataKey="day"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748B', fontSize: 12 }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748B', fontSize: 11 }}
+                tickFormatter={(value) => formatValue(value)}
+                domain={[0, yAxisMax]}
+                ticks={ticks}
+                width={48}
+              />
+              <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                {data.map((_, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index === peakIndex && hasPeak ? 'var(--accent-emphasis)' : 'var(--primary)'}
+                    fillOpacity={index === peakIndex && hasPeak ? 1 : 0.85}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </div>
 
       {/* Peak indicator */}
       <div className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-primary/5 px-3 py-2">
-        <span className="h-2 w-2 rounded-full bg-[var(--accent-emphasis)]" />
+        <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--accent-emphasis)]" />
         {hasPeak ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-center text-xs text-muted-foreground">
             Meilleure recette le{' '}
             <span className="font-semibold text-foreground">{peak.day}</span> :{' '}
             <span className="font-bold text-primary">{formatXOF(peak.value)}</span>

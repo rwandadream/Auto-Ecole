@@ -181,10 +181,52 @@ export function SaisieResultatsDialog({
           </div>
         </div>
 
-        {/* Tableau des candidats */}
+        {/* Tableau / cartes des candidats */}
         <div className="overflow-hidden rounded-xl border border-border">
-          <div className="max-h-[40vh] overflow-y-auto">
-            <table className="w-full text-sm">
+          {/* Mobile cards */}
+          <div className="max-h-[45vh] space-y-3 overflow-y-auto p-3 sm:hidden">
+            {results.map((c, idx) => (
+              <div key={c.identifiant} className="rounded-lg border border-border bg-card p-3">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {idx + 1}. {c.nomComplet}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">{c.identifiant}</p>
+                    <p className="text-xs text-muted-foreground">Catégorie {c.categoriePermis}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-muted-foreground">
+                    Résultat
+                    <select
+                      value={c.resultat}
+                      onChange={(e) => updateResultat(idx, e.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+                    >
+                      <option value="En attente">En attente</option>
+                      <option value="Admis">Admis</option>
+                      <option value="Échec">Échec</option>
+                    </select>
+                  </label>
+                  <label className="block text-xs font-medium text-muted-foreground">
+                    Notes
+                    <input
+                      type="text"
+                      value={c.notes}
+                      onChange={(e) => updateNotes(idx, e.target.value)}
+                      placeholder="—"
+                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="custom-scrollbar hidden max-h-[40vh] overflow-auto sm:block">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="sticky top-0 bg-muted/60 backdrop-blur">
                 <tr className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-3 text-left">N°</th>

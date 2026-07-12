@@ -9,6 +9,11 @@ import {
   PaginationFooter,
   type BadgeTone,
 } from '@/components/dashboard/views/shared'
+import {
+  ResponsiveDataView,
+  MobileListCard,
+  MobileListCardRow,
+} from '@/components/dashboard/responsive-data-view'
 
 const ENTITY_OPTIONS: { value: string; label: string }[] = [
   { value: 'Tous', label: 'Toutes les entités' },
@@ -106,20 +111,19 @@ export function AuditLogPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold text-foreground">
           Journal d&apos;audit
         </h2>
-        <span className="flex items-center gap-2 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
+        <span className="inline-flex w-fit items-center gap-2 rounded-lg border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground">
           <History className="h-4 w-4 text-primary" />
           {auditLog.length} entrée{auditLog.length > 1 ? 's' : ''} (max 200)
         </span>
       </div>
 
-      {/* Filter bar */}
       <Card className="p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -140,7 +144,7 @@ export function AuditLogPanel() {
                 setEntityFilter(e.target.value)
                 setPage(1)
               }}
-              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
+              className="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors lg:w-auto"
             >
               {ENTITY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -154,7 +158,7 @@ export function AuditLogPanel() {
                 setActionFilter(e.target.value)
                 setPage(1)
               }}
-              className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
+              className="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors lg:w-auto"
             >
               {ACTION_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
@@ -166,82 +170,115 @@ export function AuditLogPanel() {
         </div>
       </Card>
 
-      {/* Table */}
       <Card className="p-0">
-        <div className="custom-scrollbar overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="sticky top-0 z-10 bg-card">
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date / Heure</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entité</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateur</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
-                      <p className="text-sm">
-                        {auditLog.length === 0
-                          ? "Aucune action enregistrée pour le moment. Effectuez une modification (création, édition, suppression) dans un module pour la voir apparaître ici."
-                          : 'Aucune entrée ne correspond à votre recherche.'}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
+        <ResponsiveDataView
+          empty={filtered.length === 0}
+          emptyState={
+            <div className="flex flex-col items-center gap-2 px-4 py-12 text-muted-foreground">
+              <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-center text-sm">
+                {auditLog.length === 0
+                  ? "Aucune action enregistrée pour le moment. Effectuez une modification (création, édition, suppression) dans un module pour la voir apparaître ici."
+                  : 'Aucune entrée ne correspond à votre recherche.'}
+              </p>
+            </div>
+          }
+          mobile={filteredPage.map((entry) => (
+            <MobileListCard key={entry.id}>
+              <div className="flex items-start justify-between gap-2">
+                <StatusBadge label={actionLabel(entry.action)} tone={actionTone(entry.action)} />
+                <span className="text-xs text-muted-foreground">{entry.timestamp}</span>
+              </div>
+              <p className="mt-2 text-sm font-medium text-foreground">{entry.description}</p>
+              <div className="mt-3 space-y-1 border-t border-border pt-3">
+                <MobileListCardRow label="Entité">
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">
+                    {entityLabel(entry.entity)}
+                  </span>
+                </MobileListCardRow>
+                <MobileListCardRow label="Utilisateur">{entry.user}</MobileListCardRow>
+              </div>
+              {(entry.oldData || entry.newData) && (
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                  className="mt-3 inline-flex h-9 w-full items-center justify-center gap-1 rounded-md border border-border text-xs font-medium text-muted-foreground hover:bg-muted"
+                >
+                  Détail
+                  <ChevronDown className={`h-4 w-4 transition-transform ${expandedId === entry.id ? 'rotate-180' : ''}`} />
+                </button>
               )}
-              {filteredPage.map((entry) => (
-                <Fragment key={entry.id}>
-                  <tr className="hover:bg-muted/40">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
-                      {entry.timestamp}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge label={actionLabel(entry.action)} tone={actionTone(entry.action)} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground">
-                        {entityLabel(entry.entity)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>{entry.description}</span>
-                        {(entry.oldData || entry.newData) && (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-                            className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted"
-                            aria-label="Voir le détail"
-                          >
-                            <ChevronDown className={`h-4 w-4 transition-transform ${expandedId === entry.id ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
-                      {entry.user}
-                    </td>
+              {expandedId === entry.id && (entry.oldData || entry.newData) && (
+                <div className="mt-3 flex flex-col gap-3">
+                  <DiffBlock data={entry.oldData} label="Avant" />
+                  <DiffBlock data={entry.newData} label="Après" />
+                </div>
+              )}
+            </MobileListCard>
+          ))}
+          desktop={
+            <div className="custom-scrollbar overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead className="sticky top-0 z-10 bg-card">
+                  <tr className="border-b border-border text-left">
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date / Heure</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entité</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Utilisateur</th>
                   </tr>
-                  {expandedId === entry.id && (entry.oldData || entry.newData) && (
-                    <tr className="bg-muted/20">
-                      <td colSpan={5} className="px-4 py-3">
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                          <DiffBlock data={entry.oldData} label="Avant" />
-                          <DiffBlock data={entry.newData} label="Après" />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filteredPage.map((entry) => (
+                    <Fragment key={entry.id}>
+                      <tr className="hover:bg-muted/40">
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                          {entry.timestamp}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge label={actionLabel(entry.action)} tone={actionTone(entry.action)} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-semibold text-foreground">
+                            {entityLabel(entry.entity)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          <div className="flex items-center gap-2">
+                            <span>{entry.description}</span>
+                            {(entry.oldData || entry.newData) && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted"
+                                aria-label="Voir le détail"
+                              >
+                                <ChevronDown className={`h-4 w-4 transition-transform ${expandedId === entry.id ? 'rotate-180' : ''}`} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">
+                          {entry.user}
+                        </td>
+                      </tr>
+                      {expandedId === entry.id && (entry.oldData || entry.newData) && (
+                        <tr className="bg-muted/20">
+                          <td colSpan={5} className="px-4 py-3">
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                              <DiffBlock data={entry.oldData} label="Avant" />
+                              <DiffBlock data={entry.newData} label="Après" />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
         <PaginationFooter
           pageCourante={pageCourante}
           totalPages={totalPages}

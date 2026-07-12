@@ -43,12 +43,17 @@ export function Modal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          'flex max-h-[min(92dvh,920px)] w-full max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0',
+          'flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0',
+          'top-[max(0.5rem,env(safe-area-inset-top))] translate-y-0 sm:top-[50%] sm:translate-y-[-50%]',
+          'rounded-xl sm:rounded-lg',
           sizeClasses[size],
         )}
+        showCloseButton
       >
-        <DialogHeader className="shrink-0 border-b border-border px-4 pb-3 pt-5 pr-12 sm:px-6">
-          <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
+        <DialogHeader className="shrink-0 border-b border-border px-4 pb-3 pt-5 pr-12 text-left sm:px-6">
+          <DialogTitle className="text-base font-bold text-foreground sm:text-lg">
+            {title}
+          </DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <div
@@ -83,7 +88,7 @@ export function ModalCancelButton({
     <Button
       type="button"
       variant="outline"
-      className={cn('h-10 rounded-lg', className)}
+      className={cn('h-10 min-h-10 rounded-lg', className)}
       {...props}
     />
   )
@@ -96,7 +101,7 @@ export function ModalPrimaryButton({
   return (
     <Button
       type="button"
-      className={cn('h-10 rounded-lg font-semibold', className)}
+      className={cn('h-10 min-h-10 rounded-lg font-semibold', className)}
       {...props}
     />
   )
@@ -110,7 +115,7 @@ export function ModalDestructiveButton({
     <Button
       type="button"
       variant="destructive"
-      className={cn('h-10 rounded-lg font-semibold', className)}
+      className={cn('h-10 min-h-10 rounded-lg font-semibold', className)}
       {...props}
     />
   )
@@ -147,7 +152,7 @@ export function FormInput({
   return (
     <input
       className={cn(
-        'h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
+        'h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
         className
       )}
       {...props}
@@ -163,7 +168,7 @@ export function FormSelect({
   return (
     <select
       className={cn(
-        'h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
+        'h-10 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
         className
       )}
       {...props}
@@ -180,7 +185,7 @@ export function FormTextarea({
   return (
     <textarea
       className={cn(
-        'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
+        'w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors',
         className
       )}
       {...props}

@@ -577,7 +577,7 @@ export function ElevesView() {
 
       {/* CSV import preview dialog */}
       <AlertDialog open={showCsvPreview} onOpenChange={(v) => { if (!v) { setShowCsvPreview(false); setCsvRows([]) } }}>
-        <AlertDialogContent className="max-w-2xl">
+        <AlertDialogContent className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-[calc(100%-1rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Aperçu de l&apos;import CSV</AlertDialogTitle>
             <AlertDialogDescription>
@@ -585,35 +585,37 @@ export function ElevesView() {
               Format attendu : <span className="font-mono text-xs">nom;prenom;telephone;type_permis;email;adresse</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-muted text-muted-foreground">
-                <tr>
-                  <th className="p-2 text-left">#</th>
-                  <th className="p-2 text-left">Nom</th>
-                  <th className="p-2 text-left">Prénom</th>
-                  <th className="p-2 text-left">Téléphone</th>
-                  <th className="p-2 text-left">Permis</th>
-                  <th className="p-2 text-center">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {csvRows.map((row, i) => (
-                  <tr key={i} className={row.valid ? 'even:bg-muted/30' : 'bg-destructive/10'}>
-                    <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
-                    <td className="p-2 font-medium">{row.nom || <span className="text-destructive">—</span>}</td>
-                    <td className="p-2">{row.prenom || <span className="text-destructive">—</span>}</td>
-                    <td className="p-2 font-mono">{row.telephone || <span className="text-destructive">—</span>}</td>
-                    <td className="p-2">{row.typePermis}</td>
-                    <td className="p-2 text-center">
-                      {row.valid
-                        ? <CheckCircle2 className="mx-auto h-4 w-4 text-success" />
-                        : <span title={row.error}><AlertCircle className="mx-auto h-4 w-4 text-destructive" /></span>}
-                    </td>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+            <div className="custom-scrollbar max-h-72 overflow-auto">
+              <table className="w-full min-w-[520px] text-xs">
+                <thead className="sticky top-0 bg-muted text-muted-foreground">
+                  <tr>
+                    <th className="p-2 text-left">#</th>
+                    <th className="p-2 text-left">Nom</th>
+                    <th className="p-2 text-left">Prénom</th>
+                    <th className="p-2 text-left">Téléphone</th>
+                    <th className="p-2 text-left">Permis</th>
+                    <th className="p-2 text-center">Statut</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {csvRows.map((row, i) => (
+                    <tr key={i} className={row.valid ? 'even:bg-muted/30' : 'bg-destructive/10'}>
+                      <td className="p-2 font-mono text-muted-foreground">{i + 1}</td>
+                      <td className="p-2 font-medium">{row.nom || <span className="text-destructive">—</span>}</td>
+                      <td className="p-2">{row.prenom || <span className="text-destructive">—</span>}</td>
+                      <td className="p-2 font-mono">{row.telephone || <span className="text-destructive">—</span>}</td>
+                      <td className="p-2">{row.typePermis}</td>
+                      <td className="p-2 text-center">
+                        {row.valid
+                          ? <CheckCircle2 className="mx-auto h-4 w-4 text-success" />
+                          : <span title={row.error}><AlertCircle className="mx-auto h-4 w-4 text-destructive" /></span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>

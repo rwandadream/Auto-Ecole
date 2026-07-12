@@ -192,7 +192,7 @@ export function LoginView() {
       <div className="login-vignette fixed inset-0" aria-hidden />
 
       {/* Contenu centré */}
-      <div className="relative z-10 flex min-h-screen min-h-[100dvh] w-full items-center justify-center p-4 sm:p-6">
+      <div className="relative z-10 flex min-h-screen min-h-[100dvh] w-full items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6">
         <div className="login-card-enter w-full max-w-[420px]">
           <div className="overflow-hidden rounded-[1.35rem] border border-white/25 bg-white/90 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
             {/* Bandeau brand */}

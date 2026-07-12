@@ -12,8 +12,10 @@ export function AppShell({ sidebar, header, children }: AppShellProps) {
       {sidebar}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {header}
-        <main className="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-          {children}
+        <main className="custom-scrollbar flex-1 overflow-y-auto overflow-x-hidden p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
+          <div className="mx-auto w-full min-w-0 max-w-[1600px]">
+            {children}
+          </div>
         </main>
       </div>
     </div>

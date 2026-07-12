@@ -160,9 +160,9 @@ export function MetricCards() {
                 </span>
               </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 min-w-0">
               <p className="text-sm font-medium text-muted-foreground">{metric.label}</p>
-              <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{metric.value}</p>
+              <p className="mt-1 break-words text-xl font-bold tracking-tight text-foreground sm:text-2xl">{metric.value}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Mois précédent :{' '}
                 <span className="font-medium text-foreground">{metric.lastMonth}</span>

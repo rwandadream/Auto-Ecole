@@ -32,13 +32,17 @@ type ViewHeaderProps = {
 export function ViewHeader({ title, description, actions, className }: ViewHeaderProps) {
   return (
     <div className={cn('mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between', className)}>
-      <div>
+      <div className="min-w-0">
         <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h1>
         {description && (
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end [&>button]:min-h-10 [&>button]:flex-1 sm:[&>button]:flex-none">
+          {actions}
+        </div>
+      )}
     </div>
   )
 }
@@ -291,7 +295,7 @@ export function PaginationFooter({
   setPage: (fn: (p: number) => number) => void
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
       <p className="text-xs text-muted-foreground">
         Affichage de{' '}
         <span className="font-semibold text-foreground">
@@ -300,24 +304,24 @@ export function PaginationFooter({
         à <span className="font-semibold text-foreground">{debut + pageDataLength}</span> sur{' '}
         <span className="font-semibold text-foreground">{total}</span> {label}
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-1 sm:justify-end">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={pageCourante <= 1}
-          className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:flex-none"
         >
           <ChevronLeft className="h-4 w-4" />
-          Précédent
+          <span className="hidden sm:inline">Précédent</span>
         </button>
-        <span className="px-2 text-xs font-medium text-muted-foreground">
-          Page <span className="font-semibold text-foreground">{pageCourante}</span> / {totalPages}
+        <span className="shrink-0 px-2 text-xs font-medium text-muted-foreground">
+          <span className="font-semibold text-foreground">{pageCourante}</span> / {totalPages}
         </span>
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={pageCourante >= totalPages}
-          className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-9 min-h-9 flex-1 items-center justify-center gap-1 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:flex-none"
         >
-          Suivant
+          <span className="hidden sm:inline">Suivant</span>
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>

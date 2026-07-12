@@ -96,7 +96,7 @@ export function StudentHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 min-w-0 items-center gap-2 border-b border-border bg-card px-4 sm:gap-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex min-h-14 min-w-0 items-center gap-2 border-b border-border bg-card px-3 pt-[env(safe-area-inset-top)] sm:min-h-16 sm:gap-4 sm:px-6">
       <MobileMenuButton />
       {/* Greeting */}
       <div className="min-w-0">
@@ -128,7 +128,7 @@ export function StudentHeader() {
               )}
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0">
+          <PopoverContent align="end" className="w-[min(20rem,calc(100vw-1.5rem))] p-0">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-foreground">Notifications</p>
               <p className="text-xs text-muted-foreground">
