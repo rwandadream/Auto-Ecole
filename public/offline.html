@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Hors ligne — SARAH AUTO</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8fafc;
+        --fg: #0f172a;
+        --muted: #64748b;
+        --primary: #2563eb;
+        --card: #ffffff;
+        --border: #e2e8f0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background:
+          radial-gradient(1200px 600px at 10% -10%, #dbeafe 0%, transparent 55%),
+          radial-gradient(900px 500px at 100% 0%, #e2e8f0 0%, transparent 50%),
+          var(--bg);
+        color: var(--fg);
+        padding: 1.5rem;
+      }
+      .card {
+        width: min(420px, 100%);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.35rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 1.25rem;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.7rem 1.1rem;
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover { filter: brightness(1.05); }
+      .brand {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="brand">SARAH AUTO</div>
+      <h1>Vous êtes hors ligne</h1>
+      <p>
+        Impossible de joindre le serveur. Vérifiez votre connexion, puis réessayez.
+        Les données déjà chargées pourront rester disponibles après reconnexion.
+      </p>
+      <button type="button" onclick="location.href='/'">Réessayer</button>
+    </main>
+  </body>
+</html>

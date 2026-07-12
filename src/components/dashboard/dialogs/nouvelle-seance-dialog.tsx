@@ -216,7 +216,7 @@ export function NouvelleSeanceDialog({
             </FormSelect>
           </Field>
 
-          <Field label="Véhicule">
+          <Field label="Véhicule (optionnel)">
             <FormSelect value={vehiculeId} onChange={(e) => setVehiculeId(e.target.value)}>
               <option value="">Aucun véhicule</option>
               {vehiculesDisponibles.map((v) => (

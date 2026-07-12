@@ -118,7 +118,7 @@ export function FactureDetailDialog({
 
         {/* Infos détaillées */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <InfoRow label="Formation" value={facture.formation} />
+          <InfoRow label="Libellé" value={facture.formation} />
           <InfoRow label="Date d'émission" value={facture.dateEmission} />
           <InfoRow
             label="Téléphone élève"
@@ -130,15 +130,15 @@ export function FactureDetailDialog({
         <div className="overflow-hidden rounded-lg border border-border">
           <div className="grid grid-cols-3 divide-x divide-border bg-muted/40">
             <div className="px-4 py-3">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Montant</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Montant total</p>
               <p className="mt-1 text-sm font-bold text-foreground">{formatXOF(facture.montant)}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Payé</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Avances payées</p>
               <p className="mt-1 text-sm font-bold text-success">{formatXOF(facture.paye)}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Reste</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Reste à payer</p>
               <p className={`mt-1 text-sm font-bold ${facture.reste > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {formatXOF(facture.reste)}
               </p>

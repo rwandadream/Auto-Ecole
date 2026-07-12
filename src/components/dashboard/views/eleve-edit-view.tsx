@@ -9,7 +9,6 @@ import { ActionButton, Card, StatusBadge, initials, statutEleveTone } from './sh
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { STATUTS_ELEVE } from '@/lib/constants'
 import type { StatutEleve } from '@/lib/domain/types'
-import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
 
@@ -150,10 +149,10 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
             <Field label="Téléphone" required>
               <FormInput value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+225 07 12 34 56" />
             </Field>
-            <Field label="Email">
+            <Field label="Email (optionnel)">
               <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="aminata.kone@email.com" />
             </Field>
-            <Field label="Adresse">
+            <Field label="Adresse (optionnel)">
               <FormInput value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Cocody, Abidjan" />
             </Field>
           </div>
@@ -181,10 +180,14 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
-                  <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+                <option value="">Sélectionner</option>
+                {permis.map((p) => (
+                  <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>
+              {permis.length === 0 && (
+                <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
+              )}
             </Field>
             <Field label="Statut" required>
               <FormSelect value={statut} onChange={(e) => setStatut(e.target.value as StatutEleve)}>

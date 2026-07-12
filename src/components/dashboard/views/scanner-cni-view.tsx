@@ -10,7 +10,6 @@ import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
 import { uploadMediaFromDataUrl } from '@/lib/supabase/storage'
 import { useCniScanner, type CniScanResult } from '@/hooks/use-cni-scanner'
-import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 function applyScanResult(
   parsed: Partial<CniScanResult>,
@@ -360,10 +359,10 @@ export function ScannerCniView() {
             <Field label="Téléphone" required>
               <FormInput value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+225 07 12 34 56" />
             </Field>
-            <Field label="Email">
+            <Field label="Email (optionnel)">
               <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" />
             </Field>
-            <Field label="Adresse" className="sm:col-span-2">
+            <Field label="Adresse (optionnel)" className="sm:col-span-2">
               <FormInput value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Cocody, Abidjan" />
             </Field>
             <Field label="Formation" required>
@@ -378,10 +377,14 @@ export function ScannerCniView() {
             </Field>
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
-                  <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+                <option value="">Sélectionner</option>
+                {permis.map((p) => (
+                  <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>
+              {permis.length === 0 && (
+                <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
+              )}
             </Field>
           </div>
 

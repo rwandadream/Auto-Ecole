@@ -1,7 +1,13 @@
-const CACHE = 'sarah-auto-v4'
+const CACHE = 'sarah-auto-v5'
+const OFFLINE_URL = '/offline.html'
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(self.skipWaiting())
+  e.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => cache.addAll([OFFLINE_URL, '/manifest.json', '/logo.svg']))
+      .then(() => self.skipWaiting()),
+  )
 })
 
 self.addEventListener('activate', (e) => {
@@ -24,7 +30,7 @@ self.addEventListener('fetch', (e) => {
     return
   }
 
-  // Network-first for HTML and JS bundles to avoid stale chunks after deploy
+  // Network-first for navigation and app bundles
   if (
     request.mode === 'navigate' ||
     url.pathname.startsWith('/_next/') ||
@@ -32,13 +38,21 @@ self.addEventListener('fetch', (e) => {
     url.pathname.endsWith('.css')
   ) {
     e.respondWith(
-      fetch(request).catch(() => caches.match(request)),
+      fetch(request).catch(async () => {
+        if (request.mode === 'navigate') {
+          const offline = await caches.match(OFFLINE_URL)
+          if (offline) return offline
+        }
+        const cached = await caches.match(request)
+        if (cached) return cached
+        return new Response('Hors ligne', { status: 503, statusText: 'Offline' })
+      }),
     )
     return
   }
 
-  // Cache-first for static assets (images, fonts, icons)
-  if (url.pathname.match(/\.(png|jpg|jpeg|svg|woff2?|ico)$/)) {
+  // Cache-first for static assets
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|woff2?|ico)$/) || url.pathname === OFFLINE_URL) {
     e.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached

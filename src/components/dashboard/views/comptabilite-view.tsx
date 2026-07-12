@@ -293,6 +293,13 @@ export function ComptabiliteView() {
     [depenses],
   )
 
+  const totalEntrees = useMemo(
+    () => paiements.reduce((sum, p) => sum + p.montant, 0),
+    [paiements],
+  )
+
+  const soldeBilan = useMemo(() => totalEntrees - totalDepenses, [totalEntrees, totalDepenses])
+
   const depensesVehicules = useMemo(
     () => depenses.filter((d) => d.vehicule !== '—').reduce((sum, d) => sum + d.montant, 0),
     [depenses],
@@ -323,7 +330,7 @@ export function ComptabiliteView() {
     <>
       <ViewHeader
         title="Comptabilité"
-        description="Registre des dépenses et comptabilité analytique"
+        description="Bilan financier, entrées (paiements & avances) et sorties (dépenses)"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 rounded-lg border border-input bg-background px-2">
@@ -359,6 +366,23 @@ export function ComptabiliteView() {
           </div>
         }
       />
+
+      {/* Bilan comptable */}
+      <Card className="mb-6 p-4">
+        <h2 className="text-base font-semibold text-foreground">Bilan</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Entrées (paiements et avances) · Sorties (dépenses) · Solde
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <KpiCard label="Total des entrées" value={formatXOF(totalEntrees)} tone="success" />
+          <KpiCard label="Total des sorties" value={formatXOF(totalDepenses)} tone="destructive" />
+          <KpiCard
+            label="Solde / bilan"
+            value={formatXOF(soldeBilan)}
+            tone={soldeBilan >= 0 ? 'primary' : 'destructive'}
+          />
+        </div>
+      </Card>
 
       {/* KPI row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

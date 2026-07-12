@@ -239,11 +239,11 @@ export function FacturationView() {
                     </div>
                     <div className="mt-3 space-y-1 border-t border-border pt-3">
                       <MobileListCardRow label="Formation">{f.formation}</MobileListCardRow>
-                      <MobileListCardRow label="Montant">{formatXOF(f.montant)}</MobileListCardRow>
-                      <MobileListCardRow label="Payé">
+                      <MobileListCardRow label="Montant total">{formatXOF(f.montant)}</MobileListCardRow>
+                      <MobileListCardRow label="Avances payées">
                         <span className="text-success">{formatXOF(f.paye)}</span>
                       </MobileListCardRow>
-                      <MobileListCardRow label="Reste">
+                      <MobileListCardRow label="Reste à payer">
                         <span className={f.reste > 0 ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
                           {formatXOF(f.reste)}
                         </span>
@@ -318,9 +318,9 @@ export function FacturationView() {
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Numéro</th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Élève</th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Formation</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Montant</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payé</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reste</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Montant total</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Avances</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reste à payer</th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date émission</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>

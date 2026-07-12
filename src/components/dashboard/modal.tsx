@@ -43,16 +43,33 @@ export function Modal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          scroll ? 'max-h-[90vh] overflow-y-auto' : 'overflow-visible',
+          'flex max-h-[min(92dvh,920px)] w-full max-w-[calc(100%-1rem)] flex-col gap-0 overflow-hidden p-0',
           sizeClasses[size],
         )}
       >
-        <DialogHeader>
+        <DialogHeader className="shrink-0 border-b border-border px-4 pb-3 pt-5 pr-12 sm:px-6">
           <DialogTitle className="text-lg font-bold text-foreground">{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="py-2">{children}</div>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        <div
+          className={cn(
+            'min-h-0 flex-1 px-4 py-3 sm:px-6',
+            scroll ? 'overflow-y-auto overscroll-contain' : 'overflow-visible',
+          )}
+        >
+          {children}
+        </div>
+        {footer && (
+          <DialogFooter
+            className={cn(
+              'shrink-0 border-t border-border bg-card px-4 py-3 sm:px-6',
+              'pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+              '[&>button]:w-full sm:[&>button]:w-auto',
+            )}
+          >
+            {footer}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   )

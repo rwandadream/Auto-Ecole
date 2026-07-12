@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
-import { type ResultatExamen, PERMIS_CATEGORIES } from '@/lib/domain/types'
+import { type ResultatExamen } from '@/lib/domain/types'
 import { todayFrShort } from '@/lib/format'
 
 export function NouvelExamenDialog({
@@ -18,12 +18,13 @@ export function NouvelExamenDialog({
   const addExamen = useDataStore((s) => s.addExamen)
   const eleves = useDataStore((s) => s.eleves)
   const inspecteurs = useDataStore((s) => s.inspecteurs)
+  const permis = useDataStore((s) => s.permis)
 
   const today = todayFrShort()
 
   const [eleveCode, setEleveCode] = useState('')
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Conduite')
-  const [typePermis, setTypePermis] = useState('B')
+  const [typePermis, setTypePermis] = useState('')
   const [dateExamen, setDateExamen] = useState(today)
   const [inspecteur, setInspecteur] = useState('—')
   const [resultat, setResultat] = useState<ResultatExamen>('En attente')
@@ -105,10 +106,14 @@ export function NouvelExamenDialog({
           </Field>
           <Field label="Type de permis">
             <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-              {PERMIS_CATEGORIES.map((p) => (
-                <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+              <option value="">Sélectionner</option>
+              {permis.map((p) => (
+                <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
               ))}
             </FormSelect>
+            {permis.length === 0 && (
+              <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
+            )}
           </Field>
         </div>
 

@@ -6,6 +6,9 @@ import {
   persistFacture,
   persistPaiement,
 } from '@/lib/supabase/store-bridge'
+import { persistRemoteSilent } from '@/lib/supabase/persist'
+import { findEleveId, supabaseRepos } from '@/lib/supabase/repositories'
+import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 import { formatXOF } from '@/lib/format'
 import { snapshotRecord } from '@/lib/snapshot'
 import type { Depense, Facture, ModePaiement, Paiement, StatutFacture } from '@/lib/domain/types'
@@ -41,6 +44,10 @@ export type FinanceSlice = {
     montant: number
     dateEmission: string
     inscriptionId?: string
+    /** Avance initiale encaissée à la création (optionnel). */
+    avanceInitiale?: number
+    modePaiementAvance?: ModePaiement
+    referenceAvance?: string
   }) => Facture
   updateFacture: (id: string, patch: Partial<Facture>) => void
   deleteFacture: (id: string) => void
@@ -66,6 +73,7 @@ export const createFinanceSlice: StateCreator<DataState, [], [], FinanceSlice> =
 
   addFacture: (data) => {
     const numero = genFactureNumero(get().factures)
+    const avance = Math.max(0, Math.min(data.avanceInitiale ?? 0, data.montant))
     const newF: Facture = {
       id: uid('fac'),
       numero,
@@ -73,16 +81,60 @@ export const createFinanceSlice: StateCreator<DataState, [], [], FinanceSlice> =
       eleveCode: data.eleveCode,
       formation: data.formation,
       montant: data.montant,
-      paye: 0,
-      reste: data.montant,
-      statut: 'Non payée',
+      paye: avance,
+      reste: Math.max(0, data.montant - avance),
+      statut: computeStatutFacture(avance, data.montant),
       dateEmission: data.dateEmission,
       inscriptionId: data.inscriptionId ?? '',
     } as Facture
-    set((s) => ({ factures: [newF, ...s.factures] }))
+
+    let newP: Paiement | null = null
+    if (avance > 0) {
+      newP = {
+        id: uid('pa'),
+        factureId: newF.id,
+        facture: numero,
+        eleve: data.eleve,
+        montant: avance,
+        modePaiement: data.modePaiementAvance ?? 'Espèces',
+        reference: data.referenceAvance || `Avance ${numero}`,
+        datePaiement: data.dateEmission,
+      } as Paiement
+    }
+
+    set((s) => ({
+      factures: [newF, ...s.factures],
+      paiements: newP ? [newP, ...s.paiements] : s.paiements,
+    }))
     get().logAction('INSERT', 'factures', newF.id, `Émission de la facture ${numero} pour ${data.eleve}`, undefined, snapshotRecord(newF))
-    persistFacture(newF, get().eleves, 'create', () =>
-      set((s) => ({ factures: s.factures.filter((f) => f.id !== newF.id) })),
+    if (newP) {
+      get().logAction('INSERT', 'paiements', newP.id, `Avance de ${formatXOF(avance)} pour ${data.eleve}`, undefined, snapshotRecord(newP))
+    }
+
+    const eleves = get().eleves
+    const paiementSnapshot = newP
+    persistRemoteSilent(
+      async () => {
+        const eleveId = findEleveId(eleves, newF.eleveCode)
+        await supabaseRepos.factures.create(newF, eleveId)
+        if (paiementSnapshot) {
+          await supabaseRepos.paiements.create(
+            newF.id,
+            paiementSnapshot.montant,
+            paiementSnapshot.modePaiement,
+            paiementSnapshot.reference,
+          )
+          await syncDataFromSupabase()
+        }
+      },
+      () =>
+        set((s) => ({
+          factures: s.factures.filter((f) => f.id !== newF.id),
+          paiements: paiementSnapshot
+            ? s.paiements.filter((p) => p.id !== paiementSnapshot.id)
+            : s.paiements,
+        })),
+      'Création facture',
     )
     return newF
   },

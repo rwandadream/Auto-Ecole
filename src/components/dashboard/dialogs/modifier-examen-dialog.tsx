@@ -5,7 +5,7 @@ import { Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
 import { useDataStore, type Examen } from '@/store/data-store'
-import { type ResultatExamen, PERMIS_CATEGORIES } from '@/lib/domain/types'
+import { type ResultatExamen } from '@/lib/domain/types'
 import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 export function ModifierExamenDialog({
@@ -19,6 +19,7 @@ export function ModifierExamenDialog({
 }) {
   const updateExamen = useDataStore((s) => s.updateExamen)
   const inspecteurs = useDataStore((s) => s.inspecteurs)
+  const permis = useDataStore((s) => s.permis)
 
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Conduite')
   const [typePermis, setTypePermis] = useState('B')
@@ -83,10 +84,14 @@ export function ModifierExamenDialog({
           </Field>
           <Field label="Type de permis">
             <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-              {PERMIS_CATEGORIES.map((p) => (
-                <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+              <option value="">Sélectionner</option>
+              {permis.map((p) => (
+                <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
               ))}
             </FormSelect>
+            {permis.length === 0 && (
+              <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
+            )}
           </Field>
         </div>
 

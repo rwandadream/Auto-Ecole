@@ -16,57 +16,63 @@ export function NouvelleFactureDialog({
 }) {
   const addFacture = useDataStore((s) => s.addFacture)
   const eleves = useDataStore((s) => s.eleves)
-  const formations = useDataStore((s) => s.formations)
 
   const today = new Date().toISOString().split('T')[0]
 
   const [eleveCode, setEleveCode] = useState('')
-  const [formationId, setFormationId] = useState('')
+  const [libelle, setLibelle] = useState('Facture')
   const [montant, setMontant] = useState('')
+  const [avance, setAvance] = useState('')
   const [dateEmission, setDateEmission] = useState(today)
   const [notes, setNotes] = useState('')
 
-  // Quand la formation change, on met à jour le montant avec le prix de la formation
-  const handleFormationChange = (id: string) => {
-    setFormationId(id)
-    const f = formations.find((fo) => fo.id === id)
-    if (f) {
-      setMontant(String(f.prix))
-    }
-  }
-
   const resetForm = () => {
     setEleveCode('')
-    setFormationId('')
+    setLibelle('Facture')
     setMontant('')
+    setAvance('')
     setDateEmission(today)
     setNotes('')
   }
 
   const handleSubmit = () => {
     const montantValue = Number(montant) || 0
-    if (!eleveCode || !formationId || montantValue <= 0) {
-      toast.error('Veuillez sélectionner un élève, une formation et un montant valide')
+    const avanceValue = Number(avance) || 0
+    if (!eleveCode || montantValue <= 0) {
+      toast.error('Veuillez sélectionner un élève et un montant valide')
+      return
+    }
+    if (avanceValue < 0) {
+      toast.error('L\'avance ne peut pas être négative')
+      return
+    }
+    if (avanceValue > montantValue) {
+      toast.error('L\'avance ne peut pas dépasser le montant total')
       return
     }
     const eleve = eleves.find((e) => e.code === eleveCode)
-    const formation = formations.find((f) => f.id === formationId)
-    if (!eleve || !formation) {
-      toast.error('Élève ou formation introuvable')
+    if (!eleve) {
+      toast.error('Élève introuvable')
       return
     }
     const eleveNom = `${eleve.prenom} ${eleve.nom}`
     addFacture({
       eleve: eleveNom,
       eleveCode,
-      formation: formation.nom,
+      formation: libelle.trim() || 'Facture',
       montant: montantValue,
       dateEmission,
+      avanceInitiale: avanceValue > 0 ? avanceValue : undefined,
+      referenceAvance: notes.trim() || undefined,
     })
-    toast.success('Facture émise')
+    toast.success(avanceValue > 0 ? 'Facture émise avec avance' : 'Facture émise')
     resetForm()
     onOpenChange(false)
   }
+
+  const montantValue = Number(montant) || 0
+  const avanceValue = Number(avance) || 0
+  const restePreview = Math.max(0, montantValue - avanceValue)
 
   return (
     <Modal
@@ -99,19 +105,16 @@ export function NouvelleFactureDialog({
           </FormSelect>
         </Field>
 
-        <Field label="Formation" required>
-          <FormSelect value={formationId} onChange={(e) => handleFormationChange(e.target.value)}>
-            <option value="">Sélectionner une formation</option>
-            {formations.filter((f) => f.actif).map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nom} — {formatXOF(f.prix)}
-              </option>
-            ))}
-          </FormSelect>
+        <Field label="Libellé">
+          <FormInput
+            value={libelle}
+            onChange={(e) => setLibelle(e.target.value)}
+            placeholder="Facture"
+          />
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Montant (FCFA)" required>
+          <Field label="Montant total (FCFA)" required>
             <FormInput
               type="text"
               inputMode="numeric"
@@ -125,6 +128,16 @@ export function NouvelleFactureDialog({
           </Field>
         </div>
 
+        <Field label="Avance initiale (FCFA)">
+          <FormInput
+            type="text"
+            inputMode="numeric"
+            value={avance}
+            onChange={(e) => setAvance(e.target.value)}
+            placeholder="0"
+          />
+        </Field>
+
         <Field label="Notes">
           <FormTextarea
             value={notes}
@@ -134,10 +147,21 @@ export function NouvelleFactureDialog({
           />
         </Field>
 
-        {/* Aperçu en direct du montant total */}
-        <div className="flex items-center justify-between rounded-lg bg-muted p-3">
-          <span className="text-sm font-medium text-muted-foreground">Montant total</span>
-          <span className="text-lg font-bold text-primary">{formatXOF(Number(montant) || 0)}</span>
+        <div className="space-y-2 rounded-lg bg-muted p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Montant total</span>
+            <span className="text-sm font-bold text-foreground">{formatXOF(montantValue)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Avances payées</span>
+            <span className="text-sm font-bold text-success">{formatXOF(avanceValue)}</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-2">
+            <span className="text-sm font-medium text-muted-foreground">Reste à payer</span>
+            <span className={`text-lg font-bold ${restePreview > 0 ? 'text-destructive' : 'text-primary'}`}>
+              {formatXOF(restePreview)}
+            </span>
+          </div>
         </div>
       </div>
     </Modal>

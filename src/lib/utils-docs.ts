@@ -177,13 +177,13 @@ export async function generateFacturePdf(f: FactureData) {
     margin: { left: 14, right: 14 },
   })
 
-  // Totaux
+  // Totaux : Montant total / Avances payées / Reste à payer
   // @ts-expect-error lastAutoTable is injected by the plugin
   let y = (doc.lastAutoTable?.finalY ?? 100) + 14
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
-  doc.text(`Total facture: ${formatXOFFcfa(f.montant)}`, 120, y)
-  doc.text(`Deja paye: ${formatXOFFcfa(f.paye)}`, 120, y + 7)
+  doc.text(`Montant total: ${formatXOFFcfa(f.montant)}`, 120, y)
+  doc.text(`Avances payees: ${formatXOFFcfa(f.paye)}`, 120, y + 7)
   doc.setTextColor(...PDF_COLORS.destructive)
   doc.text(`Reste a payer: ${formatXOFFcfa(f.reste)}`, 120, y + 14)
 
@@ -266,7 +266,7 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
   doc.text('Formation & recyclage des conducteurs professionnels', txtX, y + 14)
-  doc.text('☎ +225 07 09 08 98 84   •   Abidjan, Côte d\'Ivoire', txtX, y + 19)
+  doc.text('☎ +225 07 09 08 98 84', txtX, y + 19)
 
   // ── N° Bordereau badge (top-right) ────────────────────────────────────────
   const bdgW = 52
@@ -289,35 +289,35 @@ export async function generateBordereauPdf(s: SessionData) {
   y += 5
 
   // ── Title band ────────────────────────────────────────────────────────────
+  const titrePdf =
+    s.typeExamen === 'Code'
+      ? "BORDEREAU D'EXAMEN DE CODE"
+      : "BORDEREAU D'EXAMEN DE CONDUITE"
   doc.setFillColor(...NAVY)
   doc.rect(mL, y, cW, 12, 'F')
   doc.setTextColor(...WHITE)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)
-  doc.text("BORDEREAU D'EXAMEN DE CONDUITE AUTOMOBILE", pageW / 2, y + 8, { align: 'center' })
+  doc.text(titrePdf, pageW / 2, y + 8, { align: 'center' })
   y += 16
 
-  // ── Info grid — 4 columns × 2 rows ───────────────────────────────────────
-  const colW = cW / 4        // 45.5 mm each
+  // ── Info grid — 4 columns × 1 row (sans inspecteur / véhicule) ────────────
+  const colW = cW / 4
   const rowH = 13
 
   const infoBox = (lbl: string, val: string, bx: number, by: number, w: number) => {
-    // Box background + border
     doc.setFillColor(...NAVY_LT)
     doc.setDrawColor(...NAVY)
     doc.setLineWidth(0.25)
     doc.rect(bx, by, w - 1.5, rowH, 'FD')
-    // Label (small caps style)
     doc.setTextColor(...NAVY)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(6.5)
     doc.text(lbl, bx + 2.5, by + 4.5)
-    // Value
     doc.setTextColor(...BLACK)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     const safe = val ? val.toUpperCase() : '—'
-    // Truncate if wider than box
     let display = safe
     while (doc.getTextWidth(display) > w - 7 && display.length > 1) {
       display = display.slice(0, -1)
@@ -326,17 +326,13 @@ export async function generateBordereauPdf(s: SessionData) {
     doc.text(display, bx + 2.5, by + rowH - 3)
   }
 
-  // Row 1
   infoBox('DATE',         s.date,               mL,              y, colW)
   infoBox('HEURE',        s.heure,              mL + colW,       y, colW)
   infoBox("TYPE D'EXAMEN", s.typeExamen,         mL + colW * 2,   y, colW)
   infoBox('CENTRE',       s.centre,             mL + colW * 3,   y, colW)
   y += rowH + 2
 
-  // Row 2
-  infoBox('LIEU',         s.lieu || s.centre,   mL,              y, colW)
-  infoBox('INSPECTEUR',   s.inspecteur,         mL + colW,       y, colW * 2)  // double width
-  infoBox('VÉHICULE',     s.vehicule,           mL + colW * 3,   y, colW)
+  infoBox('LIEU', s.lieu || s.centre, mL, y, colW * 2)
   y += rowH + 6
 
   // ── Candidates table ──────────────────────────────────────────────────────
@@ -346,15 +342,14 @@ export async function generateBordereauPdf(s: SessionData) {
 
   const head = hasResults
     ? [['N°', 'NOM ET PRÉNOMS', 'N° DOSSIER', 'CAT.', 'RÉSULTAT']]
-    : [['N°', 'NOM ET PRÉNOMS', 'N° DOSSIER', 'TÉLÉPHONE', 'CAT.']]
+    : [['N°', 'NOM ET PRÉNOMS', 'N° DOSSIER', 'CAT.']]
 
   const body = s.candidats.map((c, i) =>
     hasResults
       ? [String(i + 1), c.nomComplet.toUpperCase(), c.identifiant, c.categoriePermis, c.resultat]
-      : [String(i + 1), c.nomComplet.toUpperCase(), c.identifiant, c.telephone,       c.categoriePermis],
+      : [String(i + 1), c.nomComplet.toUpperCase(), c.identifiant, c.categoriePermis],
   )
 
-  // Colour-code result cells
   const didFillCell = (data: CellHookData) => {
     if (!hasResults || data.section !== 'body' || data.column.index !== 4) return
     const r = String(data.cell.raw)
@@ -390,17 +385,16 @@ export async function generateBordereauPdf(s: SessionData) {
     columnStyles: hasResults
       ? {
           0: { halign: 'center', cellWidth: 11 },
-          1: { halign: 'left',   cellWidth: 75 },
-          2: { halign: 'center', cellWidth: 40 },
+          1: { halign: 'left',   cellWidth: 80 },
+          2: { halign: 'center', cellWidth: 45 },
           3: { halign: 'center', cellWidth: 18 },
-          4: { halign: 'center', cellWidth: 38 },
+          4: { halign: 'center', cellWidth: 28 },
         }
       : {
           0: { halign: 'center', cellWidth: 11 },
-          1: { halign: 'left',   cellWidth: 72 },
-          2: { halign: 'center', cellWidth: 38 },
-          3: { halign: 'center', cellWidth: 37 },
-          4: { halign: 'center', cellWidth: 24 },
+          1: { halign: 'left',   cellWidth: 90 },
+          2: { halign: 'center', cellWidth: 50 },
+          3: { halign: 'center', cellWidth: 31 },
         },
     margin: { left: mL, right: mR },
   })
@@ -408,7 +402,6 @@ export async function generateBordereauPdf(s: SessionData) {
   // @ts-expect-error lastAutoTable is set by the plugin
   let endY: number = (doc.lastAutoTable?.finalY ?? 190) + 6
 
-  // ── Results summary (only when results are filled in) ─────────────────────
   if (hasResults) {
     const admitted = s.candidats.filter((c) => c.resultat === 'Admis').length
     const deferred = s.candidats.filter((c) => c.resultat === 'Ajourné').length
@@ -437,45 +430,7 @@ export async function generateBordereauPdf(s: SessionData) {
     endY += tileH + 8
   }
 
-  // ── Signature zone — overflow to new page if needed ───────────────────────
-  const sigH = 36
-  if (endY + sigH + 22 > pageH - 18) {
-    doc.addPage()
-    endY = 18
-  } else {
-    endY += 6
-  }
-
-  const halfW = cW / 2 - 4
-
-  // Left: Inspecteur
-  doc.setFillColor(...NAVY_LT)
-  doc.setDrawColor(...NAVY)
-  doc.setLineWidth(0.3)
-  doc.rect(mL, endY, halfW, sigH, 'FD')
-  doc.setTextColor(...NAVY)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.text("L'INSPECTEUR DU PERMIS", mL + halfW / 2, endY + 7, { align: 'center' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(...MUTED)
-  doc.text('Signature et cachet', mL + halfW / 2, endY + sigH - 4, { align: 'center' })
-
-  // Right: Chef d'établissement
-  const rx = mL + halfW + 8
-  doc.setFillColor(...NAVY_LT)
-  doc.rect(rx, endY, halfW, sigH, 'FD')
-  doc.setTextColor(...NAVY)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8)
-  doc.text("LE CHEF D'ÉTABLISSEMENT", rx + halfW / 2, endY + 7, { align: 'center' })
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(...MUTED)
-  doc.text('Signature et cachet', rx + halfW / 2, endY + sigH - 4, { align: 'center' })
-
-  // ── Page footer (absolute bottom of last page) ─────────────────────────────
+  // ── Page footer (sans Abidjan / signatures) ───────────────────────────────
   const curPage = doc.getNumberOfPages()
   doc.setPage(curPage)
   doc.setDrawColor(...NAVY)
@@ -485,7 +440,7 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.setFontSize(7)
   doc.setTextColor(...MUTED)
   doc.text(
-    "SARAH AUTO-ÉCOLE  •  Tél : +225 07 09 08 98 84  •  Abidjan, Côte d'Ivoire",
+    'SARAH AUTO-ÉCOLE  •  Tél : +225 07 09 08 98 84',
     pageW / 2, pageH - 11.5, { align: 'center' },
   )
   doc.text(

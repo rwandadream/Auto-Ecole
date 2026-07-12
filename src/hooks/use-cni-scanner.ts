@@ -124,6 +124,14 @@ export function useCniScanner() {
   )
 
   const startCamera = useCallback(async () => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      setError(
+        'La caméra nécessite HTTPS (ou localhost). Utilisez « Importer une photo » ou saisissez manuellement.',
+      )
+      setStatus('error')
+      return
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Webcam non supportée sur cet appareil. Importez une photo ou saisissez manuellement.')
       setStatus('error')
@@ -143,8 +151,19 @@ export function useCniScanner() {
       }
       setStatus('camera')
       void ensureWorker()
-    } catch {
-      setError('Impossible d\'accéder à la webcam. Importez une photo ou saisissez les champs manuellement.')
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : ''
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setError(
+          'Permission caméra refusée. Autorisez l\'accès dans le navigateur, ou importez une photo de la CNI.',
+        )
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setError('Aucune caméra détectée. Importez une photo de la CNI.')
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setError('Caméra déjà utilisée par une autre application. Fermez-la puis réessayez, ou importez une photo.')
+      } else {
+        setError('Impossible d\'accéder à la webcam. Importez une photo ou saisissez les champs manuellement.')
+      }
       setStatus('error')
     }
   }, [ensureWorker, stopCamera])

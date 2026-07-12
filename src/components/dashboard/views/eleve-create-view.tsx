@@ -8,7 +8,6 @@ import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
 import { ActionButton, Card } from './shared'
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
-import { PERMIS_CATEGORIES } from '@/lib/domain/types'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
 
@@ -146,10 +145,10 @@ export function EleveCreateView() {
             <Field label="Téléphone" required>
               <FormInput value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="+225 07 12 34 56" />
             </Field>
-            <Field label="Email">
+            <Field label="Email (optionnel)">
               <FormInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="aminata.kone@email.com" />
             </Field>
-            <Field label="Adresse">
+            <Field label="Adresse (optionnel)">
               <FormInput value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Cocody, Abidjan" />
             </Field>
           </div>
@@ -177,10 +176,14 @@ export function EleveCreateView() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Type de permis">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                {(permis.length > 0 ? permis : PERMIS_CATEGORIES).map((p) => (
-                  <option key={p.code} value={p.code}>{p.code} — {p.libelle}</option>
+                <option value="">Sélectionner</option>
+                {permis.map((p) => (
+                  <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
               </FormSelect>
+              {permis.length === 0 && (
+                <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
+              )}
             </Field>
             <Field label="Formation" required>
               <FormSelect value={formationId} onChange={(e) => setFormationId(e.target.value)}>
@@ -192,8 +195,8 @@ export function EleveCreateView() {
                 ))}
               </FormSelect>
             </Field>
-            <Field label="Parrainé par">
-              <FormInput value={parrain} onChange={(e) => setParrain(e.target.value)} placeholder="Nom du parrain (optionnel)" />
+            <Field label="Parrainé par (optionnel)">
+              <FormInput value={parrain} onChange={(e) => setParrain(e.target.value)} placeholder="Nom du parrain" />
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">

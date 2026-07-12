@@ -26,6 +26,7 @@ type Metric = {
 
 export function MetricCards() {
   const factures = useDataStore((s) => s.factures)
+  const paiements = useDataStore((s) => s.paiements)
   const depenses = useDataStore((s) => s.depenses)
   const eleves = useDataStore((s) => s.eleves)
   const examens = useDataStore((s) => s.examens)
@@ -34,12 +35,12 @@ export function MetricCards() {
     const currentMonth = monthKey(new Date())
     const prevMonth = previousMonthKey(currentMonth)
 
-    const caCurrent = sumByMonth(factures, (f) => f.dateEmission, (f) => f.montant, currentMonth)
-    const caPrev = sumByMonth(factures, (f) => f.dateEmission, (f) => f.montant, prevMonth)
+    const entreesCurrent = sumByMonth(paiements, (p) => p.datePaiement, (p) => p.montant, currentMonth)
+    const entreesPrev = sumByMonth(paiements, (p) => p.datePaiement, (p) => p.montant, prevMonth)
     const depCurrent = sumByMonth(depenses, (d) => d.date, (d) => d.montant, currentMonth)
     const depPrev = sumByMonth(depenses, (d) => d.date, (d) => d.montant, prevMonth)
-    const beneficeCurrent = caCurrent - depCurrent
-    const beneficePrev = caPrev - depPrev
+    const beneficeCurrent = entreesCurrent - depCurrent
+    const beneficePrev = entreesPrev - depPrev
     const elevesCurrent = countByMonth(eleves, (e) => e.dateInscription, currentMonth)
     const elevesPrev = countByMonth(eleves, (e) => e.dateInscription, prevMonth)
 
@@ -52,25 +53,25 @@ export function MetricCards() {
 
     const facturesEnAttente = factures.filter((f) => f.statut !== 'Payée').length
     const impayesMontant = factures
-      .filter((f) => f.statut === 'Impayée' || f.statut === 'Non payée')
+      .filter((f) => f.statut === 'Impayée' || f.statut === 'Non payée' || f.statut === 'Partielle')
       .reduce((s, f) => s + f.reste, 0)
 
-    const caTotal = factures.reduce((sum, f) => sum + f.montant, 0)
+    const totalEntrees = paiements.reduce((sum, p) => sum + p.montant, 0)
     const totalDepenses = depenses.reduce((sum, d) => sum + d.montant, 0)
-    const benefice = caTotal - totalDepenses
+    const solde = totalEntrees - totalDepenses
 
     return [
       {
-        label: "Chiffre d'affaires",
-        value: formatXOF(caTotal),
-        change: formatPercentChange(caCurrent, caPrev),
-        lastMonth: formatXOF(caPrev),
+        label: 'Entrées (paiements & avances)',
+        value: formatXOF(totalEntrees),
+        change: formatPercentChange(entreesCurrent, entreesPrev),
+        lastMonth: formatXOF(entreesPrev),
         icon: Wallet,
         iconBg: 'bg-primary/10',
         iconColor: 'text-primary',
       },
       {
-        label: 'Total dépenses',
+        label: 'Sorties (dépenses)',
         value: formatXOF(totalDepenses),
         change: formatPercentChange(depCurrent, depPrev),
         lastMonth: formatXOF(depPrev),
@@ -80,8 +81,8 @@ export function MetricCards() {
         isNegative: true,
       },
       {
-        label: 'Bénéfice net',
-        value: formatXOF(benefice),
+        label: 'Solde / bilan',
+        value: formatXOF(solde),
         change: formatPercentChange(beneficeCurrent, beneficePrev),
         lastMonth: formatXOF(beneficePrev),
         icon: TrendingUp,
@@ -116,7 +117,7 @@ export function MetricCards() {
         iconColor: 'text-primary',
       },
     ]
-  }, [factures, depenses, eleves, examens])
+  }, [factures, paiements, depenses, eleves, examens])
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
