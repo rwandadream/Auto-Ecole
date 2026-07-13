@@ -115,14 +115,10 @@ export function BordereauxView() {
             </div>
 
             {/* Session info grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <InfoCell label="Date" value={sess.date} />
               <InfoCell label="Heure" value={sess.heure} />
-              <InfoCell label="Centre" value={sess.centre} />
-              <InfoCell label="Lieu" value={sess.lieu || sess.centre} />
               <InfoCell label="Type examen" value={sess.typeExamen} />
-              <InfoCell label="Inspecteur" value={sess.inspecteur} />
-              <InfoCell label="Véhicule" value={sess.vehicule} />
             </div>
 
             {/* Candidats table / cartes mobile */}
@@ -142,12 +138,13 @@ export function BordereauxView() {
                           N° {String(idx + 1).padStart(2, '0')}
                         </span>
                         <p className="mt-1 font-semibold text-foreground">{c.nomComplet}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{c.identifiant}</p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          N° pièce : {c.identifiant}
+                        </p>
                       </div>
                       <StatusBadge label={c.resultat} tone={resultatExamenTone[c.resultat]} />
                     </div>
                     <div className="mt-3 space-y-1 border-t border-border pt-3">
-                      <MobileListCardRow label="Téléphone">{c.telephone}</MobileListCardRow>
                       <MobileListCardRow label="Catégorie permis">
                         <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
                           {c.categoriePermis}
@@ -158,20 +155,19 @@ export function BordereauxView() {
                 ))}
                 desktop={
                   <div className="custom-scrollbar overflow-x-auto">
-                    <table className="w-full min-w-[760px] border-collapse text-left">
+                    <table className="w-full min-w-[560px] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">N°</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nom complet</th>
-                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identifiant</th>
-                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Téléphone</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">N° pièce</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Catégorie permis</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Résultat</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {sess.candidats.map((c, idx) => (
-                      <tr key={c.identifiant} className="hover:bg-muted/40">
+                      <tr key={`${c.identifiant}-${idx}`} className="hover:bg-muted/40">
                         <td className="px-4 py-3">
                           <span className="text-sm font-semibold text-muted-foreground">{String(idx + 1).padStart(2, '0')}</span>
                         </td>
@@ -180,9 +176,6 @@ export function BordereauxView() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="font-mono text-xs text-muted-foreground">{c.identifiant}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-muted-foreground">{c.telephone}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">

@@ -301,8 +301,8 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.text(titrePdf, pageW / 2, y + 8, { align: 'center' })
   y += 16
 
-  // ── Info grid — 4 columns × 1 row (sans inspecteur / véhicule) ────────────
-  const colW = cW / 4
+  // ── Info grid — date / heure / type (sans centre / lieu) ──────────────────
+  const colW = cW / 3
   const rowH = 13
 
   const infoBox = (lbl: string, val: string, bx: number, by: number, w: number) => {
@@ -329,10 +329,6 @@ export async function generateBordereauPdf(s: SessionData) {
   infoBox('DATE',         s.date,               mL,              y, colW)
   infoBox('HEURE',        s.heure,              mL + colW,       y, colW)
   infoBox("TYPE D'EXAMEN", s.typeExamen,         mL + colW * 2,   y, colW)
-  infoBox('CENTRE',       s.centre,             mL + colW * 3,   y, colW)
-  y += rowH + 2
-
-  infoBox('LIEU', s.lieu || s.centre, mL, y, colW * 2)
   y += rowH + 6
 
   // ── Candidates table ──────────────────────────────────────────────────────
@@ -341,8 +337,8 @@ export async function generateBordereauPdf(s: SessionData) {
   )
 
   const head = hasResults
-    ? [['N°', 'NOM ET PRÉNOMS', 'N° DOSSIER', 'CAT.', 'RÉSULTAT']]
-    : [['N°', 'NOM ET PRÉNOMS', 'N° DOSSIER', 'CAT.']]
+    ? [['N°', 'NOM ET PRÉNOMS', 'N° PIÈCE', 'CAT.', 'RÉSULTAT']]
+    : [['N°', 'NOM ET PRÉNOMS', 'N° PIÈCE', 'CAT.']]
 
   const body = s.candidats.map((c, i) =>
     hasResults

@@ -39,15 +39,17 @@ Exécutez **dans cet ordre** via le SQL Editor Supabase ou le MCP :
 
 ## Déploiement Vercel + Supabase Auth
 
-**Production :** https://auto-ecole-pi.vercel.app
+**Production :** https://auto-ecole-one-liart.vercel.app
 
-### Variables Vercel (Production + Development)
+### Variables Vercel (Production + Preview + Development)
 
 | Variable | Valeur |
 |----------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://myzgspejgqzvmbuqqwks.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | clé `sb_publishable_…` (Dashboard → API Keys) |
 | `SUPABASE_SERVICE_ROLE_KEY` | clé `service_role` (Dashboard → API Keys, **serveur uniquement**) |
+
+> **Compte Vercel :** [rwandadreams-projects](https://vercel.com/rwandadreams-projects) — projet `auto-ecole`, repo GitHub `rwandadream/Auto-Ecole`.
 
 Automatisation (token Supabase requis) :
 
@@ -58,14 +60,15 @@ node scripts/setup-vercel-supabase.mjs
 
 ### Supabase → Authentication → URL Configuration
 
-Ajouter dans **Redirect URLs** :
+Ajouter dans **Redirect URLs** (cf. [doc Supabase Vercel](https://supabase.com/docs/guides/auth/redirect-urls)) :
 
-- `https://auto-ecole-pi.vercel.app/**`
-- `https://auto-ecole-pi.vercel.app/auth/callback`
-- `https://auto-ecole-pi.vercel.app/auth/reset-password`
+- `https://auto-ecole-one-liart.vercel.app/**`
+- `https://auto-ecole-one-liart.vercel.app/auth/callback`
+- `https://auto-ecole-one-liart.vercel.app/auth/reset-password`
+- `https://*-rwandadreams-projects.vercel.app/**` (previews Vercel)
 - `http://localhost:3000/**` (dev local)
 
-**Site URL :** `https://auto-ecole-pi.vercel.app`
+**Site URL :** `https://auto-ecole-one-liart.vercel.app`
 
 ## Variables d'environnement
 

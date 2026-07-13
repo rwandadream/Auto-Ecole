@@ -21,7 +21,7 @@ function applyScanResult(
     setLieuNaissance: (v: string) => void
     setSexe: (v: 'M' | 'F') => void
     setNationalite: (v: string) => void
-    setTypePiece: (v: 'CNI' | 'Passeport') => void
+    setTypePiece: (v: 'CNI' | 'Passeport' | 'Consulaire') => void
   },
 ) {
   if (parsed.nom) setters.setNom(parsed.nom)
@@ -62,7 +62,7 @@ export function ScannerCniView() {
   const [dateNaissance, setDateNaissance] = useState('')
   const [lieuNaissance, setLieuNaissance] = useState('')
   const [numPiece, setNumPiece] = useState('')
-  const [typePiece, setTypePiece] = useState<'CNI' | 'Passeport'>('CNI')
+  const [typePiece, setTypePiece] = useState<'CNI' | 'Passeport' | 'Consulaire'>('CNI')
   const [telephone, setTelephone] = useState('')
   const [email, setEmail] = useState('')
   const [adresse, setAdresse] = useState('')
@@ -343,9 +343,10 @@ export function ScannerCniView() {
               <FormInput value={nationalite} onChange={(e) => setNationalite(e.target.value)} placeholder="Ivoirienne" />
             </Field>
             <Field label="Type de pièce">
-              <FormSelect value={typePiece} onChange={(e) => setTypePiece(e.target.value as 'CNI' | 'Passeport')}>
+              <FormSelect value={typePiece} onChange={(e) => setTypePiece(e.target.value as 'CNI' | 'Passeport' | 'Consulaire')}>
                 <option value="CNI">CNI</option>
                 <option value="Passeport">Passeport</option>
+                <option value="Consulaire">Carte consulaire</option>
               </FormSelect>
             </Field>
             <Field label="Numéro de pièce">

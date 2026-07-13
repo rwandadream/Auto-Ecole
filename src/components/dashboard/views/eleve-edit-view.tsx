@@ -166,6 +166,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
               <FormSelect value={typePiece} onChange={(e) => setTypePiece(e.target.value)}>
                 <option value="CNI">CNI</option>
                 <option value="Passeport">Passeport</option>
+                <option value="Consulaire">Carte consulaire</option>
               </FormSelect>
             </Field>
             <Field label="Numéro de pièce">

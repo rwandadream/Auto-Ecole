@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus, Save } from 'lucide-react'
 import { toast } from 'sonner'
-import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
+import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
 import { useDialogReset } from '@/hooks/use-dialog-reset'
 
@@ -19,7 +19,7 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
   const updatePermis = useDataStore((s) => s.updatePermis)
   const permis = useDataStore((s) => s.permis)
 
-  const [code, setCode] = useState('B')
+  const [code, setCode] = useState('')
   const [libelle, setLibelle] = useState('')
 
   const isEdit = !!permisId
@@ -33,14 +33,14 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
         return
       }
     }
-    setCode(permis[0]?.code ?? 'B')
+    setCode('')
     setLibelle('')
   }
 
   useDialogReset(open, seedForm)
 
   const reset = () => {
-    setCode(permis[0]?.code ?? 'B')
+    setCode('')
     setLibelle('')
   }
 
@@ -50,17 +50,26 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
   }
 
   const handleSubmit = () => {
-    if (!libelle.trim()) {
-      toast.error('Veuillez renseigner le libellé du permis.')
-      return
-    }
-    if (!code.trim()) {
+    const nextCode = code.trim().toUpperCase()
+    const nextLibelle = libelle.trim()
+    if (!nextCode) {
       toast.error('Veuillez renseigner le code du permis.')
       return
     }
+    if (!nextLibelle) {
+      toast.error('Veuillez renseigner le libellé du permis.')
+      return
+    }
+    const duplicate = permis.some(
+      (p) => p.code.toUpperCase() === nextCode && p.id !== permisId,
+    )
+    if (duplicate) {
+      toast.error(`Le code « ${nextCode} » existe déjà dans le catalogue.`)
+      return
+    }
     const payload = {
-      code: code.trim().toUpperCase(),
-      libelle: libelle.trim(),
+      code: nextCode,
+      libelle: nextLibelle,
     }
     if (isEdit && permisId) {
       updatePermis(permisId, payload)
@@ -98,21 +107,13 @@ export function PermisDialog({ open, onOpenChange, permisId = null }: Props) {
     >
       <div className="space-y-4">
         <Field label="Code" required>
-          {permis.length > 0 ? (
-            <FormSelect value={code} onChange={(e) => setCode(e.target.value)}>
-              {permis.map((p) => (
-                <option key={p.code} value={p.code}>
-                  {p.code} — {p.libelle}
-                </option>
-              ))}
-            </FormSelect>
-          ) : (
-            <FormInput
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Ex : B, A, AB, C…"
-            />
-          )}
+          <FormInput
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="Ex : B, A, AB, C…"
+            disabled={isEdit}
+            readOnly={isEdit}
+          />
         </Field>
 
         <Field label="Libellé" required>

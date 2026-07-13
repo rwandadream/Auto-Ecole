@@ -25,16 +25,12 @@ export function NouvelleSessionDialog({
 
   const [date, setDate] = useState(today)
   const [heure, setHeure] = useState('08:00')
-  const [centre, setCentre] = useState('ABIDJAN')
-  const [lieu, setLieu] = useState('2 PLATEAUX')
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Code')
   const [selectedEleves, setSelectedEleves] = useState<string[]>([])
 
   const reset = () => {
     setDate(today)
     setHeure('08:00')
-    setCentre('ABIDJAN')
-    setLieu('2 PLATEAUX')
     setTypeExamen('Code')
     setSelectedEleves([])
   }
@@ -82,10 +78,10 @@ export function NouvelleSessionDialog({
     }
     const candidats = selectedEleves.map((code) => {
       const e = eleves.find((el) => el.code === code)!
-      const numDossier = e.numPiece?.trim() || ''
+      const numPiece = e.numPiece?.trim() || ''
       return {
         nomComplet: `${e.prenom} ${e.nom}`,
-        identifiant: numDossier || '—',
+        identifiant: numPiece || '—',
         telephone: e.telephone || '',
         categoriePermis: e.typePermis,
         resultat: 'En attente' as ResultatExamen,
@@ -94,15 +90,15 @@ export function NouvelleSessionDialog({
     const sansPiece = candidats.filter((c) => !c.identifiant || c.identifiant === '—')
     if (sansPiece.length > 0) {
       toast.error(
-        `${sansPiece.length} candidat(s) sans n° de pièce (CNI / passeport / consulaire). Complétez le dossier élève.`,
+        `${sansPiece.length} candidat(s) sans n° de pièce (CNI / passeport / carte consulaire). Complétez le dossier élève avant de les inscrire.`,
       )
       return
     }
     addExamenSession({
       date,
       heure,
-      centre,
-      lieu,
+      centre: '',
+      lieu: '',
       typeExamen,
       titre: titreSession,
       inspecteur: '',
@@ -143,15 +139,6 @@ export function NouvelleSessionDialog({
           </Field>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Centre (ville)" required>
-            <FormInput value={centre} onChange={(e) => setCentre(e.target.value)} placeholder="ABIDJAN" />
-          </Field>
-          <Field label="Lieu précis">
-            <FormInput value={lieu} onChange={(e) => setLieu(e.target.value)} placeholder="2 PLATEAUX" />
-          </Field>
-        </div>
-
         <Field label="Type d'examen">
           <FormSelect value={typeExamen} onChange={(e) => setTypeExamen(e.target.value as 'Code' | 'Conduite')}>
             <option value="Code">Code</option>
@@ -163,6 +150,7 @@ export function NouvelleSessionDialog({
           <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
             {elevesEligibles.map((e) => {
               const checked = selectedEleves.includes(e.code)
+              const numPiece = e.numPiece?.trim() || ''
               return (
                 <label
                   key={e.id}
@@ -181,10 +169,14 @@ export function NouvelleSessionDialog({
                     disabled={!e.solde}
                     className="h-4 w-4 accent-primary"
                   />
-                  <span className="font-medium text-foreground">
-                    {e.prenom} {e.nom}
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium text-foreground">
+                      {e.prenom} {e.nom}
+                    </span>
+                    <span className="mt-0.5 block font-mono text-xs text-muted-foreground">
+                      {numPiece || 'Sans n° pièce'}
+                    </span>
                   </span>
-                  <span className="font-mono text-xs text-muted-foreground">{e.code}</span>
                   <span className="ml-auto inline-flex items-center gap-1.5">
                     {!e.solde && (
                       <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
@@ -200,7 +192,7 @@ export function NouvelleSessionDialog({
             })}
           </div>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Seuls les élèves ayant soldé la totalité de leurs paiements peuvent être inscrits.
+            Liste : nom + n° CNI / passeport / carte consulaire. Seuls les élèves soldés peuvent être inscrits.
           </p>
         </Field>
       </div>

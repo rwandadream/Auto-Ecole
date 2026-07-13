@@ -589,13 +589,13 @@ export function ParametresView() {
                 {permis.map((p) => (
                   <div
                     key={p.id}
-                    className="group relative flex flex-col items-start gap-2 rounded-lg border border-border bg-background p-3"
+                    className="relative flex flex-col items-start gap-2 rounded-lg border border-border bg-background p-3"
                   >
                     <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-md bg-primary/10 px-2 text-base font-bold text-primary">
                       {p.code}
                     </span>
                     <span className="text-sm font-medium text-foreground">{p.libelle}</span>
-                    <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute right-2 top-2 flex items-center gap-1">
                       <button
                         onClick={() => { setEditingPermisId(p.id); setShowPermisDialog(true) }}
                         className="flex h-7 w-7 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm border border-border hover:bg-muted hover:text-foreground"
