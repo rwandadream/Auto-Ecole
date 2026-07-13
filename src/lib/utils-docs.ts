@@ -260,13 +260,7 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.setTextColor(...NAVY)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(17)
-  doc.text('SARAH AUTO-ÉCOLE', txtX, y + 8)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.setTextColor(...MUTED)
-  doc.text('Formation & recyclage des conducteurs professionnels', txtX, y + 14)
-  doc.text('☎ +225 07 09 08 98 84', txtX, y + 19)
+  doc.text('SARAH AUTO-ÉCOLE', txtX, y + 10)
 
   // ── N° Bordereau badge (top-right) ────────────────────────────────────────
   const bdgW = 52
@@ -444,7 +438,9 @@ export async function generateBordereauPdf(s: SessionData) {
     pageW / 2, pageH - 6.5, { align: 'center' },
   )
 
-  doc.save(`bordereau-${s.numeroBordereau}.pdf`)
+  const dateSlug = s.date.replace(/[^\wÀ-ÿ]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+  const typeSlug = s.typeExamen.toLowerCase()
+  doc.save(`bordereau-examen-${typeSlug}-${dateSlug || 'session'}.pdf`)
 }
 
 // ============================================================
