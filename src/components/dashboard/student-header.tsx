@@ -9,6 +9,7 @@ import { useDataStore } from '@/store/data-store'
 import { formatXOFFcfa } from '@/lib/format'
 import { initials, StatusBadge, statutEleveTone } from '@/components/dashboard/views/shared'
 import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
@@ -113,6 +114,7 @@ export function StudentHeader() {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        <ThemeToggle />
         {/* Notifications */}
         <Popover open={notifOpen} onOpenChange={handleNotifOpenChange}>
           <PopoverTrigger asChild>

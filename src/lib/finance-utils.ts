@@ -1,15 +1,109 @@
-import type { Facture } from '@/lib/domain/types'
+import type { Facture, StatutFacture } from '@/lib/domain/types'
 
-/** Élève soldé = aucune facture avec reste > 0. */
-export function isEleveSolde(eleveCode: string, factures: Facture[]): boolean {
-  const related = factures.filter((f) => f.eleveCode === eleveCode)
-  if (related.length === 0) return true
-  return related.every((f) => f.reste <= 0)
+/** Tolérance pour arrondis monétaires (F CFA entiers → 0,5 F). */
+const MONEY_EPS = 0.5
+
+export function normalizeMoney(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.round(value * 100) / 100
 }
 
-/** Solde restant total pour un élève. */
+/**
+ * Statut facture unique :
+ * - Non payée  = payé == 0
+ * - Partielle  = 0 < payé < montant
+ * - Payée      = payé >= montant
+ */
+export function computeStatutFacture(paye: number, montant: number): StatutFacture {
+  const p = normalizeMoney(paye)
+  const m = normalizeMoney(montant)
+  if (p <= MONEY_EPS) return 'Non payée'
+  if (p + MONEY_EPS >= m) return 'Payée'
+  return 'Partielle'
+}
+
+export function computeReste(montant: number, paye: number): number {
+  return Math.max(0, normalizeMoney(montant) - normalizeMoney(paye))
+}
+
+/** Factures liées à un élève. */
+export function facturesEleve(eleveCode: string, factures: Facture[]): Facture[] {
+  return factures.filter((f) => f.eleveCode === eleveCode)
+}
+
+/** Total dû (somme des montants facture). */
+export function montantDuEleve(eleveCode: string, factures: Facture[]): number {
+  return facturesEleve(eleveCode, factures).reduce((sum, f) => sum + normalizeMoney(f.montant), 0)
+}
+
+/** Total déjà payé (somme des payé facture). */
+export function montantPayeEleve(eleveCode: string, factures: Facture[]): number {
+  return facturesEleve(eleveCode, factures).reduce((sum, f) => sum + normalizeMoney(f.paye), 0)
+}
+
+/** Solde restant total pour un élève (basé sur reste déjà calculé, sinon montant−payé). */
 export function soldeEleve(eleveCode: string, factures: Facture[]): number {
-  return factures
-    .filter((f) => f.eleveCode === eleveCode)
-    .reduce((sum, f) => sum + Math.max(0, f.reste), 0)
+  return facturesEleve(eleveCode, factures).reduce((sum, f) => {
+    const reste =
+      typeof f.reste === 'number' ? Math.max(0, normalizeMoney(f.reste)) : computeReste(f.montant, f.paye)
+    return sum + reste
+  }, 0)
+}
+
+/**
+ * Élève soldé = au moins une facture ET aucune avec reste > 0.
+ * Sans facture → non soldé (non éligible examens).
+ */
+export function isEleveSolde(eleveCode: string, factures: Facture[]): boolean {
+  const related = facturesEleve(eleveCode, factures)
+  if (related.length === 0) return false
+  return soldeEleve(eleveCode, factures) <= MONEY_EPS
+}
+
+/** Au moins un versement encaissé (partiel ou total). */
+export function isElevePartiellementPaye(eleveCode: string, factures: Facture[]): boolean {
+  return montantPayeEleve(eleveCode, factures) > MONEY_EPS
+}
+
+export type TypeExamenPaiement = 'Code' | 'Conduite'
+
+export const MSG_SOLDE_CONDUITE =
+  "Solde non réglé — impossible d'inscrire à l'examen de conduite"
+
+/**
+ * - Code : autorisé dès qu'un paiement > 0 (partiel ou soldé)
+ * - Conduite : autorisé seulement si soldé (reste == 0)
+ */
+export function canInscrireExamen(
+  type: TypeExamenPaiement,
+  eleveCode: string,
+  factures: Facture[],
+): { ok: boolean; message?: string } {
+  if (type === 'Code') {
+    if (!isElevePartiellementPaye(eleveCode, factures)) {
+      return {
+        ok: false,
+        message: "Aucun paiement enregistré — impossible d'inscrire à l'examen du code.",
+      }
+    }
+    return { ok: true }
+  }
+
+  if (!isEleveSolde(eleveCode, factures)) {
+    const reste = soldeEleve(eleveCode, factures)
+    return {
+      ok: false,
+      message: reste > 0 ? `${MSG_SOLDE_CONDUITE} (reste ${Math.round(reste)} F CFA).` : MSG_SOLDE_CONDUITE,
+    }
+  }
+  return { ok: true }
+}
+
+/** Statut agrégé élève pour affichage (liste / fiche). */
+export function statutPaiementEleve(eleveCode: string, factures: Facture[]): StatutFacture {
+  const related = facturesEleve(eleveCode, factures)
+  if (related.length === 0) return 'Non payée'
+  const paye = montantPayeEleve(eleveCode, factures)
+  const du = montantDuEleve(eleveCode, factures)
+  return computeStatutFacture(paye, du)
 }

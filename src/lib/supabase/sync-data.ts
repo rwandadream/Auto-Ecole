@@ -20,6 +20,7 @@ import {
   mapSeanceStatutFromDb,
 } from '@/lib/supabase/mappers'
 import type { StatutEleve } from '@/lib/domain/types'
+import { computeReste, computeStatutFacture } from '@/lib/finance-utils'
 import { formatAuditDescription } from '@/lib/audit-format'
 import { faqContent } from '@/lib/faq-content'
 import { useDataStore, type AuditEntry } from '@/store/data-store'
@@ -274,8 +275,8 @@ export async function syncDataForEleve(code: string, telephone: string): Promise
       formation: '',
       montant,
       paye,
-      reste: Math.max(0, montant - paye),
-      statut: paye >= montant ? 'Payée' as const : paye > 0 ? 'Partielle' as const : 'Non payée' as const,
+      reste: computeReste(montant, paye),
+      statut: computeStatutFacture(paye, montant),
       dateEmission: String(f.date_emission ?? ''),
       inscriptionId: '',
     }

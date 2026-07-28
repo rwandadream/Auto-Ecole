@@ -53,7 +53,7 @@ export function MetricCards() {
 
     const facturesEnAttente = factures.filter((f) => f.statut !== 'Payée').length
     const impayesMontant = factures
-      .filter((f) => f.statut === 'Impayée' || f.statut === 'Non payée' || f.statut === 'Partielle')
+      .filter((f) => f.statut === 'Non payée' || f.statut === 'Partielle')
       .reduce((s, f) => s + f.reste, 0)
 
     const totalEntrees = paiements.reduce((sum, p) => sum + p.montant, 0)

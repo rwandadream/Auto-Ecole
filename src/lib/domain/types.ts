@@ -11,7 +11,7 @@ export type StatutEleve =
   | 'Abandon'
 export type StatutSeance = 'Planifié' | 'Effectué' | 'Absent élève' | 'Annulé'
 export type ResultatExamen = 'En attente' | 'Admis' | 'Ajourné' | 'Échec'
-export type StatutFacture = 'Non payée' | 'Partielle' | 'Payée' | 'Impayée'
+export type StatutFacture = 'Non payée' | 'Partielle' | 'Payée'
 export type ModePaiement = 'Espèces' | 'Orange Money' | 'Wave' | 'Virement'
 export type CategorieDepense =
   | 'Carburant'

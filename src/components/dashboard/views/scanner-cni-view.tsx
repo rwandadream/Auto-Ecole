@@ -31,7 +31,9 @@ function applyScanResult(
   if (parsed.lieuNaissance) setters.setLieuNaissance(parsed.lieuNaissance)
   if (parsed.sexe === 'M' || parsed.sexe === 'F') setters.setSexe(parsed.sexe)
   if (parsed.nationalite) setters.setNationalite(parsed.nationalite)
-  if (parsed.numPiece) setters.setTypePiece('CNI')
+  if (parsed.typePiece === 'CNI' || parsed.typePiece === 'Passeport' || parsed.typePiece === 'Consulaire') {
+    setters.setTypePiece(parsed.typePiece)
+  }
 }
 
 export function ScannerCniView() {
@@ -66,7 +68,7 @@ export function ScannerCniView() {
   const [telephone, setTelephone] = useState('')
   const [email, setEmail] = useState('')
   const [adresse, setAdresse] = useState('')
-  const [typePermis, setTypePermis] = useState('B')
+  const [typePermis, setTypePermis] = useState('')
   const [sexe, setSexe] = useState<'M' | 'F'>('M')
   const [nationalite, setNationalite] = useState('Ivoirienne')
   const [formationId, setFormationId] = useState('')
@@ -74,6 +76,7 @@ export function ScannerCniView() {
   const isProcessing = status === 'processing'
   const cameraActive = status === 'camera' || status === 'processing' || status === 'done'
   const formationsActives = formations.filter((f) => f.actif)
+  const formationSelectionnee = formationsActives.find((f) => f.id === formationId)
 
   const setters = {
     setNom,
@@ -121,7 +124,7 @@ export function ScannerCniView() {
     setEmail('')
     setAdresse('')
     setNationalite('Ivoirienne')
-    setTypePermis('B')
+    setTypePermis('')
     setSexe('M')
     setTypePiece('CNI')
     setFormationId('')
@@ -182,8 +185,8 @@ export function ScannerCniView() {
   return (
     <div>
       <ViewHeader
-        title="Scanner CNI"
-        description="Extraction OCR (Tesseract.js) depuis la webcam — saisie manuelle possible"
+        title="Scanner pièce d'identité"
+        description="OCR local (CNI, passeport, carte consulaire) — vérifiez les champs avant création"
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -191,7 +194,7 @@ export function ScannerCniView() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-foreground">Scanner la pièce d&apos;identité</h2>
-              <p className="text-xs text-muted-foreground">Webcam ou import photo — cadrez la CNI au centre</p>
+              <p className="text-xs text-muted-foreground">Webcam ou import — CNI, passeport ou carte consulaire</p>
             </div>
             {scanned && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
@@ -299,8 +302,9 @@ export function ScannerCniView() {
           <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-secondary-foreground/30 bg-secondary p-3">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-secondary-foreground" />
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Tesseract.js analyse la CNI localement dans le navigateur. Placez la carte dans le cadre,
-              avec un bon éclairage. Si l&apos;OCR échoue, complétez les champs à droite manuellement.
+              Tesseract.js analyse la pièce localement. Cadrez bien le document, avec un bon éclairage.
+              Après extraction, <strong className="font-semibold text-foreground">vérifiez et corrigez</strong> les
+              champs à droite avant de créer l&apos;élève (auto-remplissage du dossier).
             </p>
           </div>
         </Card>
@@ -308,8 +312,14 @@ export function ScannerCniView() {
         <Card className="flex flex-col">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Fiche élève</h2>
-              <p className="text-xs text-muted-foreground">Vérifiez, complétez et créez l&apos;inscription</p>
+              <h2 className="text-base font-semibold text-foreground">
+                {scanned ? 'Validation des données extraites' : 'Fiche élève'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {scanned
+                  ? 'Corrigez si besoin, puis créez l\'inscription (auto-remplissage dossier)'
+                  : 'Scannez une pièce ou saisissez manuellement'}
+              </p>
             </div>
             <button
               type="button"
@@ -375,10 +385,15 @@ export function ScannerCniView() {
                   </option>
                 ))}
               </FormSelect>
+              {formationSelectionnee && (
+                <p className="mt-1.5 text-xs font-medium text-foreground">
+                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} F CFA
+                </p>
+              )}
             </Field>
-            <Field label="Type de permis">
+            <Field label="Type de permis (optionnel)">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Sélectionner</option>
+                <option value="">Non renseigné</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
@@ -390,7 +405,7 @@ export function ScannerCniView() {
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement. Une facture est émise dès l&apos;inscription à la formation.
+            Le code dossier est généré automatiquement. La facture utilise le prix de la formation (le type de permis n&apos;influence pas le tarif).
           </p>
 
           <div className="mt-5 flex justify-end">

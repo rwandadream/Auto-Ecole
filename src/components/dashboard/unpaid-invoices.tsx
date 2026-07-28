@@ -18,7 +18,7 @@ export function UnpaidInvoices() {
   const eleves = useDataStore((s) => s.eleves)
 
   const facturesImpayees = useMemo(
-    () => allFactures.filter((f) => f.statut === 'Impayée' || f.statut === 'Non payée'),
+    () => allFactures.filter((f) => f.statut === 'Non payée'),
     [allFactures]
   )
 

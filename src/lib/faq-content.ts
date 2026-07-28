@@ -10,7 +10,7 @@ export const faqContent: FaqItem[] = [
   {
     id: 'faq-seed-2',
     q: 'Comment relancer une facture impayée par WhatsApp ?',
-    r: "Depuis le tableau de bord ou la section Facturation, repérez les factures au statut « Impayée » puis cliquez sur l'icône WhatsApp verte. Un message pré-rempli s'ouvre dans WhatsApp Web.",
+    r: "Depuis le tableau de bord ou la section Facturation, repérez les factures au statut « Non payée » ou « Partielle » puis cliquez sur l'icône WhatsApp verte. Un message pré-rempli s'ouvre dans WhatsApp Web.",
     sortOrder: 2,
   },
   {

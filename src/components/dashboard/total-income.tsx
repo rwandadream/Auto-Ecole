@@ -122,34 +122,34 @@ export function TotalIncome() {
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 20, right: 4, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis
                 dataKey="month"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748B', fontSize: 11 }}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                 interval="preserveStartEnd"
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748B', fontSize: 11 }}
+                tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                 tickFormatter={(value) => formatValue(value)}
                 domain={[0, yAxisMax]}
                 ticks={ticks}
                 width={48}
               />
-              <Tooltip cursor={{ fill: '#F1F5F9' }} content={<CustomTooltip />} />
+              <Tooltip cursor={{ fill: 'var(--muted)' }} content={<CustomTooltip />} />
               <Bar
                 dataKey="revenus"
                 stackId="finance"
-                fill="#2563EB"
+                fill="var(--primary)"
                 maxBarSize={36}
               />
               <Bar
                 dataKey="depenses"
                 stackId="finance"
-                fill="#1E293B"
+                fill="var(--foreground)"
                 radius={[6, 6, 0, 0]}
                 maxBarSize={36}
               />

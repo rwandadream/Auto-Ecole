@@ -28,11 +28,12 @@ export function EleveCreateView() {
   const [adresse, setAdresse] = useState('')
   const [typePiece, setTypePiece] = useState('CNI')
   const [numPiece, setNumPiece] = useState('')
-  const [typePermis, setTypePermis] = useState('B')
+  const [typePermis, setTypePermis] = useState('')
   const [formationId, setFormationId] = useState('')
   const [parrain, setParrain] = useState('')
 
   const formationsActives = formations.filter((f) => f.actif)
+  const formationSelectionnee = formationsActives.find((f) => f.id === formationId)
 
   const handleSubmit = async () => {
     if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
@@ -175,9 +176,9 @@ export function EleveCreateView() {
         <Card>
           <h3 className={sectionLabel}>Formation</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Type de permis">
+            <Field label="Type de permis (optionnel)">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Sélectionner</option>
+                <option value="">Non renseigné</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
@@ -195,13 +196,19 @@ export function EleveCreateView() {
                   </option>
                 ))}
               </FormSelect>
+              {formationSelectionnee && (
+                <p className="mt-1.5 text-xs font-medium text-foreground">
+                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} F CFA
+                  <span className="font-normal text-muted-foreground"> (prix de la formation)</span>
+                </p>
+              )}
             </Field>
             <Field label="Parrainé par (optionnel)">
               <FormInput value={parrain} onChange={(e) => setParrain(e.target.value)} placeholder="Nom du parrain" />
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement. Une facture est émise dès l&apos;inscription à la formation.
+            Le code dossier est généré automatiquement. La facture utilise le prix de la formation sélectionnée (le type de permis n&apos;influence pas le tarif).
           </p>
         </Card>
 

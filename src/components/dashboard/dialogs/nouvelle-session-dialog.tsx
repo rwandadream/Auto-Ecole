@@ -6,9 +6,8 @@ import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
 import { type ResultatExamen } from '@/lib/domain/types'
-import { todayFrShort } from '@/lib/format'
-import { isEleveSolde, soldeEleve } from '@/lib/finance-utils'
-import { formatXOF } from '@/components/dashboard/views/shared'
+import { todayFrShort, formatXOF } from '@/lib/format'
+import { canInscrireExamen, soldeEleve } from '@/lib/finance-utils'
 
 export function NouvelleSessionDialog({
   open,
@@ -40,12 +39,36 @@ export function NouvelleSessionDialog({
     onOpenChange(false)
   }
 
+  const elevesEligibles = useMemo(
+    () =>
+      eleves.map((e) => {
+        const check = canInscrireExamen(typeExamen, e.code, factures)
+        return {
+          ...e,
+          eligible: check.ok,
+          message: check.message,
+          reste: soldeEleve(e.code, factures),
+        }
+      }),
+    [eleves, factures, typeExamen],
+  )
+
+  const selectedEligibles = useMemo(
+    () => selectedEleves.filter((code) => canInscrireExamen(typeExamen, code, factures).ok),
+    [selectedEleves, typeExamen, factures],
+  )
+
+  const changeTypeExamen = (next: 'Code' | 'Conduite') => {
+    setTypeExamen(next)
+    setSelectedEleves((prev) =>
+      prev.filter((code) => canInscrireExamen(next, code, factures).ok),
+    )
+  }
+
   const toggleEleve = (code: string) => {
-    if (!isEleveSolde(code, factures)) {
-      const reste = soldeEleve(code, factures)
-      toast.error(
-        `Cet élève n'a pas soldé ses paiements (reste ${formatXOF(reste)}). Seuls les élèves à jour peuvent être inscrits au bordereau.`,
-      )
+    const check = canInscrireExamen(typeExamen, code, factures)
+    if (!check.ok) {
+      toast.error(check.message ?? 'Élève non éligible pour cet examen.')
       return
     }
     setSelectedEleves((prev) =>
@@ -56,27 +79,19 @@ export function NouvelleSessionDialog({
   const titreSession =
     typeExamen === 'Code' ? "Bordereau d'examen de code" : "Bordereau d'examen de conduite"
 
-  const elevesEligibles = useMemo(
-    () =>
-      eleves.map((e) => ({
-        ...e,
-        solde: isEleveSolde(e.code, factures),
-        reste: soldeEleve(e.code, factures),
-      })),
-    [eleves, factures],
-  )
-
   const handleSubmit = () => {
-    if (selectedEleves.length === 0) {
+    if (selectedEligibles.length === 0) {
       toast.error('Veuillez sélectionner au moins un candidat.')
       return
     }
-    const nonSoldes = selectedEleves.filter((code) => !isEleveSolde(code, factures))
-    if (nonSoldes.length > 0) {
-      toast.error('Un ou plusieurs candidats n\'ont pas soldé leurs paiements.')
+    const nonEligibles = selectedEligibles
+      .map((code) => ({ code, ...canInscrireExamen(typeExamen, code, factures) }))
+      .filter((r) => !r.ok)
+    if (nonEligibles.length > 0) {
+      toast.error(nonEligibles[0]?.message ?? 'Un ou plusieurs candidats ne sont pas éligibles.')
       return
     }
-    const candidats = selectedEleves.map((code) => {
+    const candidats = selectedEligibles.map((code) => {
       const e = eleves.find((el) => el.code === code)!
       const numPiece = e.numPiece?.trim() || ''
       return {
@@ -110,6 +125,11 @@ export function NouvelleSessionDialog({
     onOpenChange(false)
   }
 
+  const aideEligibilite =
+    typeExamen === 'Code'
+      ? 'Code : élèves avec au moins un paiement (partiel ou total).'
+      : 'Conduite : élèves ayant soldé la totalité de leurs factures.'
+
   return (
     <Modal
       open={open}
@@ -140,22 +160,25 @@ export function NouvelleSessionDialog({
         </div>
 
         <Field label="Type d'examen">
-          <FormSelect value={typeExamen} onChange={(e) => setTypeExamen(e.target.value as 'Code' | 'Conduite')}>
+          <FormSelect
+            value={typeExamen}
+            onChange={(e) => changeTypeExamen(e.target.value as 'Code' | 'Conduite')}
+          >
             <option value="Code">Code</option>
             <option value="Conduite">Conduite</option>
           </FormSelect>
         </Field>
 
-        <Field label={`Candidats (${selectedEleves.length} sélectionné${selectedEleves.length > 1 ? 's' : ''})`} required>
+        <Field label={`Candidats (${selectedEligibles.length} sélectionné${selectedEligibles.length > 1 ? 's' : ''})`} required>
           <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
             {elevesEligibles.map((e) => {
-              const checked = selectedEleves.includes(e.code)
+              const checked = selectedEligibles.includes(e.code)
               const numPiece = e.numPiece?.trim() || ''
               return (
                 <label
                   key={e.id}
                   className={`flex cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors ${
-                    !e.solde
+                    !e.eligible
                       ? 'cursor-not-allowed opacity-60'
                       : checked
                         ? 'bg-primary/10 text-foreground'
@@ -166,7 +189,7 @@ export function NouvelleSessionDialog({
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleEleve(e.code)}
-                    disabled={!e.solde}
+                    disabled={!e.eligible}
                     className="h-4 w-4 accent-primary"
                   />
                   <span className="min-w-0 flex-1">
@@ -178,13 +201,13 @@ export function NouvelleSessionDialog({
                     </span>
                   </span>
                   <span className="ml-auto inline-flex items-center gap-1.5">
-                    {!e.solde && (
+                    {!e.eligible && (
                       <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                        Impayé {formatXOF(e.reste)}
+                        {typeExamen === 'Conduite' ? `Solde ${formatXOF(e.reste)}` : 'Sans paiement'}
                       </span>
                     )}
                     <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
-                      {e.typePermis}
+                      {e.typePermis || '—'}
                     </span>
                   </span>
                 </label>
@@ -192,7 +215,7 @@ export function NouvelleSessionDialog({
             })}
           </div>
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Liste : nom + n° CNI / passeport / carte consulaire. Seuls les élèves soldés peuvent être inscrits.
+            Liste : nom + n° CNI / passeport / carte consulaire. {aideEligibilite}
           </p>
         </Field>
       </div>

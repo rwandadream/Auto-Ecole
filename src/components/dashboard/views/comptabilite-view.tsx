@@ -92,8 +92,8 @@ const modePaiementBadge: Record<ModePaiement, { bg: string; fg: string; icon: Re
     icon: <Banknote className="h-3 w-3" />,
   },
   'Orange Money': {
-    bg: 'bg-accent',
-    fg: 'text-accent-foreground',
+    bg: 'bg-[var(--accent-emphasis)]/15',
+    fg: 'text-[var(--accent-emphasis)]',
     icon: <Smartphone className="h-3 w-3" />,
   },
   Wave: {

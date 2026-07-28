@@ -7,6 +7,7 @@ import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSel
 import { useDataStore } from '@/store/data-store'
 import { type ResultatExamen } from '@/lib/domain/types'
 import { todayFrShort } from '@/lib/format'
+import { canInscrireExamen } from '@/lib/finance-utils'
 
 export function NouvelExamenDialog({
   open,
@@ -17,6 +18,7 @@ export function NouvelExamenDialog({
 }) {
   const addExamen = useDataStore((s) => s.addExamen)
   const eleves = useDataStore((s) => s.eleves)
+  const factures = useDataStore((s) => s.factures)
   const inspecteurs = useDataStore((s) => s.inspecteurs)
   const permis = useDataStore((s) => s.permis)
 
@@ -33,7 +35,7 @@ export function NouvelExamenDialog({
   const reset = () => {
     setEleveCode('')
     setTypeExamen('Conduite')
-    setTypePermis('B')
+    setTypePermis('')
     setDateExamen(today)
     setInspecteur('—')
     setResultat('En attente')
@@ -49,6 +51,11 @@ export function NouvelExamenDialog({
     const eleve = eleves.find((e) => e.code === eleveCode)
     if (!eleve) {
       toast.error('Veuillez sélectionner un élève.')
+      return
+    }
+    const check = canInscrireExamen(typeExamen, eleve.code, factures)
+    if (!check.ok) {
+      toast.error(check.message ?? 'Élève non éligible pour cet examen.')
       return
     }
     addExamen({
@@ -80,7 +87,7 @@ export function NouvelExamenDialog({
           </ModalCancelButton>
           <ModalPrimaryButton onClick={handleSubmit}>
             <Plus className="h-4 w-4" />
-            Planifier l'examen
+            Planifier l&apos;examen
           </ModalPrimaryButton>
         </>
       }
@@ -98,7 +105,7 @@ export function NouvelExamenDialog({
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Type d'examen">
+          <Field label="Type d&apos;examen">
             <FormSelect value={typeExamen} onChange={(e) => setTypeExamen(e.target.value as 'Code' | 'Conduite')}>
               <option value="Conduite">Conduite</option>
               <option value="Code">Code</option>
@@ -106,7 +113,7 @@ export function NouvelExamenDialog({
           </Field>
           <Field label="Type de permis">
             <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-              <option value="">Sélectionner</option>
+              <option value="">Sélectionner (optionnel)</option>
               {permis.map((p) => (
                 <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
               ))}
@@ -117,13 +124,19 @@ export function NouvelExamenDialog({
           </Field>
         </div>
 
+        <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          {typeExamen === 'Code'
+            ? 'Examen du code : au moins un paiement (partiel ou total) requis.'
+            : "Examen de conduite : solde à 0 F CFA requis. Sinon l'inscription est refusée."}
+        </p>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Date" required>
             <FormInput value={dateExamen} onChange={(e) => setDateExamen(e.target.value)} placeholder="05 Déc 2026" />
           </Field>
           <Field label="Inspecteur">
             <FormSelect value={inspecteur} onChange={(e) => setInspecteur(e.target.value)}>
-              <option value="—">— Code (pas d'inspecteur) —</option>
+              <option value="—">— Code (pas d&apos;inspecteur) —</option>
               {inspecteurs.filter((i) => i.actif).map((i) => (
                 <option key={i.id} value={`${i.prenom} ${i.nom}`}>
                   {i.prenom} {i.nom}

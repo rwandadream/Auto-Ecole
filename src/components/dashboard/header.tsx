@@ -25,6 +25,7 @@ import { getParametresTabsForRole } from '@/lib/permissions'
 import { LogoutDialog } from '@/components/dashboard/logout-dialog'
 import { GlobalSearch } from '@/components/dashboard/global-search'
 import { MobileMenuButton } from '@/components/dashboard/mobile-menu-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function Header() {
   const user = useAuthStore((s) => s.user)
@@ -65,6 +66,7 @@ export function Header() {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        <ThemeToggle />
         {/* Notifications popover */}
         <Popover>
           <PopoverTrigger asChild>

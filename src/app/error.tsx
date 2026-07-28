@@ -7,12 +7,15 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const message =
+    (error && typeof error.message === 'string' && error.message.trim()) ||
+    (error?.digest ? `Erreur technique (${error.digest})` : null) ||
+    'Une erreur inattendue est survenue.'
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center">
       <p className="text-sm font-medium text-destructive">Erreur de chargement</p>
-      <p className="max-w-md text-sm text-muted-foreground">
-        {error.message || 'Une erreur inattendue est survenue.'}
-      </p>
+      <p className="max-w-md text-sm text-muted-foreground">{message}</p>
       <button
         type="button"
         onClick={reset}

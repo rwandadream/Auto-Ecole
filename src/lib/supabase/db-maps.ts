@@ -32,7 +32,6 @@ export const STATUT_FACTURE_TO_DB: Record<StatutFacture, string> = {
   'Non payée': 'non_payee',
   Partielle: 'partielle',
   Payée: 'payee',
-  Impayée: 'impayee',
 }
 
 export const MODE_PAIEMENT_TO_DB: Record<ModePaiement, string> = {

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { mapRoleFromDb, mapRoleToDb } from '@/lib/supabase/roles'
 
 const ASSIGNABLE_ROLES = [
@@ -29,10 +28,11 @@ const updateUserSchema = z.object({
 })
 
 const SUPER_ADMIN_ROLE = 'super_administrateur'
+const USER_MANAGER_ROLES = new Set(['super_administrateur', 'directeur'])
 
 export const maxDuration = 10
 
-async function requireSuperAdminSession() {
+async function requireUserManagerSession() {
   const serverClient = await createServerClient()
   const { data: { user: caller }, error: authError } = await serverClient.auth.getUser()
   if (authError || !caller) {
@@ -45,16 +45,16 @@ async function requireSuperAdminSession() {
     .eq('id', caller.id)
     .maybeSingle()
 
-  if (!callerProfile?.actif || callerProfile.role !== SUPER_ADMIN_ROLE) {
-    return { response: NextResponse.json({ error: 'Réservé au super administrateur' }, { status: 403 }) }
+  if (!callerProfile?.actif || !USER_MANAGER_ROLES.has(callerProfile.role)) {
+    return { response: NextResponse.json({ error: 'Réservé à la direction' }, { status: 403 }) }
   }
 
-  return { callerId: caller.id }
+  return { callerId: caller.id, serverClient }
 }
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireSuperAdminSession()
+    const auth = await requireUserManagerSession()
     if ('response' in auth) return auth.response
 
     const body = await request.json()
@@ -66,30 +66,41 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
-    const adminClient = createAdminClient()
+    const dbRole = mapRoleToDb(role)
 
-    const { data, error } = await adminClient.auth.admin.createUser({
-      email: normalizedEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { name: trimmedName },
+    const { data, error } = await auth.serverClient.rpc('create_staff_user', {
+      p_email: normalizedEmail,
+      p_password: password,
+      p_name: trimmedName,
+      p_role: dbRole,
     })
 
-    if (error || !data.user) {
-      return NextResponse.json({ error: error?.message ?? 'Création impossible' }, { status: 400 })
+    if (error) {
+      return NextResponse.json({ error: error.message ?? 'Création impossible' }, { status: 400 })
     }
 
-    // Update profile role/actif (handle_new_user trigger already created the row with name/email)
-    await adminClient
-      .from('profiles')
-      .update({ role: mapRoleToDb(role), actif: actif ?? true })
-      .eq('id', data.user.id)
+    const created = Array.isArray(data) ? data[0] : data
+    if (!created?.id) {
+      return NextResponse.json({ error: 'Création impossible' }, { status: 400 })
+    }
+
+    if (actif === false) {
+      const { error: actifError } = await auth.serverClient.rpc('update_staff_user', {
+        p_id: created.id,
+        p_name: trimmedName,
+        p_role: dbRole,
+        p_actif: false,
+      })
+      if (actifError) {
+        return NextResponse.json({ error: actifError.message ?? 'Création partielle : actif non mis à jour' }, { status: 400 })
+      }
+    }
 
     return NextResponse.json({
-      id: data.user.id,
-      email: normalizedEmail,
-      name: trimmedName,
-      role,
+      id: created.id,
+      email: created.email ?? normalizedEmail,
+      name: created.name ?? trimmedName,
+      role: mapRoleFromDb(created.role ?? dbRole),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur serveur'
@@ -99,7 +110,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const auth = await requireSuperAdminSession()
+    const auth = await requireUserManagerSession()
     if ('response' in auth) return auth.response
 
     const body = await request.json()
@@ -109,53 +120,54 @@ export async function PATCH(request: Request) {
     }
     const { id, name, role, actif, password } = parsed.data
 
-    const adminClient = createAdminClient()
-
-    // Vérifier que la cible n'est pas un super admin (ne peut pas être modifié ici)
-    const { data: targetProfile } = await adminClient
+    const { data: targetProfile } = await auth.serverClient
       .from('profiles')
       .select('role')
       .eq('id', id)
       .maybeSingle()
-    if (targetProfile?.role === SUPER_ADMIN_ROLE) {
-      return NextResponse.json({ error: 'Le compte super administrateur ne peut pas être modifié via cette interface' }, { status: 403 })
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
     }
+    if (targetProfile.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.json(
+        { error: 'Le compte super administrateur ne peut pas être modifié via cette interface' },
+        { status: 403 },
+      )
+    }
+
     const trimmedPassword = password?.trim()
-
-    // Update password via Admin API if provided
-    if (trimmedPassword) {
-      if (trimmedPassword.length < 8) {
-        return NextResponse.json(
-          { error: 'Le mot de passe doit comporter au moins 8 caractères' },
-          { status: 400 },
-        )
-      }
-      const { error: pwError } = await adminClient.auth.admin.updateUserById(id, {
-        password: trimmedPassword,
-      })
-      if (pwError) {
-        return NextResponse.json({ error: pwError.message }, { status: 400 })
-      }
+    if (trimmedPassword && trimmedPassword.length < 8) {
+      return NextResponse.json(
+        { error: 'Le mot de passe doit comporter au moins 8 caractères' },
+        { status: 400 },
+      )
     }
 
-    // Update profile (name, role, actif)
-    const { data, error } = await adminClient
-      .from('profiles')
-      .update({ name: name.trim(), role: mapRoleToDb(role), actif })
-      .eq('id', id)
-      .select('id, email, name, role, actif')
-      .maybeSingle()
+    const dbRole = mapRoleToDb(role)
+    const { data, error } = await auth.serverClient.rpc('update_staff_user', {
+      p_id: id,
+      p_name: name.trim(),
+      p_role: dbRole,
+      p_actif: actif,
+      ...(trimmedPassword ? { p_password: trimmedPassword } : {}),
+    })
 
-    if (error || !data) {
-      return NextResponse.json({ error: error?.message ?? 'Mise à jour impossible' }, { status: 400 })
+    if (error) {
+      return NextResponse.json({ error: error.message ?? 'Mise à jour impossible' }, { status: 400 })
+    }
+
+    const updated = Array.isArray(data) ? data[0] : data
+    if (!updated) {
+      return NextResponse.json({ error: 'Mise à jour impossible' }, { status: 400 })
     }
 
     return NextResponse.json({
-      id: data.id,
-      email: data.email,
-      name: data.name,
-      role: mapRoleFromDb(data.role ?? ''),
-      actif: data.actif,
+      id: updated.id,
+      email: updated.email,
+      name: updated.name,
+      role: mapRoleFromDb(updated.role ?? ''),
+      actif: updated.actif,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur serveur'
@@ -165,7 +177,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = await requireSuperAdminSession()
+    const auth = await requireUserManagerSession()
     if ('response' in auth) return auth.response
 
     const id = new URL(request.url).searchParams.get('id')
@@ -180,19 +192,23 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const adminClient = createAdminClient()
-
-    // Refuser la suppression d'un autre super admin
-    const { data: targetProfile } = await adminClient
+    const { data: targetProfile } = await auth.serverClient
       .from('profiles')
       .select('role')
       .eq('id', id)
       .maybeSingle()
-    if (targetProfile?.role === SUPER_ADMIN_ROLE) {
-      return NextResponse.json({ error: 'Le compte super administrateur ne peut pas être supprimé via cette interface' }, { status: 403 })
+
+    if (!targetProfile) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
+    }
+    if (targetProfile.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.json(
+        { error: 'Le compte super administrateur ne peut pas être supprimé via cette interface' },
+        { status: 403 },
+      )
     }
 
-    const { error } = await adminClient.auth.admin.deleteUser(id)
+    const { error } = await auth.serverClient.rpc('delete_staff_user', { p_id: id })
     if (error) {
       return NextResponse.json({ error: error.message ?? 'Suppression impossible' }, { status: 400 })
     }

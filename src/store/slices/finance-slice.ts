@@ -11,7 +11,8 @@ import { findEleveId, supabaseRepos } from '@/lib/supabase/repositories'
 import { syncDataFromSupabase } from '@/lib/supabase/sync-data'
 import { formatXOF } from '@/lib/format'
 import { snapshotRecord } from '@/lib/snapshot'
-import type { Depense, Facture, ModePaiement, Paiement, StatutFacture } from '@/lib/domain/types'
+import type { Depense, Facture, ModePaiement, Paiement } from '@/lib/domain/types'
+import { computeReste, computeStatutFacture } from '@/lib/finance-utils'
 
 function uid(prefix: string) {
   return makeEntityId(prefix)
@@ -24,12 +25,6 @@ function genFactureNumero(existing: Facture[]) {
     .map((f) => parseInt(f.numero.split('-')[2] || '0', 10))
     .reduce((a, b) => Math.max(a, b), 0)
   return `FAC-${year}-${String(max + 1).padStart(4, '0')}`
-}
-
-function computeStatutFacture(paye: number, montant: number): StatutFacture {
-  if (paye <= 0) return 'Non payée'
-  if (paye >= montant) return 'Payée'
-  return 'Partielle'
 }
 
 export type FinanceSlice = {
@@ -82,7 +77,7 @@ export const createFinanceSlice: StateCreator<DataState, [], [], FinanceSlice> =
       formation: data.formation,
       montant: data.montant,
       paye: avance,
-      reste: Math.max(0, data.montant - avance),
+      reste: computeReste(data.montant, avance),
       statut: computeStatutFacture(avance, data.montant),
       dateEmission: data.dateEmission,
       inscriptionId: data.inscriptionId ?? '',
@@ -179,7 +174,7 @@ export const createFinanceSlice: StateCreator<DataState, [], [], FinanceSlice> =
       const factures = s.factures.map((f) => {
         if (f.id === data.factureId) {
           const nouveauPaye = f.paye + data.montant
-          const nouveauReste = Math.max(0, f.montant - nouveauPaye)
+          const nouveauReste = computeReste(f.montant, nouveauPaye)
           return { ...f, paye: nouveauPaye, reste: nouveauReste, statut: computeStatutFacture(nouveauPaye, f.montant) }
         }
         return f

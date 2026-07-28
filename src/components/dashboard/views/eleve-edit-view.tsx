@@ -179,9 +179,9 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
         <Card>
           <h3 className={sectionLabel}>Formation &amp; cycle de vie</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Type de permis">
+            <Field label="Type de permis (optionnel)">
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Sélectionner</option>
+                <option value="">Non renseigné</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
@@ -219,7 +219,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${accesPortail ? 'bg-primary' : 'bg-muted-foreground/40'}`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform ${accesPortail ? 'translate-x-5' : 'translate-x-0'}`}
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg transition-transform ${accesPortail ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </button>
           </div>

@@ -11,37 +11,64 @@ export function StoreHydration({ children }: { children: React.ReactNode }) {
   const [fatalError, setFatalError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     void (async () => {
       try {
         if (!isSupabaseConfigured()) {
-          setFatalError(
-            'Supabase non configuré : vérifiez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
-          )
+          if (!cancelled) {
+            setFatalError(
+              'Supabase non configuré : vérifiez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
+            )
+          }
           return
         }
 
         localStorage.removeItem(DATA_STORE_KEY)
-        await useAuthStore.persist.rehydrate()
 
-        const restoredAdmin = await useAuthStore.getState().restoreSupabaseSession()
+        try {
+          await useAuthStore.persist.rehydrate()
+        } catch {
+          // rehydrate peut échouer sur un storage corrompu — on continue sans session
+        }
+
+        let restoredAdmin = false
+        try {
+          restoredAdmin = await useAuthStore.getState().restoreSupabaseSession()
+        } catch {
+          restoredAdmin = false
+        }
+
+        if (cancelled) return
+
         const { user, isAuthenticated } = useAuthStore.getState()
 
         if (!restoredAdmin && isAuthenticated && user?.mode === 'eleve') {
-          const synced = await syncDataForEleve(user.code, user.telephone)
-          if (!synced) {
+          try {
+            const synced = await syncDataForEleve(user.code, user.telephone)
+            if (!synced) {
+              useAuthStore.setState({ isAuthenticated: false, user: null })
+            }
+          } catch {
             useAuthStore.setState({ isAuthenticated: false, user: null })
           }
         } else if (!restoredAdmin && isAuthenticated && user?.mode === 'admin') {
           useAuthStore.setState({ isAuthenticated: false, user: null })
         }
       } catch (err) {
-        setFatalError(
-          err instanceof Error ? err.message : 'Erreur lors de l’initialisation de l’application.',
-        )
+        if (!cancelled) {
+          setFatalError(
+            err instanceof Error ? err.message : 'Erreur lors de l’initialisation de l’application.',
+          )
+        }
       } finally {
-        setReady(true)
+        if (!cancelled) setReady(true)
       }
     })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (!ready) {

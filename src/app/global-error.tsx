@@ -7,13 +7,16 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const message =
+    (error && typeof error.message === 'string' && error.message.trim()) ||
+    (error?.digest ? `Erreur technique (${error.digest})` : null) ||
+    'Impossible de charger l’application.'
+
   return (
     <html lang="fr">
       <body className="flex min-h-screen flex-col items-center justify-center gap-4 bg-neutral-950 p-6 text-center text-white">
         <p className="text-sm font-medium">SARAH AUTO — erreur critique</p>
-        <p className="max-w-md text-sm text-neutral-400">
-          {error.message || 'Impossible de charger l’application.'}
-        </p>
+        <p className="max-w-md text-sm text-neutral-400">{message}</p>
         <button
           type="button"
           onClick={reset}

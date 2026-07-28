@@ -68,7 +68,7 @@ const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
   delete_depense: ['Super Administrateur'],
   delete_moniteur: ['Super Administrateur'],
   delete_vehicule: ['Super Administrateur'],
-  manage_users: ['Super Administrateur'],
+  manage_users: ['Super Administrateur', 'Directeur'],
   manage_formations: ['Super Administrateur'],
 }
 

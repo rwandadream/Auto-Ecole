@@ -5,7 +5,7 @@ import {
   canvasFromFile,
   captureVideoFrame,
   hasUsefulCniData,
-  parseCniText,
+  parseIdentityDocumentText,
   preprocessCniCanvas,
   type CniScanResult,
 } from '@/lib/cni-ocr'
@@ -17,6 +17,17 @@ export type ScannerStatus = 'idle' | 'camera' | 'processing' | 'done' | 'error'
 type TesseractWorker = {
   recognize: (image: HTMLCanvasElement) => Promise<{ data: { text: string } }>
   terminate: () => Promise<void>
+}
+
+const EMPTY_RESULT: CniScanResult = {
+  nom: '',
+  prenom: '',
+  dateNaissance: '',
+  numPiece: '',
+  lieuNaissance: '',
+  sexe: '',
+  nationalite: '',
+  typePiece: '',
 }
 
 async function openCameraStream(): Promise<MediaStream> {
@@ -69,22 +80,36 @@ export function useCniScanner() {
     if (workerPromiseRef.current) return workerPromiseRef.current
 
     workerPromiseRef.current = (async () => {
-      setProgress('Chargement du moteur OCR…')
-      const { createWorker } = await import('tesseract.js')
-      const w = await createWorker('fra', 1, {
-        logger: (message) => {
-          if (message.status === 'loading language traineddata') {
-            setProgress('Téléchargement du modèle français…')
-          }
-          if (message.status === 'recognizing text') {
-            setProgress(`Analyse OCR ${Math.round((message.progress ?? 0) * 100)}%`)
-          }
-        },
-      })
-      const worker = w as unknown as TesseractWorker
-      workerRef.current = worker
-      setProgress(null)
-      return worker
+      try {
+        setProgress('Chargement du moteur OCR…')
+        const { createWorker } = await import('tesseract.js')
+        const w = await createWorker('fra', 1, {
+          workerPath: '/tess/worker.min.js',
+          corePath: '/tess',
+          langPath: '/tess',
+          workerBlobURL: false,
+          logger: (message) => {
+            if (message.status === 'loading language traineddata') {
+              setProgress('Chargement du modèle français…')
+            }
+            if (message.status === 'initializing tesseract') {
+              setProgress('Initialisation OCR…')
+            }
+            if (message.status === 'recognizing text') {
+              setProgress(`Analyse OCR ${Math.round((message.progress ?? 0) * 100)}%`)
+            }
+          },
+        })
+        const worker = w as unknown as TesseractWorker
+        workerRef.current = worker
+        setProgress(null)
+        return worker
+      } catch (err) {
+        workerPromiseRef.current = null
+        workerRef.current = null
+        console.error('[OCR] createWorker failed', err)
+        throw err
+      }
     })()
 
     return workerPromiseRef.current
@@ -96,28 +121,47 @@ export function useCniScanner() {
       setError(null)
 
       try {
+        const worker = await ensureWorker()
+        if (!worker) throw new Error('WORKER_UNAVAILABLE')
+
         const processed = preprocessCniCanvas(source)
         setPreview(processed)
-        const worker = await ensureWorker()
-        if (!worker) throw new Error('Worker unavailable')
-        const { data } = await worker.recognize(processed)
-        const parsed = parseCniText(data.text)
+
+        let { data } = await worker.recognize(processed)
+        let parsed = parseIdentityDocumentText(data.text)
+
+        // Fallback : image brute si le prétraitement a trop dégradé le texte
+        if (!hasUsefulCniData(parsed) && (!data.text || data.text.trim().length < 12)) {
+          setProgress('Nouvelle passe OCR (image brute)…')
+          setPreview(source)
+          ;({ data } = await worker.recognize(source))
+          parsed = parseIdentityDocumentText(data.text)
+        } else if (!hasUsefulCniData(parsed)) {
+          setProgress('Nouvelle passe OCR (image brute)…')
+          setPreview(source)
+          ;({ data } = await worker.recognize(source))
+          const retry = parseIdentityDocumentText(data.text)
+          if (hasUsefulCniData(retry)) parsed = retry
+        }
+
         setStatus('done')
         setProgress(null)
         return parsed
-      } catch {
-        setError('OCR échoué — complétez la saisie manuellement.')
+      } catch (err) {
+        console.error('[OCR] runOcr failed', err)
+        workerPromiseRef.current = null
+        const isWorker =
+          err instanceof Error &&
+          (err.message === 'WORKER_UNAVAILABLE' ||
+            /worker|fetch|network|traineddata|wasm|Failed to fetch/i.test(err.message))
+        setError(
+          isWorker
+            ? 'Moteur OCR inaccessible — réessayez ou saisissez manuellement.'
+            : 'OCR échoué — complétez la saisie manuellement.',
+        )
         setStatus('error')
         setProgress(null)
-        return {
-          nom: '',
-          prenom: '',
-          dateNaissance: '',
-          numPiece: '',
-          lieuNaissance: '',
-          sexe: '',
-          nationalite: '',
-        }
+        return { ...EMPTY_RESULT }
       }
     },
     [ensureWorker, setPreview],
@@ -150,7 +194,7 @@ export function useCniScanner() {
         await videoRef.current.play()
       }
       setStatus('camera')
-      void ensureWorker()
+      void ensureWorker().catch(() => {})
     } catch (err) {
       const name = err instanceof DOMException ? err.name : ''
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
@@ -173,15 +217,7 @@ export function useCniScanner() {
     if (!video || !video.videoWidth) {
       setError('Activez la caméra avant de scanner.')
       setStatus('error')
-      return {
-        nom: '',
-        prenom: '',
-        dateNaissance: '',
-        numPiece: '',
-        lieuNaissance: '',
-        sexe: '',
-        nationalite: '',
-      }
+      return { ...EMPTY_RESULT }
     }
 
     return runOcr(captureVideoFrame(video))
@@ -192,15 +228,7 @@ export function useCniScanner() {
       if (!file.type.startsWith('image/')) {
         setError('Choisissez une image (JPG, PNG, WEBP).')
         setStatus('error')
-        return {
-          nom: '',
-          prenom: '',
-          dateNaissance: '',
-          numPiece: '',
-          lieuNaissance: '',
-          sexe: '',
-          nationalite: '',
-        }
+        return { ...EMPTY_RESULT }
       }
 
       try {
@@ -209,15 +237,7 @@ export function useCniScanner() {
       } catch {
         setError('Impossible de lire cette image.')
         setStatus('error')
-        return {
-          nom: '',
-          prenom: '',
-          dateNaissance: '',
-          numPiece: '',
-          lieuNaissance: '',
-          sexe: '',
-          nationalite: '',
-        }
+        return { ...EMPTY_RESULT }
       }
     },
     [runOcr],

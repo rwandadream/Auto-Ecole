@@ -3,13 +3,13 @@ import type {
   StatutMoniteur,
   EtatVehicule,
   StatutSeance,
-  StatutFacture,
   ModePaiement,
   CategorieDepense,
   ResultatExamen,
   Role,
   FaqItem,
 } from '@/lib/domain/types'
+import { computeReste, computeStatutFacture } from '@/lib/finance-utils'
 import type {
   Depense,
   Eleve,
@@ -63,13 +63,6 @@ const STATUT_SEANCE: Record<string, StatutSeance> = {
   effectue: 'Effectué',
   absent_eleve: 'Absent élève',
   annule: 'Annulé',
-}
-
-const STATUT_FACTURE: Record<string, StatutFacture> = {
-  non_payee: 'Non payée',
-  partielle: 'Partielle',
-  payee: 'Payée',
-  impayee: 'Impayée',
 }
 
 const MODE_PAIEMENT: Record<string, ModePaiement> = {
@@ -420,8 +413,9 @@ export function mapFacture(
     inscriptionId: row.inscription_id ?? '',
     montant,
     paye,
-    reste: Math.max(0, montant - paye),
-    statut: STATUT_FACTURE[row.statut ?? ''] ?? 'Non payée',
+    reste: computeReste(montant, paye),
+    // Toujours recalculer depuis payé/montant (source de vérité), pas le champ DB stale
+    statut: computeStatutFacture(paye, montant),
     dateEmission: formatIsoDateFr(row.date_emission),
   }
 }

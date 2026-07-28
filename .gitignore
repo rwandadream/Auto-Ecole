@@ -39,6 +39,10 @@ yarn-error.log*
 .vercel
 
 
+# Tesseract OCR assets (générés par postinstall / npm run copy-tess)
+/public/tess/*
+!/public/tess/README.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

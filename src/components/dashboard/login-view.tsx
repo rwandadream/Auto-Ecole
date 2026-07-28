@@ -194,12 +194,12 @@ export function LoginView() {
       {/* Contenu centré */}
       <div className="relative z-10 flex min-h-screen min-h-[100dvh] w-full items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] sm:p-6">
         <div className="login-card-enter w-full max-w-[420px]">
-          <div className="overflow-hidden rounded-[1.35rem] border border-white/25 bg-white/90 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+          <div className="overflow-hidden rounded-[1.35rem] border border-border/40 bg-card/90 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
             {/* Bandeau brand */}
             <div className="relative border-b border-border/50 bg-gradient-to-r from-primary/8 via-transparent to-primary/5 px-6 py-7">
               <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
               <div className="flex flex-col items-center justify-center gap-3 text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white p-3 shadow-md ring-1 ring-border/30">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-background p-3 shadow-md ring-1 ring-border/30">
                   <BrandLogo size="lg" className="h-full w-full rounded-lg" />
                 </div>
                 <div>

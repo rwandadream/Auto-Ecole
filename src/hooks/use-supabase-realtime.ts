@@ -20,7 +20,7 @@ export function useSupabaseRealtime() {
     const scheduleSync = () => {
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {
-        void syncDataFromSupabase()
+        void syncDataFromSupabase().catch(() => {})
       }, DEBOUNCE_MS)
     }
 

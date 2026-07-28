@@ -118,7 +118,6 @@ export const statutFactureTone: Record<StatutFacture, BadgeTone> = {
   'Non payée': 'destructive',
   Partielle: 'warning',
   Payée: 'success',
-  Impayée: 'destructive',
 }
 
 export const statutSeanceTone: Record<StatutSeance, BadgeTone> = {
@@ -246,7 +245,7 @@ export const modePaiementConfig: Record<
   { icon: React.ReactNode; bg: string; fg: string }
 > = {
   Espèces: { icon: <Banknote className="h-3.5 w-3.5" />, bg: 'bg-muted', fg: 'text-muted-foreground' },
-  'Orange Money': { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-accent', fg: 'text-accent-foreground' },
+  'Orange Money': { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-[var(--accent-emphasis)]/15', fg: 'text-[var(--accent-emphasis)]' },
   Wave: { icon: <Smartphone className="h-3.5 w-3.5" />, bg: 'bg-secondary', fg: 'text-secondary-foreground' },
   Virement: { icon: <Building2 className="h-3.5 w-3.5" />, bg: 'bg-primary/10', fg: 'text-primary' },
 }

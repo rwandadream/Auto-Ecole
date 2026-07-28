@@ -93,7 +93,11 @@ export const useAuthStore = create<AuthState>()(
           role: mapRoleFromDb(profile.role ?? ''),
         }
         set(setAdminUser(user))
-        await syncDataFromSupabase()
+        try {
+          await syncDataFromSupabase()
+        } catch {
+          // Login réussi ; sync pourra être retenté via realtime / refresh
+        }
         return true
       },
 
@@ -154,7 +158,11 @@ export const useAuthStore = create<AuthState>()(
           set(setAdminUser(user))
         }
 
-        await syncDataFromSupabase()
+        try {
+          await syncDataFromSupabase()
+        } catch {
+          // Session OK même si le sync échoue — l'UI pourra réessayer
+        }
         return true
       },
 

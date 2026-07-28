@@ -20,7 +20,7 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       // Next.js injects inline scripts during hydration — unsafe-inline required
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval'",
       // Tailwind / CSS-in-JS use inline styles
       "style-src 'self' 'unsafe-inline'",
       // Supabase REST + Realtime WebSocket
@@ -29,8 +29,8 @@ const securityHeaders = [
       "img-src 'self' data: blob:",
       "media-src 'self' blob: data:",
       "font-src 'self' data:",
-      // Service worker
-      "worker-src 'self'",
+      // Service worker + Tesseract OCR worker (self-hosted /tess + blob fallback)
+      "worker-src 'self' blob:",
       // No plugins, no embeds
       "object-src 'none'",
       // Prevent base tag hijacking
