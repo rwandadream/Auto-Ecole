@@ -963,6 +963,15 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_comptable_or_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
+      reset_platform_business_data: {
+        Args: never
+        Returns: Json
+      }
+      import_platform_backup: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       login_eleve_portail: {
         Args: { p_code: string; p_telephone: string }
         Returns: {

@@ -25,7 +25,7 @@ export type ViewKey =
   | 'student-factures'
   | 'student-profil'
 
-export type ParametresTab = 'profil' | 'equipe' | 'catalogue' | 'assistance' | 'audit'
+export type ParametresTab = 'profil' | 'equipe' | 'catalogue' | 'assistance' | 'audit' | 'danger'
 
 interface NavState {
   activeView: ViewKey

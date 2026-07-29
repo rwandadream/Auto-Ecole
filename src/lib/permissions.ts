@@ -22,6 +22,9 @@ export type AppAction =
   | 'delete_vehicule'
   | 'manage_users'
   | 'manage_formations'
+  | 'reset_platform'
+  | 'export_backup'
+  | 'import_backup'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Matrice d'accès aux vues
@@ -70,6 +73,9 @@ const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
   delete_vehicule: ['Super Administrateur'],
   manage_users: ['Super Administrateur', 'Directeur'],
   manage_formations: ['Super Administrateur'],
+  reset_platform: ['Super Administrateur'],
+  export_backup: ['Super Administrateur'],
+  import_backup: ['Super Administrateur'],
 }
 
 export function normalizeRole(role: string): AppRole {
@@ -105,10 +111,12 @@ export function getDefaultViewForRole(role: string): ViewKey {
 }
 
 const ADMIN_PARAMETRES_TABS: ParametresTab[] = ['profil', 'equipe', 'catalogue', 'assistance', 'audit']
+const SUPER_ADMIN_EXTRA_TABS: ParametresTab[] = ['danger']
 const STAFF_PARAMETRES_TABS: ParametresTab[] = ['profil', 'assistance']
 
 export function canAccessParametresTab(role: string, tab: ParametresTab): boolean {
   const r = normalizeRole(role)
+  if (tab === 'danger') return isSuperAdmin(r)
   if (tab === 'assistance' || tab === 'profil') return canAccessView(role, 'parametres')
   if (tab === 'audit') {
     return ['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)
@@ -119,7 +127,8 @@ export function canAccessParametresTab(role: string, tab: ParametresTab): boolea
 
 export function getParametresTabsForRole(role: string): ParametresTab[] {
   const r = normalizeRole(role)
-  if (['Super Administrateur', 'Directeur', 'Responsable adjoint'].includes(r)) return ADMIN_PARAMETRES_TABS
+  if (isSuperAdmin(r)) return [...ADMIN_PARAMETRES_TABS, ...SUPER_ADMIN_EXTRA_TABS]
+  if (['Directeur', 'Responsable adjoint'].includes(r)) return ADMIN_PARAMETRES_TABS
   if (canAccessView(role, 'parametres')) return STAFF_PARAMETRES_TABS
   return []
 }

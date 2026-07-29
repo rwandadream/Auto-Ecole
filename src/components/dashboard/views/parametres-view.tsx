@@ -17,6 +17,7 @@ import {
   BookOpen,
   HelpCircle,
   ScrollText,
+  Database,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -69,6 +70,7 @@ import { PermisDialog } from '@/components/dashboard/dialogs/permis-dialog'
 import { MediaMigrationPanel } from '@/components/dashboard/views/media-migration-panel'
 import { AssistancePanel } from '@/components/dashboard/views/assistance-view'
 import { AuditLogPanel } from '@/components/dashboard/views/audit-log-view'
+import { DonneesPanel } from '@/components/dashboard/views/donnees-panel'
 import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 const ROLES: Role[] = [
@@ -88,6 +90,7 @@ const PARAMETRES_TAB_META: Record<
   catalogue: { label: 'Catalogue', icon: BookOpen, section: 'Administration' },
   assistance: { label: 'Assistance', icon: HelpCircle, section: 'Support' },
   audit: { label: "Journal d'audit", icon: ScrollText, section: 'Sécurité' },
+  danger: { label: 'Données', icon: Database, section: 'Sécurité' },
 }
 
 function ReadOnlyField({
@@ -739,6 +742,10 @@ export function ParametresView() {
 
         <TabsContent value="audit" className="mt-0">
           <AuditLogPanel />
+        </TabsContent>
+
+        <TabsContent value="danger" className="mt-0">
+          <DonneesPanel />
         </TabsContent>
       </Tabs>
 

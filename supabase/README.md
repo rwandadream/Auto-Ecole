@@ -32,6 +32,9 @@ Exécutez **dans cet ordre** via le SQL Editor Supabase ou le MCP :
 | 22 | `20260629000001_acces_portail.sql` | Colonne `eleves.acces_portail` + blocage login portail si désactivé |
 | 23 | `20260630000001_super_admin_role.sql` | Rôle `super_administrateur`, `is_super_admin()`, policies RLS |
 | 24 | `seed_superadmin.sql` | Compte super admin (une seule fois, idempotent) |
+| 25 | `20260630000002_rename_roles.sql` | Renommage rôles UI (directeur, etc.) |
+| 26 | `20260729000001_reset_platform_business_data.sql` | RPC `reset_platform_business_data` (purge métier, Super Admin) |
+| 27 | `20260729000002_import_platform_backup.sql` | RPC `import_platform_backup` (restauration JSON, Super Admin) |
 
 > L'ancien `20260621000004_seed_demo.sql` et `seed_full_mock.sql` ont été remplacés par `seed_reference_data.sql`.
 
@@ -126,6 +129,8 @@ Realtime : séances, factures et paiements se resynchronisent automatiquement (d
 | `update_staff_user` | Mise à jour profil staff (+ mot de passe Auth optionnel) |
 | `delete_staff_user` | Suppression compte staff (Auth + profile) |
 | `delete_eleve` | Suppression élève + factures/paiements/bordereaux (admin, transaction) |
+| `reset_platform_business_data` | Purge données métier (Super Admin) — conserve profiles, catalogue, référentiels, FAQ |
+| `import_platform_backup` | Restauration complète depuis backup JSON (Super Admin, remplacement) |
 
 ## Tables
 
