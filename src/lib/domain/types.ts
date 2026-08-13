@@ -99,6 +99,10 @@ export type Eleve = {
   parrainNom: string
   moniteur: string
   accesPortail?: boolean
+  /** Horodatage ISO d'une demande de suppression en attente de confirmation Super Admin. */
+  deletionRequestedAt?: string
+  /** Nom du profil ayant demandé la suppression (résolu côté client). */
+  deletionRequestedByName?: string
 }
 
 export type Seance = {

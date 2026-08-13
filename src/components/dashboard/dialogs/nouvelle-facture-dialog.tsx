@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect, FormTextarea } from '@/components/dashboard/modal'
@@ -25,6 +25,10 @@ export function NouvelleFactureDialog({
   const [avance, setAvance] = useState('')
   const [dateEmission, setDateEmission] = useState(today)
   const [notes, setNotes] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  // Ref (et non state) pour bloquer de façon synchrone un double-clic rapide :
+  // un state ne se répercute qu'au prochain rendu, trop tard pour un 2e clic immédiat.
+  const submittingRef = useRef(false)
 
   const resetForm = () => {
     setEleveCode('')
@@ -33,9 +37,12 @@ export function NouvelleFactureDialog({
     setAvance('')
     setDateEmission(today)
     setNotes('')
+    setIsSubmitting(false)
+    submittingRef.current = false
   }
 
   const handleSubmit = () => {
+    if (submittingRef.current) return
     const montantValue = Number(montant) || 0
     const avanceValue = Number(avance) || 0
     if (!eleveCode || montantValue <= 0) {
@@ -55,6 +62,8 @@ export function NouvelleFactureDialog({
       toast.error('Élève introuvable')
       return
     }
+    submittingRef.current = true
+    setIsSubmitting(true)
     const eleveNom = `${eleve.prenom} ${eleve.nom}`
     addFacture({
       eleve: eleveNom,
@@ -86,9 +95,9 @@ export function NouvelleFactureDialog({
           <ModalCancelButton onClick={() => onOpenChange(false)}>
             Annuler
           </ModalCancelButton>
-          <ModalPrimaryButton onClick={handleSubmit}>
+          <ModalPrimaryButton onClick={handleSubmit} disabled={isSubmitting}>
             <Receipt className="h-4 w-4" />
-            Émettre la facture
+            {isSubmitting ? 'Enregistrement…' : 'Émettre la facture'}
           </ModalPrimaryButton>
         </>
       }

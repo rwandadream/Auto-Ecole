@@ -180,6 +180,8 @@ export type Database = {
           created_at: string | null
           date_inscription: string | null
           date_naissance: string | null
+          deletion_requested_at: string | null
+          deletion_requested_by: string | null
           dossier_code: string | null
           email: string | null
           est_parraine: boolean | null
@@ -212,6 +214,8 @@ export type Database = {
           created_at?: string | null
           date_inscription?: string | null
           date_naissance?: string | null
+          deletion_requested_at?: string | null
+          deletion_requested_by?: string | null
           dossier_code?: string | null
           email?: string | null
           est_parraine?: boolean | null
@@ -244,6 +248,8 @@ export type Database = {
           created_at?: string | null
           date_inscription?: string | null
           date_naissance?: string | null
+          deletion_requested_at?: string | null
+          deletion_requested_by?: string | null
           dossier_code?: string | null
           email?: string | null
           est_parraine?: boolean | null
@@ -270,6 +276,13 @@ export type Database = {
           type_piece?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "eleves_deletion_requested_by_fkey"
+            columns: ["deletion_requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "eleves_inspecteur_id_fkey"
             columns: ["inspecteur_id"]
@@ -935,7 +948,15 @@ export type Database = {
           role: string
         }[]
       }
+      cancel_delete_eleve_request: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       delete_eleve: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      request_delete_eleve: {
         Args: { p_id: string }
         Returns: undefined
       }

@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { DataState } from '../store-types'
 import {
   makeEntityId,
+  persistCancelDeleteEleveRequest,
   persistEleveCreateAwait,
   persistEleveDelete,
   persistEleveUpdate,
@@ -10,6 +11,7 @@ import {
   persistInscrireEleve,
   persistMoniteur,
   persistPermis,
+  persistRequestDeleteEleve,
   persistVehicule,
 } from '@/lib/supabase/store-bridge'
 import { snapshotRecord } from '@/lib/snapshot'
@@ -60,6 +62,10 @@ export type ResourceSlice = {
   ) => Eleve
   updateEleve: (id: string, patch: Partial<Eleve>) => void
   deleteEleve: (id: string) => void
+  /** Directeur / Responsable adjoint : demande de suppression, en attente de confirmation Super Admin. */
+  requestDeleteEleve: (id: string) => void
+  /** Annule/rejette une demande de suppression en attente (demandeur ou Super Admin). */
+  cancelDeleteEleveRequest: (id: string) => void
   inscrireEleve: (eleveId: string, formationId: string, tarif?: number) => Promise<Inscription | null>
 
   addMoniteur: (data: Omit<Moniteur, 'id' | 'seances'>) => void
@@ -212,6 +218,50 @@ export const createResourceSlice: StateCreator<DataState, [], [], ResourceSlice>
           return snapshot ? { ...sess, candidats: snapshot.candidats } : sess
         }),
       })),
+    )
+  },
+
+  requestDeleteEleve: (id) => {
+    const old = get().eleves.find((x) => x.id === id)
+    if (!old) return
+    const updated: Eleve = {
+      ...old,
+      deletionRequestedAt: new Date().toISOString(),
+      deletionRequestedByName: 'Vous',
+    }
+    set((s) => ({ eleves: s.eleves.map((e) => (e.id === id ? updated : e)) }))
+    get().logAction(
+      'UPDATE',
+      'eleves',
+      id,
+      `Demande de suppression de l'élève ${old.prenom} ${old.nom}`,
+      snapshotRecord(old),
+      snapshotRecord(updated),
+    )
+    persistRequestDeleteEleve(id, () =>
+      set((s) => ({ eleves: s.eleves.map((e) => (e.id === id ? old : e)) })),
+    )
+  },
+
+  cancelDeleteEleveRequest: (id) => {
+    const old = get().eleves.find((x) => x.id === id)
+    if (!old) return
+    const updated: Eleve = {
+      ...old,
+      deletionRequestedAt: undefined,
+      deletionRequestedByName: undefined,
+    }
+    set((s) => ({ eleves: s.eleves.map((e) => (e.id === id ? updated : e)) }))
+    get().logAction(
+      'UPDATE',
+      'eleves',
+      id,
+      `Annulation de la demande de suppression de l'élève ${old.prenom} ${old.nom}`,
+      snapshotRecord(old),
+      snapshotRecord(updated),
+    )
+    persistCancelDeleteEleveRequest(id, () =>
+      set((s) => ({ eleves: s.eleves.map((e) => (e.id === id ? old : e)) })),
     )
   },
 

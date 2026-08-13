@@ -26,7 +26,7 @@ import { faqContent } from '@/lib/faq-content'
 import { useDataStore, type AuditEntry } from '@/store/data-store'
 
 const ELEVE_COLS =
-  'id,code,dossier_code,nom,prenom,telephone,email,adresse,photo_cni,photo_profil,date_naissance,lieu_naissance,sexe,nationalite,type_piece,num_piece,type_permis,statut,est_parraine,parrain_nom,date_inscription,seances_faites,seances_totales,moniteur_id,acces_portail'
+  'id,code,dossier_code,nom,prenom,telephone,email,adresse,photo_cni,photo_profil,date_naissance,lieu_naissance,sexe,nationalite,type_piece,num_piece,type_permis,statut,est_parraine,parrain_nom,date_inscription,seances_faites,seances_totales,moniteur_id,acces_portail,deletion_requested_at,deletion_requested_by'
 
 export async function syncDataFromSupabase(): Promise<boolean> {
   assertSupabaseConfigured()
@@ -187,7 +187,13 @@ export async function syncDataFromSupabase(): Promise<boolean> {
         e,
         e.moniteur_id ? moniteurById[e.moniteur_id] ?? 'Non assigné' : 'Non assigné',
       )
-      return { ...mapped, solde: soldeByEleveId[e.id] ?? mapped.solde }
+      return {
+        ...mapped,
+        solde: soldeByEleveId[e.id] ?? mapped.solde,
+        deletionRequestedByName: e.deletion_requested_by
+          ? profileNameById[e.deletion_requested_by] ?? 'Utilisateur'
+          : undefined,
+      }
     }),
     inscriptions: inscriptionsRaw.map((i) =>
       mapInscription(i, i.eleve_id ? (eleveCodeById[i.eleve_id] ?? '') : ''),

@@ -21,6 +21,8 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
+  Send,
+  XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { type StatutEleve } from '@/lib/domain/types'
@@ -112,11 +114,16 @@ export function ElevesView() {
   const [statutFiltre, setStatutFiltre] = useState<StatutFiltre>('Tous')
 
   const [deleteEleveId, setDeleteEleveId] = useState<string | null>(null)
+  const [requestDeleteEleveId, setRequestDeleteEleveId] = useState<string | null>(null)
+  const [cancelDeleteEleveId, setCancelDeleteEleveId] = useState<string | null>(null)
   const deleteEleve = useDataStore((s) => s.deleteEleve)
+  const requestDeleteEleve = useDataStore((s) => s.requestDeleteEleve)
+  const cancelDeleteEleveRequest = useDataStore((s) => s.cancelDeleteEleveRequest)
   const addEleve = useDataStore((s) => s.addEleve)
   const updateEleve = useDataStore((s) => s.updateEleve)
   const user = useAuthStore((s) => s.user)
   const canDeleteEleve = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_eleve')
+  const canRequestDeleteEleve = canPerformAction(user?.mode === 'admin' ? user.role : '', 'request_delete_eleve')
 
   // CSV import
   const csvInputRef = useRef<HTMLInputElement>(null)
@@ -345,7 +352,7 @@ export function ElevesView() {
                           ? <><ShieldOff className="mr-2 h-4 w-4 text-warning" />Désactiver accès</>
                           : <><ShieldCheck className="mr-2 h-4 w-4 text-success" />Activer accès</>}
                       </DropdownMenuItem>
-                      {canDeleteEleve && (
+                      {!e.deletionRequestedAt && canDeleteEleve && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onSelect={() => setDeleteEleveId(e.id)}
@@ -354,12 +361,49 @@ export function ElevesView() {
                           Supprimer
                         </DropdownMenuItem>
                       )}
+                      {e.deletionRequestedAt && canDeleteEleve && (
+                        <>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => setDeleteEleveId(e.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Confirmer la suppression
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setCancelDeleteEleveId(e.id)}>
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Rejeter la demande
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {!canDeleteEleve && canRequestDeleteEleve && !e.deletionRequestedAt && (
+                        <DropdownMenuItem onSelect={() => setRequestDeleteEleveId(e.id)}>
+                          <Send className="mr-2 h-4 w-4 text-warning" />
+                          Demander la suppression
+                        </DropdownMenuItem>
+                      )}
+                      {!canDeleteEleve && canRequestDeleteEleve && e.deletionRequestedAt && (
+                        <DropdownMenuItem onSelect={() => setCancelDeleteEleveId(e.id)}>
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Annuler ma demande
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
                 <div className="mt-3 space-y-1 border-t border-border pt-3">
                   <MobileListCardRow label="Statut">
-                    <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
+                      {e.deletionRequestedAt && (
+                        <span
+                          title={`Demandée par ${e.deletionRequestedByName ?? 'un administrateur'} le ${new Date(e.deletionRequestedAt).toLocaleDateString('fr-FR')}`}
+                          className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive"
+                        >
+                          Suppression demandée
+                        </span>
+                      )}
+                    </div>
                   </MobileListCardRow>
                   <MobileListCardRow label="Permis">{e.typePermis}</MobileListCardRow>
                   <MobileListCardRow label="Séances">
@@ -443,7 +487,17 @@ export function ElevesView() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge label={e.statut} tone={statutEleveTone[e.statut]} />
+                        {e.deletionRequestedAt && (
+                          <span
+                            title={`Demandée par ${e.deletionRequestedByName ?? 'un administrateur'} le ${new Date(e.deletionRequestedAt).toLocaleDateString('fr-FR')}`}
+                            className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive"
+                          >
+                            Suppression demandée
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
@@ -514,13 +568,40 @@ export function ElevesView() {
                               ? <><ShieldOff className="mr-2 h-4 w-4 text-warning" />Désactiver accès</>
                               : <><ShieldCheck className="mr-2 h-4 w-4 text-success" />Activer accès</>}
                           </DropdownMenuItem>
-                          {canDeleteEleve && (
+                          {!e.deletionRequestedAt && canDeleteEleve && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onSelect={() => setDeleteEleveId(e.id)}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Supprimer
+                            </DropdownMenuItem>
+                          )}
+                          {e.deletionRequestedAt && canDeleteEleve && (
+                            <>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => setDeleteEleveId(e.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Confirmer la suppression
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => setCancelDeleteEleveId(e.id)}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Rejeter la demande
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {!canDeleteEleve && canRequestDeleteEleve && !e.deletionRequestedAt && (
+                            <DropdownMenuItem onSelect={() => setRequestDeleteEleveId(e.id)}>
+                              <Send className="mr-2 h-4 w-4 text-warning" />
+                              Demander la suppression
+                            </DropdownMenuItem>
+                          )}
+                          {!canDeleteEleve && canRequestDeleteEleve && e.deletionRequestedAt && (
+                            <DropdownMenuItem onSelect={() => setCancelDeleteEleveId(e.id)}>
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Annuler ma demande
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -639,6 +720,36 @@ export function ElevesView() {
             deleteEleve(deleteEleveId)
             toast.success('Élève supprimé.')
             setDeleteEleveId(null)
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={requestDeleteEleveId !== null}
+        onOpenChange={(v) => { if (!v) setRequestDeleteEleveId(null) }}
+        title="Demander la suppression de cet élève ?"
+        description="Aucune donnée n'est supprimée immédiatement. Le Super Admin sera sollicité pour confirmer avant toute suppression définitive."
+        confirmLabel="Demander la suppression"
+        onConfirm={() => {
+          if (requestDeleteEleveId) {
+            requestDeleteEleve(requestDeleteEleveId)
+            toast.success('Demande envoyée, en attente de validation du Super Admin.')
+            setRequestDeleteEleveId(null)
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={cancelDeleteEleveId !== null}
+        onOpenChange={(v) => { if (!v) setCancelDeleteEleveId(null) }}
+        title="Annuler cette demande de suppression ?"
+        description="La demande sera retirée et l'élève restera actif dans le registre."
+        confirmLabel="Annuler la demande"
+        onConfirm={() => {
+          if (cancelDeleteEleveId) {
+            cancelDeleteEleveRequest(cancelDeleteEleveId)
+            toast.success('Demande de suppression annulée.')
+            setCancelDeleteEleveId(null)
           }
         }}
       />

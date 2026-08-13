@@ -55,6 +55,20 @@ export function persistEleveDelete(id: string, rollback: () => void) {
   }, rollback, 'Suppression élève')
 }
 
+export function persistRequestDeleteEleve(id: string, rollback: () => void) {
+  persistRemoteSilent(async () => {
+    await supabaseRepos.eleves.requestDelete(id)
+    await syncDataFromSupabase()
+  }, rollback, 'Demande de suppression élève')
+}
+
+export function persistCancelDeleteEleveRequest(id: string, rollback: () => void) {
+  persistRemoteSilent(async () => {
+    await supabaseRepos.eleves.cancelDeleteRequest(id)
+    await syncDataFromSupabase()
+  }, rollback, 'Annulation demande de suppression')
+}
+
 export function persistMoniteur(m: Moniteur, mode: 'create' | 'update' | 'delete', rollback?: () => void) {
   const label =
     mode === 'create' ? 'Création moniteur' : mode === 'update' ? 'Modification moniteur' : 'Suppression moniteur'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Banknote } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
@@ -30,6 +30,10 @@ export function NouveauPaiementDialog({
   const [modePaiement, setModePaiement] = useState<ModePaiement>('Espèces')
   const [reference, setReference] = useState('')
   const [datePaiement, setDatePaiement] = useState(today)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  // Ref (et non state) pour bloquer de façon synchrone un double-clic rapide :
+  // un state ne se répercute qu'au prochain rendu, trop tard pour un 2e clic immédiat.
+  const submittingRef = useRef(false)
 
   const facture = factures.find((f) => f.id === factureId)
 
@@ -39,6 +43,8 @@ export function NouveauPaiementDialog({
     setModePaiement('Espèces')
     setReference('')
     setDatePaiement(today)
+    setIsSubmitting(false)
+    submittingRef.current = false
   }
 
   useDialogReset(open, seedForm)
@@ -48,6 +54,7 @@ export function NouveauPaiementDialog({
   }
 
   const handleSubmit = () => {
+    if (submittingRef.current) return
     if (!facture) {
       toast.error('Aucune facture sélectionnée.')
       return
@@ -61,17 +68,18 @@ export function NouveauPaiementDialog({
       toast.error(`Le montant dépasse le reste à payer (${formatXOF(facture.reste)}).`)
       return
     }
-    if (!reference.trim()) {
-      // Génération automatique de la référence si vide
-      const auto = `${modePaiement.slice(0, 3).toUpperCase()}-${Math.floor(Math.random() * 900000 + 100000)}`
-      setReference(auto)
-    }
+    // Calculée localement : setReference() ne serait pas relu avant le prochain rendu.
+    const finalReference =
+      reference.trim() ||
+      `${modePaiement.slice(0, 3).toUpperCase()}-${Math.floor(Math.random() * 900000 + 100000)}`
+    submittingRef.current = true
+    setIsSubmitting(true)
     addPaiement({
       factureId: facture.id,
       eleve: facture.eleve,
       montant: montantValue,
       modePaiement,
-      reference: reference.trim() || `REF-${Math.floor(Math.random() * 900000 + 100000)}`,
+      reference: finalReference,
       datePaiement,
     })
     toast.success(`Paiement de ${formatXOF(montantValue)} encaissé pour ${facture.eleve}.`)
@@ -90,9 +98,9 @@ export function NouveauPaiementDialog({
           <ModalCancelButton onClick={handleCancel}>
             Annuler
           </ModalCancelButton>
-          <ModalPrimaryButton onClick={handleSubmit} disabled={!facture}>
+          <ModalPrimaryButton onClick={handleSubmit} disabled={!facture || isSubmitting}>
             <Banknote className="h-4 w-4" />
-            Encaisser
+            {isSubmitting ? 'Encaissement…' : 'Encaisser'}
           </ModalPrimaryButton>
         </>
       }

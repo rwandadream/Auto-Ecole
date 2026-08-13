@@ -16,6 +16,7 @@ export type AppRole =
 
 export type AppAction =
   | 'delete_eleve'
+  | 'request_delete_eleve'
   | 'delete_facture'
   | 'delete_depense'
   | 'delete_moniteur'
@@ -67,6 +68,7 @@ const VIEW_ACCESS: Record<ViewKey, AppRole[]> = {
 // ─────────────────────────────────────────────────────────────────────────────
 const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
   delete_eleve: ['Super Administrateur'],
+  request_delete_eleve: ['Super Administrateur', 'Directeur', 'Responsable adjoint'],
   delete_facture: ['Super Administrateur'],
   delete_depense: ['Super Administrateur'],
   delete_moniteur: ['Super Administrateur'],

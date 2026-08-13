@@ -218,6 +218,7 @@ export function mapEleve(
     moniteur_id?: string | null
     inspecteur?: string | null
     acces_portail?: boolean | null
+    deletion_requested_at?: string | null
   },
   moniteurLabel = 'Non assigné',
 ): Eleve {
@@ -248,6 +249,7 @@ export function mapEleve(
     parrainNom: row.parrain_nom ?? '',
     moniteur: moniteurLabel,
     accesPortail: row.acces_portail !== false,
+    deletionRequestedAt: row.deletion_requested_at ?? undefined,
   }
 }
 

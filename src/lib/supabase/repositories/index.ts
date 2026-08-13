@@ -68,6 +68,14 @@ export const supabaseRepos = {
       const { error } = await db().rpc('delete_eleve', { p_id: id })
       assertNoSupabaseError(error)
     },
+    async requestDelete(id: string) {
+      const { error } = await db().rpc('request_delete_eleve', { p_id: id })
+      assertNoSupabaseError(error)
+    },
+    async cancelDeleteRequest(id: string) {
+      const { error } = await db().rpc('cancel_delete_eleve_request', { p_id: id })
+      assertNoSupabaseError(error)
+    },
   },
 
   moniteurs: {
