@@ -27,8 +27,8 @@ export const STATUTS_ELEVE: StatutEleve[] = [
   'Inscrit',
   'En formation',
   'Examen',
-  'Admis',
-  'Ajourné',
+  'Apte',
+  'Inapte',
   'Terminé',
   'Abandon',
 ]

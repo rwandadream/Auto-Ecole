@@ -6,8 +6,8 @@ import { toast } from 'sonner'
 import { Modal, ModalCancelButton, ModalPrimaryButton, Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
 import { type ResultatExamen } from '@/lib/domain/types'
-import { todayFrShort, formatXOF } from '@/lib/format'
-import { canInscrireExamen, soldeEleve } from '@/lib/finance-utils'
+import { todayFrShort } from '@/lib/format'
+import { canInscrireExamen, soldeEleve, formatSolde } from '@/lib/finance-utils'
 
 export function NouvelleSessionDialog({
   open,
@@ -24,12 +24,16 @@ export function NouvelleSessionDialog({
 
   const [date, setDate] = useState(today)
   const [heure, setHeure] = useState('08:00')
+  const [centre, setCentre] = useState('Abidjan')
+  const [lieu, setLieu] = useState('')
   const [typeExamen, setTypeExamen] = useState<'Code' | 'Conduite'>('Code')
   const [selectedEleves, setSelectedEleves] = useState<string[]>([])
 
   const reset = () => {
     setDate(today)
     setHeure('08:00')
+    setCentre('Abidjan')
+    setLieu('')
     setTypeExamen('Code')
     setSelectedEleves([])
   }
@@ -112,8 +116,8 @@ export function NouvelleSessionDialog({
     addExamenSession({
       date,
       heure,
-      centre: '',
-      lieu: '',
+      centre: centre.trim() || 'Abidjan',
+      lieu: lieu.trim(),
       typeExamen,
       titre: titreSession,
       inspecteur: '',
@@ -156,6 +160,15 @@ export function NouvelleSessionDialog({
           </Field>
           <Field label="Heure" required>
             <FormInput type="time" value={heure} onChange={(e) => setHeure(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Centre" required>
+            <FormInput value={centre} onChange={(e) => setCentre(e.target.value)} placeholder="Abidjan" />
+          </Field>
+          <Field label="Lieu">
+            <FormInput value={lieu} onChange={(e) => setLieu(e.target.value)} placeholder="Vallon, Cocody…" />
           </Field>
         </div>
 
@@ -203,7 +216,7 @@ export function NouvelleSessionDialog({
                   <span className="ml-auto inline-flex items-center gap-1.5">
                     {!e.eligible && (
                       <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                        {typeExamen === 'Conduite' ? `Solde ${formatXOF(e.reste)}` : 'Sans paiement'}
+                        {typeExamen === 'Conduite' ? `Solde ${formatSolde(e.reste)}` : 'Sans paiement'}
                       </span>
                     )}
                     <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">

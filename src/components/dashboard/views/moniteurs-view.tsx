@@ -53,6 +53,7 @@ export function MoniteursView() {
   const moniteurs = useDataStore((s) => s.moniteurs)
   const deleteMoniteur = useDataStore((s) => s.deleteMoniteur)
   const user = useAuthStore((s) => s.user)
+  const canEditMoniteur = canPerformAction(user?.mode === 'admin' ? user.role : '', 'update_moniteur')
   const canDeleteMoniteur = canPerformAction(user?.mode === 'admin' ? user.role : '', 'delete_moniteur')
 
   const [recherche, setRecherche] = useState('')
@@ -229,15 +230,17 @@ export function MoniteursView() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
-                      <DropdownMenuItem
-                        onSelect={() => {
-                          setEditId(m.id)
-                          setShowEdit(true)
-                        }}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Modifier
-                      </DropdownMenuItem>
+                      {canEditMoniteur && (
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setEditId(m.id)
+                            setShowEdit(true)
+                          }}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                      )}
                       {canDeleteMoniteur && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -246,6 +249,9 @@ export function MoniteursView() {
                           <Trash2 className="mr-2 h-4 w-4" />
                           Supprimer
                         </DropdownMenuItem>
+                      )}
+                      {!canEditMoniteur && !canDeleteMoniteur && (
+                        <DropdownMenuItem disabled>Aucune action disponible</DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -353,15 +359,17 @@ export function MoniteursView() {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              setEditId(m.id)
-                              setShowEdit(true)
-                            }}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
+                          {canEditMoniteur && (
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setEditId(m.id)
+                                setShowEdit(true)
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Modifier
+                            </DropdownMenuItem>
+                          )}
                           {canDeleteMoniteur && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
@@ -370,6 +378,9 @@ export function MoniteursView() {
                               <Trash2 className="mr-2 h-4 w-4" />
                               Supprimer
                             </DropdownMenuItem>
+                          )}
+                          {!canEditMoniteur && !canDeleteMoniteur && (
+                            <DropdownMenuItem disabled>Aucune action disponible</DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>

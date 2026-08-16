@@ -21,6 +21,7 @@ type Session = {
   date: string
   heure: string
   centre: string
+  lieu?: string
   typeExamen: string
   inspecteur: string
   vehicule: string
@@ -39,8 +40,10 @@ export function SaisieResultatsDialog({
   onOpenChange: (v: boolean) => void
 }) {
   const [results, setResults] = useState<ResultRow[]>([])
+  const [meta, setMeta] = useState({ date: '', heure: '', centre: '', lieu: '' })
   const [prevSession, setPrevSession] = useState<Session | null>(session)
   const updateSessionResultats = useDataStore((s) => s.updateSessionResultats)
+  const updateExamenSessionMeta = useDataStore((s) => s.updateExamenSessionMeta)
   const updateEleve = useDataStore((s) => s.updateEleve)
   const addExamen = useDataStore((s) => s.addExamen)
   const eleves = useDataStore((s) => s.eleves)
@@ -50,6 +53,11 @@ export function SaisieResultatsDialog({
       session
         ? session.candidats.map((c) => ({ ...c, notes: '' }))
         : []
+    )
+    setMeta(
+      session
+        ? { date: session.date, heure: session.heure, centre: session.centre, lieu: session.lieu ?? '' }
+        : { date: '', heure: '', centre: '', lieu: '' }
     )
   }
 
@@ -63,8 +71,9 @@ export function SaisieResultatsDialog({
     )
   }
 
-  const admis = results.filter((r) => r.resultat === 'Admis').length
-  const echec = results.filter((r) => r.resultat === 'Échec').length
+  const apte = results.filter((r) => r.resultat === 'Apte').length
+  const inapte = results.filter((r) => r.resultat === 'Inapte').length
+  const absent = results.filter((r) => r.resultat === 'Absent').length
   const attente = results.filter((r) => r.resultat === 'En attente').length
 
   const updateResultat = (idx: number, resultat: string) => {
@@ -75,8 +84,18 @@ export function SaisieResultatsDialog({
     setResults((prev) => prev.map((r, i) => (i === idx ? { ...r, notes } : r)))
   }
 
+  // Un résultat "Absent" ne change pas le statut du dossier élève : il doit
+  // repasser l'examen, son statut 'Examen' est conservé.
+  const RESULTAT_TO_STATUT_ELEVE: Partial<Record<string, Eleve['statut']>> = {
+    Apte: 'Apte',
+    Inapte: 'Inapte',
+  }
+
   const handleSave = () => {
-    // 1. Met à jour la session avec les résultats saisis
+    // 1. Met à jour les métadonnées de la session (centre/lieu/date/heure)
+    updateExamenSessionMeta(session.id, meta)
+
+    // 2. Met à jour la session avec les résultats saisis
     updateSessionResultats(
       session.id,
       results.map((r) => ({
@@ -89,16 +108,16 @@ export function SaisieResultatsDialog({
       })) as unknown as Parameters<typeof updateSessionResultats>[1]
     )
 
-    // 2. Pour chaque candidat dont le résultat n'est plus « En attente »,
+    // 3. Pour chaque candidat dont le résultat n'est plus « En attente »,
     //    on met à jour le statut de l'élève et on crée un enregistrement examen individuel.
     let updatedCount = 0
     for (const c of results) {
       if (c.resultat === 'En attente') continue
 
       const eleve = eleves.find((e) => e.code === c.identifiant)
-      if (eleve) {
-        const nouveauStatut = c.resultat === 'Admis' ? 'Admis' : 'Ajourné'
-        updateEleve(eleve.id, { statut: nouveauStatut as Eleve['statut'] })
+      const nouveauStatut = RESULTAT_TO_STATUT_ELEVE[c.resultat]
+      if (eleve && nouveauStatut) {
+        updateEleve(eleve.id, { statut: nouveauStatut })
       }
 
       addExamen({
@@ -106,7 +125,7 @@ export function SaisieResultatsDialog({
         eleveCode: c.identifiant,
         typeExamen: session.typeExamen,
         typePermis: c.categoriePermis,
-        dateExamen: session.date,
+        dateExamen: meta.date,
         inspecteur: session.inspecteur,
         resultat: c.resultat as Examen['resultat'],
         notes: c.notes || '',
@@ -142,27 +161,54 @@ export function SaisieResultatsDialog({
       }
     >
       <div className="space-y-4">
-        {/* Bannière infos session */}
-        <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-3 lg:grid-cols-5">
+        {/* Bannière infos session (Date/Heure/Centre/Lieu modifiables) */}
+        <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted p-3 sm:grid-cols-3 lg:grid-cols-6">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            <div>
+            <Calendar className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Date</p>
-              <p className="text-sm font-medium text-foreground">{session.date}</p>
+              <input
+                type="date"
+                value={meta.date}
+                onChange={(e) => setMeta((m) => ({ ...m, date: e.target.value }))}
+                className="mt-0.5 h-7 w-full rounded-md border border-input bg-background px-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" />
-            <div>
+            <Clock className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Heure</p>
-              <p className="text-sm font-medium text-foreground">{session.heure}</p>
+              <input
+                type="time"
+                value={meta.heure}
+                onChange={(e) => setMeta((m) => ({ ...m, heure: e.target.value }))}
+                className="mt-0.5 h-7 w-full rounded-md border border-input bg-background px-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <div>
+            <MapPin className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Centre</p>
-              <p className="text-sm font-medium text-foreground">{session.centre}</p>
+              <input
+                type="text"
+                value={meta.centre}
+                onChange={(e) => setMeta((m) => ({ ...m, centre: e.target.value }))}
+                className="mt-0.5 h-7 w-full rounded-md border border-input bg-background px-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Lieu</p>
+              <input
+                type="text"
+                value={meta.lieu}
+                onChange={(e) => setMeta((m) => ({ ...m, lieu: e.target.value }))}
+                className="mt-0.5 h-7 w-full rounded-md border border-input bg-background px-1.5 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -205,8 +251,9 @@ export function SaisieResultatsDialog({
                       className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring"
                     >
                       <option value="En attente">En attente</option>
-                      <option value="Admis">Admis</option>
-                      <option value="Échec">Échec</option>
+                      <option value="Apte">Apte</option>
+                      <option value="Inapte">Inapte</option>
+                      <option value="Absent">Absent</option>
                     </select>
                   </label>
                   <label className="block text-xs font-medium text-muted-foreground">
@@ -251,8 +298,9 @@ export function SaisieResultatsDialog({
                         className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring transition-colors"
                       >
                         <option value="En attente">En attente</option>
-                        <option value="Admis">Admis</option>
-                        <option value="Échec">Échec</option>
+                        <option value="Apte">Apte</option>
+                        <option value="Inapte">Inapte</option>
+                        <option value="Absent">Absent</option>
                       </select>
                     </td>
                     <td className="px-3 py-3">
@@ -274,8 +322,9 @@ export function SaisieResultatsDialog({
         {/* Résumé coloré */}
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
           <span className="text-sm font-medium text-muted-foreground">Résumé :</span>
-          <StatusBadge label={`${admis} Admis`} tone="success" />
-          <StatusBadge label={`${echec} Échec`} tone="destructive" />
+          <StatusBadge label={`${apte} Apte`} tone="success" />
+          <StatusBadge label={`${inapte} Inapte`} tone="destructive" />
+          <StatusBadge label={`${absent} Absent`} tone="neutral" />
           <StatusBadge label={`${attente} En attente`} tone="warning" />
         </div>
       </div>

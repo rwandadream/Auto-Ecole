@@ -5,6 +5,7 @@ import { assertSupabaseConfigured } from '@/lib/supabase/config'
 import { mapEleveStatutFromDb } from '@/lib/supabase/mappers'
 import { mapRoleFromDb } from '@/lib/supabase/roles'
 import { syncDataFromSupabase, syncDataForEleve } from '@/lib/supabase/sync-data'
+import { resetDataStore } from '@/store/data-store'
 import { setCurrentAuditUser } from '@/lib/audit-user'
 import { AUTH_STORE_KEY } from '@/store/persist-config'
 
@@ -172,6 +173,7 @@ export const useAuthStore = create<AuthState>()(
         await supabase.auth.signOut()
         syncAuditUser(null)
         set({ isAuthenticated: false, user: null })
+        resetDataStore()
       },
     }),
     {

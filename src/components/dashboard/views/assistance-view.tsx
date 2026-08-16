@@ -34,7 +34,7 @@ const helpTopics = [
     description: 'Parcours rapide : élèves, planning, examens, facturation et comptabilité.',
     tone: 'bg-secondary text-secondary-foreground',
     content:
-      "Élèves : cycle de vie Prospect → Admis. Planning : vue liste ou calendrier hebdomadaire. Examens : individuels + sessions/bordereaux PDF. Facturation : relances WhatsApp en un clic. Comptabilité : dépenses avec justificatif photo (500 Ko max).",
+      "Élèves : cycle de vie Prospect → Apte. Planning : vue liste ou calendrier hebdomadaire. Examens : individuels + sessions/bordereaux PDF. Facturation : relances WhatsApp en un clic. Comptabilité : dépenses avec justificatif photo (500 Ko max).",
   },
   {
     icon: <Mail className="h-6 w-6" />,

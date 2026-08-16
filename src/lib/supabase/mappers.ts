@@ -52,8 +52,10 @@ const STATUT_ELEVE: Record<string, StatutEleve> = {
   inscrit: 'Inscrit',
   en_formation: 'En formation',
   examen: 'Examen',
-  admis: 'Admis',
-  ajourne: 'Ajourné',
+  admis: 'Apte',
+  apte: 'Apte',
+  ajourne: 'Inapte',
+  inapte: 'Inapte',
   termine: 'Terminé',
   abandon: 'Abandon',
 }
@@ -84,9 +86,14 @@ const CATEGORIE_DEPENSE: Record<string, CategorieDepense> = {
 
 const RESULTAT_EXAMEN: Record<string, ResultatExamen> = {
   en_attente: 'En attente',
-  admis: 'Admis',
-  echec: 'Échec',
-  ajourne: 'Ajourné',
+  admis: 'Apte',
+  apte: 'Apte',
+  echec: 'Inapte',
+  inapte: 'Inapte',
+  absent: 'Absent',
+  // Legacy défensif : 'ajourne' n'existe plus en base après migration,
+  // mais on le retombe sur 'En attente' si une ligne non migrée traîne.
+  ajourne: 'En attente',
 }
 
 export function mapPermis(row: { id: string; code: string; libelle: string }): Permis {

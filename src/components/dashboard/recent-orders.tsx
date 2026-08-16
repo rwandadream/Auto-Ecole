@@ -91,7 +91,7 @@ export function RecentOrders() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Élèves récents</h2>
           <p className="text-sm text-muted-foreground">
-            Suivi du cycle de vie des apprenants (Prospect → Admis)
+            Suivi du cycle de vie des apprenants (Prospect → Apte)
           </p>
         </div>
         <div className="flex items-center gap-2">

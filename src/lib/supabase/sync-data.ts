@@ -61,7 +61,7 @@ export async function syncDataFromSupabase(): Promise<boolean> {
     supabase.from('vehicules').select('id,marque,modele,immatriculation,etat').order('marque'),
     supabase.from('inspecteurs').select('id,nom,prenom,telephone,email,actif').order('nom'),
     supabase.from('profiles').select('id,name,email,role,actif').order('name'),
-    supabase.from('eleves').select(ELEVE_COLS).order('nom'),
+    supabase.from('eleves').select(ELEVE_COLS).order('created_at', { ascending: false }),
     supabase.from('eleves_solde').select('eleve_id,solde'),
     supabase.from('inscriptions').select('id,eleve_id,formation_id,tarif,date_inscription'),
     supabase.from('seances').select(`
@@ -74,23 +74,23 @@ export async function syncDataFromSupabase(): Promise<boolean> {
       id,eleve_id,type_examen,type_permis,date_examen,resultat,notes,
       eleve:eleves(prenom, nom, code, dossier_code),
       inspecteur:inspecteurs(prenom, nom)
-    `),
+    `).order('created_at', { ascending: false }),
     supabase.from('examen_sessions').select(`
       id,numero_bordereau,titre,type_examen,date_examen,heure_examen,centre,lieu,categorie,statut,observations,
       inspecteur:inspecteurs(prenom, nom),
       vehicule:vehicules(marque, modele, immatriculation),
       examen_session_eleves(nom_complet,identifiant,telephone,categorie_permis,resultat)
-    `),
+    `).order('created_at', { ascending: false }),
     supabase.from('factures').select(`
       id,numero,eleve_id,inscription_id,montant,statut,date_emission,
       eleve:eleves(prenom, nom, code, dossier_code),
       inscription:inscriptions(formation_id)
-    `),
+    `).order('created_at', { ascending: false }),
     supabase.from('paiements').select(`
       id,facture_id,montant,mode_paiement,reference,date_paiement,
       facture:factures(numero),
       eleve:eleves(prenom, nom)
-    `),
+    `).order('created_at', { ascending: false }),
     supabase.from('depenses').select(`
       id,categorie,montant,description,mode_paiement,justificatif_url,date_depense,
       vehicule:vehicules(marque, modele, immatriculation)
@@ -290,6 +290,19 @@ export async function syncDataForEleve(code: string, telephone: string): Promise
 
   const totalSolde = factures.reduce((acc, f) => acc + f.reste, 0)
 
+  const paiements = (payload.paiements ?? []).map((p) =>
+    mapPaiement({
+      id: String(p.id),
+      facture_id: (p as { facture_id?: string | null }).facture_id ?? null,
+      montant: Number(p.montant),
+      mode_paiement: (p.mode_paiement as string | null) ?? null,
+      reference: (p as { reference?: string | null }).reference ?? null,
+      date_paiement: (p.date_paiement as string | null) ?? null,
+      facture: { numero: String((p as { facture_numero?: string }).facture_numero ?? '') },
+      eleve: { prenom: String(e.prenom), nom: String(e.nom) },
+    }),
+  )
+
   useDataStore.setState((state) => ({
     eleves: [
       {
@@ -322,7 +335,35 @@ export async function syncDataForEleve(code: string, telephone: string): Promise
     ],
     seances,
     factures,
+    paiements,
   }))
 
   return true
+}
+
+/**
+ * Met à jour les champs de contact d'un élève depuis le portail (self-service).
+ * Passe par un RPC SECURITY DEFINER dédié plutôt que le repo `eleves` standard
+ * (protégé par RLS `TO authenticated`), car un élève du portail n'a jamais de
+ * session Supabase Auth — il est authentifié par code+téléphone revalidé côté
+ * serveur, comme login_eleve_portail / get_eleve_portail_data.
+ */
+export async function updateEleveProfilPortail(
+  code: string,
+  telephone: string,
+  patch: { telephoneNew?: string; email?: string; nationalite?: string; photoProfil?: string },
+): Promise<boolean> {
+  assertSupabaseConfigured()
+
+  const supabase = createClient()
+  const { error } = await supabase.rpc('update_eleve_portail', {
+    p_code: code.trim(),
+    p_telephone: telephone.trim(),
+    p_telephone_new: patch.telephoneNew,
+    p_email: patch.email,
+    p_nationalite: patch.nationalite,
+    p_photo_profil: patch.photoProfil,
+  })
+
+  return !error
 }

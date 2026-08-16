@@ -114,8 +114,9 @@ export function ModifierExamenDialog({
         <Field label="Résultat">
           <FormSelect value={resultat} onChange={(e) => setResultat(e.target.value as ResultatExamen)}>
             <option value="En attente">En attente</option>
-            <option value="Admis">Admis</option>
-            <option value="Échec">Échec</option>
+            <option value="Apte">Apte</option>
+            <option value="Inapte">Inapte</option>
+            <option value="Absent">Absent</option>
           </FormSelect>
         </Field>
 

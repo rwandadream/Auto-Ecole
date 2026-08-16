@@ -202,7 +202,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Le statut permet de faire avancer l&apos;élève dans son cycle : Prospect → Inscrit → En formation → Examen → Admis/Ajourné → Terminé.
+            Le statut permet de faire avancer l&apos;élève dans son cycle : Prospect → Inscrit → En formation → Examen → Apte/Inapte → Terminé.
           </p>
           <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
             <div>

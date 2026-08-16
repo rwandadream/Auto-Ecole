@@ -45,7 +45,7 @@ export function MetricCards() {
     const elevesPrev = countByMonth(eleves, (e) => e.dateInscription, prevMonth)
 
     const examensNotes = examens.filter((x) => x.resultat !== 'En attente')
-    const admis = examensNotes.filter((x) => x.resultat === 'Admis').length
+    const admis = examensNotes.filter((x) => x.resultat === 'Apte').length
     const tauxReussite =
       examensNotes.length > 0
         ? `${((admis / examensNotes.length) * 100).toFixed(1).replace('.', ',')}%`

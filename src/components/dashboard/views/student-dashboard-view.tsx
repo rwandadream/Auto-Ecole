@@ -22,8 +22,8 @@ import {
   Card,
   StatusBadge,
   resultatExamenTone,
-  formatXOF,
 } from './shared'
+import { formatSolde } from '@/lib/finance-utils'
 
 // Date helpers (consistent with planning-view)
 const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
@@ -49,10 +49,10 @@ const lifecycle: { label: string; value: StatutEleve }[] = [
   { label: 'Inscrit', value: 'Inscrit' },
   { label: 'En formation', value: 'En formation' },
   { label: 'Examen', value: 'Examen' },
-  { label: 'Admis', value: 'Admis' },
+  { label: 'Apte', value: 'Apte' },
 ]
 
-// Map any statut to an index in the lifecycle (Ajourné = step Examen, Terminé = step Admis)
+// Map any statut to an index in the lifecycle (Inapte = step Examen, Terminé = step Apte)
 function lifecycleIndex(statut: StatutEleve): number {
   switch (statut) {
     case 'Prospect':
@@ -62,9 +62,9 @@ function lifecycleIndex(statut: StatutEleve): number {
     case 'En formation':
       return 2
     case 'Examen':
-    case 'Ajourné':
+    case 'Inapte':
       return 3
-    case 'Admis':
+    case 'Apte':
     case 'Terminé':
       return 4
     case 'Abandon':
@@ -185,7 +185,7 @@ export function StudentDashboardView() {
             </span>
           </div>
           <p className="mt-3 text-2xl font-bold text-foreground">
-            {formatXOF(me?.solde ?? 0)}
+            {formatSolde(me?.solde ?? 0)}
           </p>
           <p className="text-xs text-muted-foreground">Reste à payer</p>
           <div className="mt-3">
@@ -357,9 +357,9 @@ export function StudentDashboardView() {
           </div>
           <div className="space-y-3">
             {myExamens.map((ex) => {
-              const isAdmis = ex.resultat === 'Admis'
-              const isAjourne = ex.resultat === 'Ajourné'
-              const isEchec = ex.resultat === 'Échec'
+              const isApte = ex.resultat === 'Apte'
+              const isAbsent = ex.resultat === 'Absent'
+              const isInapte = ex.resultat === 'Inapte'
               return (
                 <div
                   key={ex.id}
@@ -367,14 +367,14 @@ export function StudentDashboardView() {
                 >
                   <div className={cn(
                     'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                    isAdmis && 'bg-success/10 text-success',
-                    isAjourne && 'bg-warning/10 text-warning',
-                    isEchec && 'bg-destructive/10 text-destructive',
-                    !isAdmis && !isAjourne && !isEchec && 'bg-muted text-muted-foreground',
+                    isApte && 'bg-success/10 text-success',
+                    isAbsent && 'bg-warning/10 text-warning',
+                    isInapte && 'bg-destructive/10 text-destructive',
+                    !isApte && !isAbsent && !isInapte && 'bg-muted text-muted-foreground',
                   )}>
-                    {isAdmis ? <Trophy className="h-4 w-4" /> :
-                     isEchec ? <XCircle className="h-4 w-4" /> :
-                     isAjourne ? <AlertCircle className="h-4 w-4" /> :
+                    {isApte ? <Trophy className="h-4 w-4" /> :
+                     isInapte ? <XCircle className="h-4 w-4" /> :
+                     isAbsent ? <AlertCircle className="h-4 w-4" /> :
                      <Clock className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0 flex-1">

@@ -34,3 +34,30 @@ export const useDataStore = create<DataState>()((...a) => ({
   ...createActivitySlice(...a),
   ...createFinanceSlice(...a),
 }))
+
+/**
+ * Vide toutes les collections en mémoire. Appelé au logout pour éviter
+ * qu'une donnée résiduelle (élèves, moniteurs, factures…) d'une session
+ * précédente (admin ou portail élève) ne reste lisible dans le même onglet
+ * navigateur après reconnexion sous une autre identité.
+ */
+export function resetDataStore() {
+  useDataStore.setState({
+    eleves: [],
+    moniteurs: [],
+    vehicules: [],
+    inspecteurs: [],
+    permis: [],
+    formations: [],
+    inscriptions: [],
+    seances: [],
+    examens: [],
+    examenSessions: [],
+    factures: [],
+    paiements: [],
+    depenses: [],
+    auditLog: [],
+    faq: [],
+    profiles: [],
+  })
+}

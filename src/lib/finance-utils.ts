@@ -1,4 +1,5 @@
 import type { Facture, StatutFacture } from '@/lib/domain/types'
+import { formatXOFFcfa } from '@/lib/format'
 
 /** Tolérance pour arrondis monétaires (F CFA entiers → 0,5 F). */
 const MONEY_EPS = 0.5
@@ -51,6 +52,18 @@ export function soldeEleve(eleveCode: string, factures: Facture[]): number {
 }
 
 /**
+ * Formatage unique du solde élève, utilisé partout (Élèves, Facturation,
+ * Paiements, espace Directeur, portail Élève, bordereaux) pour éviter tout
+ * désaccord entre espaces : "Soldé" si le reste est nul, sinon le montant
+ * en FCFA.
+ */
+export function formatSolde(value: number): string {
+  const v = normalizeMoney(value)
+  if (v <= MONEY_EPS) return 'Soldé'
+  return formatXOFFcfa(v)
+}
+
+/**
  * Élève soldé = au moins une facture ET aucune avec reste > 0.
  * Sans facture → non soldé (non éligible examens).
  */
@@ -73,6 +86,12 @@ export const MSG_SOLDE_CONDUITE =
 /**
  * - Code : autorisé dès qu'un paiement > 0 (partiel ou soldé)
  * - Conduite : autorisé seulement si soldé (reste == 0)
+ *
+ * Duplique volontairement la règle du trigger DB assert_examen_paiement()
+ * (supabase/20260728000002_examen_paiement_guards.sql) pour un feedback UI
+ * immédiat — la DB reste le vrai garde-fou. Les deux utilisent désormais le
+ * même clamp par facture (voir eleves_solde / eleve_solde_restant()) : garder
+ * les deux synchronisés si la formule change un jour.
  */
 export function canInscrireExamen(
   type: TypeExamenPaiement,

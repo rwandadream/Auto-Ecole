@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { readImageAsBase64 } from '@/lib/image-utils'
 import { uploadMedia, resolveMediaUrl } from '@/lib/supabase/storage'
 import { createClient } from '@/lib/supabase/client'
+import { updateEleveProfilPortail } from '@/lib/supabase/sync-data'
 import { cn } from '@/lib/utils'
 import {
   ViewHeader,
@@ -136,13 +137,25 @@ export function StudentProfilView() {
     const file = e.target.files?.[0]
     if (!file || !me) return
     try {
-      const { data: { user } } = await createClient().auth.getUser()
-      if (user) {
+      const { data: { user: authUser } } = await createClient().auth.getUser()
+      if (authUser) {
+        // Aperçu staff (Super Admin / Directeur) : session Supabase Auth réelle,
+        // le RLS is_admin() autorise l'écriture directe.
         const ref = await uploadMedia('avatars', `${me.id}/profile.jpg`, file)
         updateEleve(me.id, { photoProfil: ref })
       } else {
+        // Élève réel du portail : jamais authenticated, RLS bloquerait un
+        // updateEleve() direct → RPC dédié qui revalide code+téléphone.
         const base64 = await readImageAsBase64(file)
-        updateEleve(me.id, { photoProfil: base64 })
+        const ok = await updateEleveProfilPortail(user.code, me.telephone, { photoProfil: base64 })
+        if (!ok) {
+          toast.error('Impossible de mettre à jour la photo')
+          e.target.value = ''
+          return
+        }
+        useDataStore.setState((s) => ({
+          eleves: s.eleves.map((el) => (el.id === me.id ? { ...el, photoProfil: base64 } : el)),
+        }))
       }
       toast.success('Photo de profil mise à jour')
     } catch (err) {
@@ -165,13 +178,37 @@ export function StudentProfilView() {
     setEditMode(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!me) return
-    updateEleve(me.id, {
-      telephone: form.telephone,
+    const { data: { user: authUser } } = await createClient().auth.getUser()
+    if (authUser) {
+      // Aperçu staff : session Supabase Auth réelle, écriture directe autorisée.
+      updateEleve(me.id, {
+        telephone: form.telephone,
+        email: form.email,
+        nationalite: form.nationalite,
+      })
+      toast.success('Profil mis à jour')
+      setEditMode(false)
+      return
+    }
+    // Élève réel du portail : RPC dédié (jamais authenticated côté RLS).
+    const ok = await updateEleveProfilPortail(user.code, me.telephone, {
+      telephoneNew: form.telephone,
       email: form.email,
       nationalite: form.nationalite,
     })
+    if (!ok) {
+      toast.error('Impossible de mettre à jour le profil')
+      return
+    }
+    useDataStore.setState((s) => ({
+      eleves: s.eleves.map((el) =>
+        el.id === me.id
+          ? { ...el, telephone: form.telephone, email: form.email, nationalite: form.nationalite }
+          : el,
+      ),
+    }))
     toast.success('Profil mis à jour')
     setEditMode(false)
   }

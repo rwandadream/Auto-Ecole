@@ -4,6 +4,7 @@ import {
   canInscrireExamen,
   computeReste,
   computeStatutFacture,
+  formatSolde,
   isElevePartiellementPaye,
   isEleveSolde,
   MSG_SOLDE_CONDUITE,
@@ -58,6 +59,21 @@ describe('computeReste', () => {
 
   it('calcule le reste classique', () => {
     expect(computeReste(350_000, 50_000)).toBe(300_000)
+  })
+})
+
+describe('formatSolde', () => {
+  it('affiche "Soldé" quand le solde est nul (montant dû == payé)', () => {
+    expect(formatSolde(computeReste(100_000, 100_000))).toBe('Soldé')
+    expect(formatSolde(0)).toBe('Soldé')
+  })
+
+  it('affiche le montant restant en FCFA pour un paiement partiel', () => {
+    expect(formatSolde(computeReste(100_000, 50_000))).toBe(`50${' '}000 F CFA`)
+  })
+
+  it('affiche le montant total en FCFA quand aucun paiement n\'a été fait', () => {
+    expect(formatSolde(computeReste(100_000, 0))).toBe(`100${' '}000 F CFA`)
   })
 })
 

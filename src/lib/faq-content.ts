@@ -28,7 +28,7 @@ export const faqContent: FaqItem[] = [
   {
     id: 'faq-seed-5',
     q: "Comment saisir les résultats d'examen en masse ?",
-    r: "Ouvrez la session d'examen concernée dans « Bordereaux », puis utilisez le formulaire de saisie rapide pour enregistrer Admis/Échec pour tous les candidats en une fois.",
+    r: "Ouvrez la session d'examen concernée dans « Bordereaux », puis utilisez le formulaire de saisie rapide pour enregistrer Apte/Inapte/Absent pour tous les candidats en une fois.",
     sortOrder: 5,
   },
   {

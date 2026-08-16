@@ -259,7 +259,7 @@ export function ComptabiliteView() {
         eleves: {
           total: eleves.length,
           enFormation: eleves.filter((e) => e.statut === 'En formation').length,
-          admis: eleves.filter((e) => e.statut === 'Admis').length,
+          admis: eleves.filter((e) => e.statut === 'Apte').length,
           inscrits: eleves.filter((e) => e.statut === 'Inscrit').length,
         },
         formations: Object.values(formationCount).sort((a, b) => b.chiffre - a.chiffre),

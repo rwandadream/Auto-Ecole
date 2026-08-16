@@ -64,7 +64,7 @@ function loadCommission(): number {
 }
 
 function isDiplome(statut: Eleve['statut']) {
-  return statut === 'Admis' || statut === 'Terminé'
+  return statut === 'Apte' || statut === 'Terminé'
 }
 
 function ProgressBar({ value, className }: { value: number; className?: string }) {
@@ -669,7 +669,7 @@ export function ParrainageView() {
         open={showCommissionModal}
         onOpenChange={setShowCommissionModal}
         title="Commission parrainage"
-        description="Montant versé au parrain pour chaque filleul diplômé (Admis ou Terminé)"
+        description="Montant versé au parrain pour chaque filleul diplômé (Apte ou Terminé)"
         size="sm"
         scroll={false}
         footer={
@@ -693,7 +693,7 @@ export function ParrainageView() {
           />
         </Field>
         <p className="text-xs text-muted-foreground">
-          Ce montant est appliqué automatiquement à chaque élève parrainé au statut Admis ou Terminé.
+          Ce montant est appliqué automatiquement à chaque élève parrainé au statut Apte ou Terminé.
         </p>
       </Modal>
     </>

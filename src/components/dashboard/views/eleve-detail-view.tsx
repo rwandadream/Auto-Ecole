@@ -21,6 +21,7 @@ import { ResponsiveDataView, MobileListCard, MobileListCardRow } from '@/compone
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActionButton } from './shared'
 import { formatDateLongFr } from '@/lib/format'
+import { formatSolde } from '@/lib/finance-utils'
 
 function formatDate(d: string) {
   if (!d) return '—'
@@ -170,7 +171,9 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Reste à payer</p>
-          <p className="mt-1 text-2xl font-bold text-destructive">{formatXOF(totalReste)}</p>
+          <p className={`mt-1 text-2xl font-bold ${totalReste > 0 ? 'text-destructive' : 'text-success'}`}>
+            {formatSolde(totalReste)}
+          </p>
         </Card>
       </div>
 

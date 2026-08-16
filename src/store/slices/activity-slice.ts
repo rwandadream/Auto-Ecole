@@ -29,6 +29,10 @@ export type ActivitySlice = {
 
   addExamenSession: (data: Omit<ExamenSession, 'id' | 'numeroBordereau'>) => void
   updateSessionResultats: (sessionId: string, candidats: CandidatSession[]) => void
+  updateExamenSessionMeta: (
+    sessionId: string,
+    meta: Partial<Pick<ExamenSession, 'date' | 'heure' | 'centre' | 'lieu'>>,
+  ) => void
   deleteExamenSession: (id: string) => void
 }
 
@@ -140,6 +144,22 @@ export const createActivitySlice: StateCreator<DataState, [], [], ActivitySlice>
       examenSessions: s.examenSessions.map((sess) => (sess.id === sessionId ? updated : sess)),
     }))
     get().logAction('UPDATE', 'examen_sessions', sessionId, 'Saisie des résultats de session', snapshotRecord(old), snapshotRecord(updated))
+    const state = get()
+    persistExamenSession(updated, state.eleves, state.inspecteurs, state.vehicules, 'update', () =>
+      set((s) => ({
+        examenSessions: s.examenSessions.map((sess) => (sess.id === sessionId ? old : sess)),
+      })),
+    )
+  },
+
+  updateExamenSessionMeta: (sessionId, meta) => {
+    const old = get().examenSessions.find((sess) => sess.id === sessionId)
+    if (!old) return
+    const updated = { ...old, ...meta }
+    set((s) => ({
+      examenSessions: s.examenSessions.map((sess) => (sess.id === sessionId ? updated : sess)),
+    }))
+    get().logAction('UPDATE', 'examen_sessions', sessionId, 'Modification du centre/lieu/date/heure de la session', snapshotRecord(old), snapshotRecord(updated))
     const state = get()
     persistExamenSession(updated, state.eleves, state.inspecteurs, state.vehicules, 'update', () =>
       set((s) => ({

@@ -35,11 +35,11 @@ import {
   StatusBadge,
   ActionButton,
   Card,
-  formatXOF,
   initials,
   KpiCard,
   statutEleveTone,
 } from '@/components/dashboard/views/shared'
+import { formatSolde } from '@/lib/finance-utils'
 import {
   ResponsiveDataView,
   MobileListCard,
@@ -73,8 +73,8 @@ const STATUT_FILTRES: StatutFiltre[] = [
   'Inscrit',
   'En formation',
   'Examen',
-  'Admis',
-  'Ajourné',
+  'Apte',
+  'Inapte',
   'Terminé',
   'Abandon',
 ]
@@ -195,10 +195,10 @@ export function ElevesView() {
   const totalEleves = eleves.length
   const { enFormation, admis, tauxReussite } = useMemo(() => {
     const enFormation = eleves.filter((e) => e.statut === 'En formation').length
-    const admis = eleves.filter((e) => e.statut === 'Admis').length
+    const admis = eleves.filter((e) => e.statut === 'Apte').length
     const termines = examens.filter((x) => x.resultat !== 'En attente')
     const tauxReussite = termines.length > 0
-      ? Math.round((termines.filter((x) => x.resultat === 'Admis').length / termines.length) * 1000) / 10
+      ? Math.round((termines.filter((x) => x.resultat === 'Apte').length / termines.length) * 1000) / 10
       : null
     return { enFormation, admis, tauxReussite }
   }, [eleves, examens])
@@ -208,7 +208,7 @@ export function ElevesView() {
     <div>
       <ViewHeader
         title="Élèves"
-        description="Registre central des apprenants — du prospect à l'admis"
+        description="Registre central des apprenants — du prospect à l'apte"
         actions={
           <div className="flex items-center gap-2">
             <input ref={csvInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFile} />
@@ -239,7 +239,7 @@ export function ElevesView() {
           tone="secondary"
         />
         <KpiCard
-          label="Admis ce mois"
+          label="Aptes ce mois"
           value={String(admis)}
           icon={<Award className="h-5 w-5" />}
           tone="success"
@@ -411,9 +411,9 @@ export function ElevesView() {
                   </MobileListCardRow>
                   <MobileListCardRow label="Solde">
                     {e.solde > 0 ? (
-                      <span className="font-semibold text-destructive">{formatXOF(e.solde)}</span>
+                      <span className="font-semibold text-destructive">{formatSolde(e.solde)}</span>
                     ) : (
-                      <span className="text-success">Soldé</span>
+                      <span className="text-success">{formatSolde(e.solde)}</span>
                     )}
                   </MobileListCardRow>
                   <MobileListCardRow label="Téléphone">{e.telephone}</MobileListCardRow>
@@ -514,9 +514,9 @@ export function ElevesView() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {e.solde > 0 ? (
-                        <span className="font-semibold text-destructive">{formatXOF(e.solde)}</span>
+                        <span className="font-semibold text-destructive">{formatSolde(e.solde)}</span>
                       ) : (
-                        <span className="text-xs font-medium text-success">Soldé</span>
+                        <span className="text-xs font-medium text-success">{formatSolde(e.solde)}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

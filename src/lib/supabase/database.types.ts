@@ -1022,6 +1022,17 @@ export type Database = {
           actif: boolean
         }[]
       }
+      update_eleve_portail: {
+        Args: {
+          p_code: string
+          p_telephone: string
+          p_telephone_new?: string
+          p_email?: string
+          p_nationalite?: string
+          p_photo_profil?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

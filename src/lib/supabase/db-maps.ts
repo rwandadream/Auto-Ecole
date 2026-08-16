@@ -15,8 +15,8 @@ export const STATUT_ELEVE_TO_DB: Record<StatutEleve, string> = {
   Inscrit: 'inscrit',
   'En formation': 'en_formation',
   Examen: 'examen',
-  Admis: 'admis',
-  Ajourné: 'ajourne',
+  Apte: 'apte',
+  Inapte: 'inapte',
   Terminé: 'termine',
   Abandon: 'abandon',
 }
@@ -53,9 +53,9 @@ export const CATEGORIE_DEPENSE_TO_DB: Record<CategorieDepense, string> = {
 
 export const RESULTAT_EXAMEN_TO_DB: Record<ResultatExamen, string> = {
   'En attente': 'en_attente',
-  Admis: 'admis',
-  Ajourné: 'ajourne',
-  Échec: 'echec',
+  Apte: 'apte',
+  Inapte: 'inapte',
+  Absent: 'absent',
 }
 
 export const STATUT_MONITEUR_TO_DB: Record<StatutMoniteur, string> = {

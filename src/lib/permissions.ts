@@ -19,6 +19,7 @@ export type AppAction =
   | 'request_delete_eleve'
   | 'delete_facture'
   | 'delete_depense'
+  | 'update_moniteur'
   | 'delete_moniteur'
   | 'delete_vehicule'
   | 'manage_users'
@@ -71,7 +72,10 @@ const ACTION_ACCESS: Record<AppAction, AppRole[]> = {
   request_delete_eleve: ['Super Administrateur', 'Directeur', 'Responsable adjoint'],
   delete_facture: ['Super Administrateur'],
   delete_depense: ['Super Administrateur'],
-  delete_moniteur: ['Super Administrateur'],
+  // Alignées sur la RLS DB is_admin() (supabase/20260630000002_rename_roles.sql),
+  // la vraie barrière d'autorisation pour UPDATE/DELETE sur public.moniteurs.
+  update_moniteur: ['Super Administrateur', 'Directeur', 'Responsable adjoint'],
+  delete_moniteur: ['Super Administrateur', 'Directeur', 'Responsable adjoint'],
   delete_vehicule: ['Super Administrateur'],
   manage_users: ['Super Administrateur', 'Directeur'],
   manage_formations: ['Super Administrateur'],

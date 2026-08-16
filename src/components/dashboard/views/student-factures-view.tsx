@@ -26,6 +26,7 @@ import {
   MobileListCard,
   MobileListCardRow,
 } from '@/components/dashboard/responsive-data-view'
+import { formatSolde } from '@/lib/finance-utils'
 
 // KPI mini card
 function SummaryCard({
@@ -159,7 +160,7 @@ export function StudentFacturesView() {
         />
         <SummaryCard
           label="Reste à payer"
-          value={formatXOF(totalReste)}
+          value={formatSolde(totalReste)}
           tone={totalReste > 0 ? 'destructive' : 'success'}
           icon={<Download className="h-5 w-5" />}
         />

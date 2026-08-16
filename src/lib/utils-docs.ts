@@ -244,7 +244,7 @@ export async function generateBordereauPdf(s: SessionData) {
   const MUTED:  [number, number, number] = [100, 116, 139]
   const WHITE:  [number, number, number] = [255, 255, 255]
   const GREEN:  [number, number, number] = [21,  101, 52]
-  const AMBER:  [number, number, number] = [146, 64,  14]
+  const RED:    [number, number, number] = [153, 27,  27]
   const SLATE:  [number, number, number] = [71,  85,  105]
 
   let y = 8
@@ -295,8 +295,9 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.text(titrePdf, pageW / 2, y + 8, { align: 'center' })
   y += 16
 
-  // ── Info grid — date / heure / type (sans centre / lieu) ──────────────────
-  const colW = cW / 3
+  // ── Info grid — date / heure / centre / lieu (le type d'examen est déjà
+  //    affiché dans le bandeau titre ci-dessus, pas de case redondante) ──────
+  const colW = cW / 4
   const rowH = 13
 
   const infoBox = (lbl: string, val: string, bx: number, by: number, w: number) => {
@@ -320,9 +321,10 @@ export async function generateBordereauPdf(s: SessionData) {
     doc.text(display, bx + 2.5, by + rowH - 3)
   }
 
-  infoBox('DATE',         s.date,               mL,              y, colW)
-  infoBox('HEURE',        s.heure,              mL + colW,       y, colW)
-  infoBox("TYPE D'EXAMEN", s.typeExamen,         mL + colW * 2,   y, colW)
+  infoBox('DATE',   s.date,   mL,            y, colW)
+  infoBox('HEURE',  s.heure,  mL + colW,     y, colW)
+  infoBox('CENTRE', s.centre, mL + colW * 2, y, colW)
+  infoBox('LIEU',   s.lieu ?? '', mL + colW * 3, y, colW)
   y += rowH + 6
 
   // ── Candidates table ──────────────────────────────────────────────────────
@@ -343,8 +345,8 @@ export async function generateBordereauPdf(s: SessionData) {
   const didFillCell = (data: CellHookData) => {
     if (!hasResults || data.section !== 'body' || data.column.index !== 4) return
     const r = String(data.cell.raw)
-    if (r === 'Admis')    { data.cell.styles.textColor = GREEN; data.cell.styles.fontStyle = 'bold' }
-    if (r === 'Ajourné')  { data.cell.styles.textColor = AMBER; data.cell.styles.fontStyle = 'bold' }
+    if (r === 'Apte')     { data.cell.styles.textColor = GREEN; data.cell.styles.fontStyle = 'bold' }
+    if (r === 'Inapte')   { data.cell.styles.textColor = RED;   data.cell.styles.fontStyle = 'bold' }
     if (r === 'Absent')   { data.cell.styles.textColor = SLATE; data.cell.styles.fontStyle = 'bold' }
   }
 
@@ -393,18 +395,18 @@ export async function generateBordereauPdf(s: SessionData) {
   let endY: number = (doc.lastAutoTable?.finalY ?? 190) + 6
 
   if (hasResults) {
-    const admitted = s.candidats.filter((c) => c.resultat === 'Admis').length
-    const deferred = s.candidats.filter((c) => c.resultat === 'Ajourné').length
-    const absent   = s.candidats.filter((c) => c.resultat === 'Absent').length
-    const total    = s.candidats.length
+    const apte    = s.candidats.filter((c) => c.resultat === 'Apte').length
+    const inapte  = s.candidats.filter((c) => c.resultat === 'Inapte').length
+    const absent  = s.candidats.filter((c) => c.resultat === 'Absent').length
+    const total   = s.candidats.length
 
     const tileW = cW / 4 - 2
     const tileH = 15
     const tiles: { label: string; value: number; bg: [number, number, number] }[] = [
-      { label: 'ADMIS',    value: admitted, bg: GREEN },
-      { label: 'AJOURNÉS', value: deferred, bg: AMBER },
-      { label: 'ABSENTS',  value: absent,   bg: SLATE },
-      { label: 'TOTAL',    value: total,    bg: NAVY  },
+      { label: 'APTE',    value: apte,   bg: GREEN },
+      { label: 'INAPTE',  value: inapte, bg: RED    },
+      { label: 'ABSENTS', value: absent, bg: SLATE  },
+      { label: 'TOTAL',   value: total,  bg: NAVY   },
     ]
     tiles.forEach(({ label, value, bg }, idx) => {
       const tx = mL + idx * (tileW + 2.5)
@@ -420,12 +422,16 @@ export async function generateBordereauPdf(s: SessionData) {
     endY += tileH + 8
   }
 
-  // ── Page footer (sans Abidjan / signatures) ───────────────────────────────
+  // ── Page footer (contact + chef de centre) ────────────────────────────────
   const curPage = doc.getNumberOfPages()
   doc.setPage(curPage)
   doc.setDrawColor(...NAVY)
   doc.setLineWidth(0.35)
-  doc.line(mL, pageH - 17, pageW - mR, pageH - 17)
+  doc.line(mL, pageH - 22, pageW - mR, pageH - 22)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(8)
+  doc.setTextColor(...NAVY)
+  doc.text('Chef : Mahamadou Doumbia', pageW / 2, pageH - 16.5, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...MUTED)
@@ -590,7 +596,7 @@ export async function generateRapportMensuelPdf(d: RapportMensuelData) {
     body: [
       ['Total élèves inscrits', String(d.eleves.total)],
       ['En formation', String(d.eleves.enFormation)],
-      ['Admis (permis obtenu)', String(d.eleves.admis)],
+      ['Aptes (permis obtenu)', String(d.eleves.admis)],
       ['Nouvelles inscriptions ce mois', String(d.eleves.inscrits)],
     ],
     theme: 'striped',

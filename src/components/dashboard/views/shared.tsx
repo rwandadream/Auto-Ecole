@@ -132,8 +132,8 @@ export const statutEleveTone: Record<StatutEleve, BadgeTone> = {
   Inscrit: 'secondary',
   'En formation': 'primary',
   Examen: 'warning',
-  Admis: 'success',
-  Ajourné: 'destructive',
+  Apte: 'success',
+  Inapte: 'destructive',
   Terminé: 'success',
   Abandon: 'neutral',
 }
@@ -146,9 +146,9 @@ export const statutMoniteurTone: Record<StatutMoniteur, BadgeTone> = {
 
 export const resultatExamenTone: Record<ResultatExamen, BadgeTone> = {
   'En attente': 'warning',
-  Admis: 'success',
-  Échec: 'destructive',
-  Ajourné: 'warning',
+  Apte: 'success',
+  Inapte: 'destructive',
+  Absent: 'neutral',
 }
 
 // --- Date helpers (French) ---

@@ -37,7 +37,7 @@ import { usePagination } from '@/hooks/usePagination'
 import { ConfirmDialog } from '@/components/dashboard/confirm-dialog'
 
 // --- Sub-component: Examens individuels table ---
-const RESULTAT_FILTRES: Array<'Tous' | ResultatExamen> = ['Tous', 'En attente', 'Admis', 'Échec']
+const RESULTAT_FILTRES: Array<'Tous' | ResultatExamen> = ['Tous', 'En attente', 'Apte', 'Inapte', 'Absent']
 const TYPE_FILTRES = ['Tous', 'Code', 'Conduite'] as const
 
 function ExamensIndividuels() {
@@ -386,6 +386,10 @@ function SessionsCollectives() {
             <div>
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Centre</div>
               <div className="mt-0.5 font-medium text-foreground">{sess.centre}</div>
+            </div>
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Lieu</div>
+              <div className="mt-0.5 font-medium text-foreground">{sess.lieu || '—'}</div>
             </div>
             <div>
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Inspecteur</div>
