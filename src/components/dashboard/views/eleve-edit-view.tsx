@@ -30,7 +30,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const [adresse, setAdresse] = useState(eleve?.adresse ?? '')
   const [typePiece, setTypePiece] = useState(eleve?.typePiece ?? 'CNI')
   const [numPiece, setNumPiece] = useState(eleve?.numPiece ?? '')
-  const [typePermis, setTypePermis] = useState(eleve?.typePermis ?? 'B')
+  const [typePermis, setTypePermis] = useState(eleve?.typePermis ?? '')
   const [statut, setStatut] = useState<StatutEleve>(eleve?.statut ?? 'Prospect')
   const [moniteur, setMoniteur] = useState(eleve?.moniteur ?? 'Non assigné')
   const [accesPortail, setAccesPportail] = useState(eleve?.accesPortail !== false)
@@ -52,6 +52,10 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const handleSubmit = () => {
     if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
       toast.error('Veuillez renseigner le nom, le prénom et le téléphone')
+      return
+    }
+    if (!typePermis) {
+      toast.error('Veuillez sélectionner le type de permis de l\'élève')
       return
     }
     updateEleve(eleve.id, {
@@ -179,9 +183,9 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
         <Card>
           <h3 className={sectionLabel}>Formation &amp; cycle de vie</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Type de permis (optionnel)">
+            <Field label="Type de permis" required>
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Non renseigné</option>
+                <option value="">Sélectionner un type de permis</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}

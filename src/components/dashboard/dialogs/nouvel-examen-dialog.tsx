@@ -127,7 +127,7 @@ export function NouvelExamenDialog({
         <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
           {typeExamen === 'Code'
             ? 'Examen du code : au moins un paiement (partiel ou total) requis.'
-            : "Examen de conduite : solde à 0 F CFA requis. Sinon l'inscription est refusée."}
+            : "Examen de conduite : solde à 0 FCFA requis. Sinon l'inscription est refusée."}
         </p>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

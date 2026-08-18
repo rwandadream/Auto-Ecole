@@ -1,5 +1,5 @@
 export function formatXOF(value: number) {
-  return `${value.toLocaleString('fr-FR')} F`
+  return `${value.toLocaleString('fr-FR')} FCFA`
 }
 
 export function formatAmountFr(value: number) {
@@ -7,7 +7,7 @@ export function formatAmountFr(value: number) {
 }
 
 export function formatXOFFcfa(value: number) {
-  return `${value.toLocaleString('fr-FR')} F CFA`
+  return `${value.toLocaleString('fr-FR')} FCFA`
 }
 
 export function todayFrShort(): string {

@@ -69,11 +69,11 @@ describe('formatSolde', () => {
   })
 
   it('affiche le montant restant en FCFA pour un paiement partiel', () => {
-    expect(formatSolde(computeReste(100_000, 50_000))).toBe(`50${' '}000 F CFA`)
+    expect(formatSolde(computeReste(100_000, 50_000))).toBe(`50${' '}000 FCFA`)
   })
 
   it('affiche le montant total en FCFA quand aucun paiement n\'a été fait', () => {
-    expect(formatSolde(computeReste(100_000, 0))).toBe(`100${' '}000 F CFA`)
+    expect(formatSolde(computeReste(100_000, 0))).toBe(`100${' '}000 FCFA`)
   })
 })
 

@@ -40,6 +40,10 @@ export function EleveCreateView() {
       toast.error('Veuillez renseigner le nom, le prénom et le téléphone')
       return
     }
+    if (!typePermis) {
+      toast.error('Veuillez sélectionner le type de permis de l\'élève')
+      return
+    }
     if (!formationId) {
       toast.error('Veuillez sélectionner une formation pour inscrire l\'élève')
       return
@@ -176,9 +180,9 @@ export function EleveCreateView() {
         <Card>
           <h3 className={sectionLabel}>Formation</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="Type de permis (optionnel)">
+            <Field label="Type de permis" required>
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Non renseigné</option>
+                <option value="">Sélectionner un type de permis</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
@@ -192,13 +196,13 @@ export function EleveCreateView() {
                 <option value="">Sélectionner une formation</option>
                 {formationsActives.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nom} — {f.prix.toLocaleString('fr-FR')} F
+                    {f.nom} — {f.prix.toLocaleString('fr-FR')} FCFA
                   </option>
                 ))}
               </FormSelect>
               {formationSelectionnee && (
                 <p className="mt-1.5 text-xs font-medium text-foreground">
-                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} F CFA
+                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} FCFA
                   <span className="font-normal text-muted-foreground"> (prix de la formation)</span>
                 </p>
               )}
@@ -208,7 +212,7 @@ export function EleveCreateView() {
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement. La facture utilise le prix de la formation sélectionnée (le type de permis n&apos;influence pas le tarif).
+            Le code dossier est généré automatiquement. La facture utilise le prix de la formation sélectionnée ; le nombre de séances totales est calculé à partir du type de permis choisi.
           </p>
         </Card>
 

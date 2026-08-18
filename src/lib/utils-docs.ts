@@ -422,7 +422,7 @@ export async function generateBordereauPdf(s: SessionData) {
     endY += tileH + 8
   }
 
-  // ── Page footer (contact + chef de centre) ────────────────────────────────
+  // ── Page footer (contact + responsable) ────────────────────────────────
   const curPage = doc.getNumberOfPages()
   doc.setPage(curPage)
   doc.setDrawColor(...NAVY)
@@ -431,7 +431,7 @@ export async function generateBordereauPdf(s: SessionData) {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
   doc.setTextColor(...NAVY)
-  doc.text('Chef : Mahamadou Doumbia', pageW / 2, pageH - 16.5, { align: 'center' })
+  doc.text('Mahamadou Doumbia', pageW / 2, pageH - 16.5, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7)
   doc.setTextColor(...MUTED)

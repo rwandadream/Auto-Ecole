@@ -46,7 +46,7 @@ function toRow(e: Eleve): Row {
     dateInscription: e.dateInscription,
     dateTs: parseFlexibleDate(e.dateInscription)?.getTime() ?? NaN,
     nomComplet: `${e.prenom} ${e.nom}`,
-    permis: `Permis ${e.typePermis}`,
+    permis: `Permis ${e.typePermis || '—'}`,
     statut: e.statut,
     seances,
     solde,

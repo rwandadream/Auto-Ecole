@@ -405,7 +405,7 @@ export function ElevesView() {
                       )}
                     </div>
                   </MobileListCardRow>
-                  <MobileListCardRow label="Permis">{e.typePermis}</MobileListCardRow>
+                  <MobileListCardRow label="Permis">{e.typePermis || '—'}</MobileListCardRow>
                   <MobileListCardRow label="Séances">
                     {e.seancesFaites}/{e.seancesTotales} ({progres}%)
                   </MobileListCardRow>
@@ -483,7 +483,7 @@ export function ElevesView() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex h-7 min-w-8 items-center justify-center rounded-md bg-muted px-2 text-xs font-bold text-foreground">
-                        {e.typePermis}
+                        {e.typePermis || '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3">

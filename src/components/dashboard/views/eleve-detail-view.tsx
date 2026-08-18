@@ -145,7 +145,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               <span className="font-mono text-foreground">{eleve.code}</span>
               <span>·</span>
-              <span>Permis {eleve.typePermis}</span>
+              <span>Permis {eleve.typePermis || '—'}</span>
               <span>·</span>
               <span>Inscrit le {eleve.dateInscription}</span>
             </div>
@@ -229,7 +229,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
               Formation
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <InfoRow label="Type de permis" value={eleve.typePermis} icon={<Car className="h-4 w-4" />} />
+              <InfoRow label="Type de permis" value={eleve.typePermis || '—'} icon={<Car className="h-4 w-4" />} />
               <InfoRow label="Moniteur assigné" value={eleve.moniteur} icon={<User className="h-4 w-4" />} />
               <InfoRow label="Date d'inscription" value={eleve.dateInscription} icon={<Calendar className="h-4 w-4" />} />
             </div>

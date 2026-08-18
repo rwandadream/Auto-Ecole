@@ -65,7 +65,7 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
     }
     const prixNum = parseInt(prix.replace(/\D/g, ''), 10)
     if (isNaN(prixNum) || prixNum <= 0) {
-      toast.error('Le prix doit être un nombre entier positif (en F CFA).')
+      toast.error('Le prix doit être un nombre entier positif (en FCFA).')
       return
     }
     const payload = {
@@ -122,7 +122,7 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
           />
         </Field>
 
-        <Field label="Prix (F CFA)" required>
+        <Field label="Prix (FCFA)" required>
           <FormInput
             type="text"
             inputMode="numeric"

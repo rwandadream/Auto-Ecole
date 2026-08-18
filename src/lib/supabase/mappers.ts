@@ -246,7 +246,7 @@ export function mapEleve(
     nationalite: row.nationalite ?? '',
     typePiece: row.type_piece ?? '',
     numPiece: row.num_piece ?? '',
-    typePermis: row.type_permis ?? 'B',
+    typePermis: row.type_permis ?? '',
     statut: STATUT_ELEVE[row.statut ?? ''] ?? 'Prospect',
     dateInscription: formatIsoDateFr(row.date_inscription),
     seancesFaites: row.seances_faites ?? 0,

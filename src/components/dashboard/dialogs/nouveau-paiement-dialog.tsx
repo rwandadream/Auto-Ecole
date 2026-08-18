@@ -8,6 +8,7 @@ import { useDataStore } from '@/store/data-store'
 import { MODES_PAIEMENT } from '@/lib/constants'
 import { formatXOF, todayFrShort } from '@/lib/format'
 import type { ModePaiement } from '@/lib/domain/types'
+import { genPaiementReference } from '@/lib/finance-utils'
 import { useDialogReset } from '@/hooks/use-dialog-reset'
 
 export function NouveauPaiementDialog({
@@ -21,6 +22,7 @@ export function NouveauPaiementDialog({
 }) {
   const addPaiement = useDataStore((s) => s.addPaiement)
   const factures = useDataStore((s) => s.factures)
+  const paiements = useDataStore((s) => s.paiements)
   const modesPaiement = useDataStore((s) => s.modesPaiement)
   const modeOpts = modesPaiement.length > 0 ? modesPaiement.map((m) => m.label) : MODES_PAIEMENT
 
@@ -69,9 +71,7 @@ export function NouveauPaiementDialog({
       return
     }
     // Calculée localement : setReference() ne serait pas relu avant le prochain rendu.
-    const finalReference =
-      reference.trim() ||
-      `${modePaiement.slice(0, 3).toUpperCase()}-${Math.floor(Math.random() * 900000 + 100000)}`
+    const finalReference = reference.trim() || genPaiementReference(paiements)
     submittingRef.current = true
     setIsSubmitting(true)
     addPaiement({

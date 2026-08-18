@@ -321,7 +321,7 @@ export async function syncDataForEleve(code: string, telephone: string): Promise
         nationalite: String(e.nationalite ?? ''),
         typePiece: String(e.type_piece ?? ''),
         numPiece: String(e.num_piece ?? ''),
-        typePermis: String(e.type_permis ?? 'B'),
+        typePermis: String(e.type_permis ?? ''),
         statut,
         dateInscription: String(e.date_inscription ?? ''),
         seancesFaites: Number(e.seances_faites ?? 0),

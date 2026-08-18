@@ -135,6 +135,10 @@ export function ScannerCniView() {
       toast.error('Veuillez renseigner au moins le nom, le prénom et le téléphone')
       return
     }
+    if (!typePermis) {
+      toast.error('Veuillez sélectionner le type de permis de l\'élève')
+      return
+    }
     if (!formationId) {
       toast.error('Veuillez sélectionner une formation')
       return
@@ -381,19 +385,19 @@ export function ScannerCniView() {
                 <option value="">Sélectionner une formation</option>
                 {formationsActives.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nom} — {f.prix.toLocaleString('fr-FR')} F
+                    {f.nom} — {f.prix.toLocaleString('fr-FR')} FCFA
                   </option>
                 ))}
               </FormSelect>
               {formationSelectionnee && (
                 <p className="mt-1.5 text-xs font-medium text-foreground">
-                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} F CFA
+                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} FCFA
                 </p>
               )}
             </Field>
-            <Field label="Type de permis (optionnel)">
+            <Field label="Type de permis" required>
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
-                <option value="">Non renseigné</option>
+                <option value="">Sélectionner un type de permis</option>
                 {permis.map((p) => (
                   <option key={p.id} value={p.code}>{p.code} — {p.libelle}</option>
                 ))}
