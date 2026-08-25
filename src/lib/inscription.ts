@@ -6,7 +6,7 @@ export async function inscrireEleveAvecFacture(
   store: Store,
   eleveId: string,
   formationId: string,
-  tarif?: number,
+  tarif: number,
 ) {
   return store.inscrireEleve(eleveId, formationId, tarif)
 }

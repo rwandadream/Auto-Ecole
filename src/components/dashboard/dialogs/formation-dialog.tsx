@@ -60,12 +60,12 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
 
   const handleSubmit = () => {
     if (!nom.trim() || !description.trim() || !prix.trim()) {
-      toast.error('Veuillez renseigner le nom, la description et le prix.')
+      toast.error('Veuillez renseigner le nom, la description et le tarif catalogue.')
       return
     }
     const prixNum = parseInt(prix.replace(/\D/g, ''), 10)
     if (isNaN(prixNum) || prixNum <= 0) {
-      toast.error('Le prix doit être un nombre entier positif (en FCFA).')
+      toast.error('Le tarif catalogue doit être un nombre entier positif (en FCFA).')
       return
     }
     const payload = {
@@ -122,7 +122,7 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
           />
         </Field>
 
-        <Field label="Prix (FCFA)" required>
+        <Field label="Tarif catalogue indicatif (FCFA)" required>
           <FormInput
             type="text"
             inputMode="numeric"
@@ -130,6 +130,9 @@ export function FormationDialog({ open, onOpenChange, formationId = null }: Prop
             onChange={(e) => setPrix(e.target.value)}
             placeholder="350000"
           />
+          <p className="text-xs text-muted-foreground">
+            Référence interne uniquement. Ce montant n&apos;est pas appliqué à l&apos;inscription : chaque élève a son propre prix.
+          </p>
         </Field>
 
         <Field label="Statut">

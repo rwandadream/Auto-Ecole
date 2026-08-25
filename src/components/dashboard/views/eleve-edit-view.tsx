@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ArrowLeft, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
@@ -9,6 +9,7 @@ import { ActionButton, Card, StatusBadge, initials, statutEleveTone } from './sh
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { STATUTS_ELEVE } from '@/lib/constants'
 import type { StatutEleve } from '@/lib/domain/types'
+import { parsePrixFcfa } from '@/lib/finance-utils'
 
 const sectionLabel = 'text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4'
 
@@ -17,7 +18,13 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const eleves = useDataStore((s) => s.eleves)
   const eleve = useMemo(() => eleves.find((e) => e.code === eleveCode), [eleves, eleveCode])
   const updateEleve = useDataStore((s) => s.updateEleve)
+  const ajusterTarifEleve = useDataStore((s) => s.ajusterTarifEleve)
   const permis = useDataStore((s) => s.permis)
+  const inscriptions = useDataStore((s) => s.inscriptions)
+  const inscription = useMemo(
+    () => (eleve ? inscriptions.find((i) => i.eleveId === eleve.id) : undefined),
+    [eleve, inscriptions],
+  )
 
   const [nom, setNom] = useState(eleve?.nom ?? '')
   const [prenom, setPrenom] = useState(eleve?.prenom ?? '')
@@ -34,6 +41,16 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
   const [statut, setStatut] = useState<StatutEleve>(eleve?.statut ?? 'Prospect')
   const [moniteur, setMoniteur] = useState(eleve?.moniteur ?? 'Non assigné')
   const [accesPortail, setAccesPportail] = useState(eleve?.accesPortail !== false)
+  const [prixPermis, setPrixPermis] = useState(inscription ? String(inscription.tarif) : '')
+  const [saving, setSaving] = useState(false)
+
+  const inscriptionId = inscription?.id
+  const inscriptionTarif = inscription?.tarif
+  useEffect(() => {
+    if (inscriptionId != null && inscriptionTarif != null) {
+      setPrixPermis(String(inscriptionTarif))
+    }
+  }, [inscriptionId, inscriptionTarif])
 
   if (!eleve) {
     return (
@@ -49,7 +66,7 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
 
   const nomComplet = `${eleve.prenom} ${eleve.nom}`
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
       toast.error('Veuillez renseigner le nom, le prénom et le téléphone')
       return
@@ -57,6 +74,14 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
     if (!typePermis) {
       toast.error('Veuillez sélectionner le type de permis de l\'élève')
       return
+    }
+    let tarif: number | null = null
+    if (inscription) {
+      tarif = parsePrixFcfa(prixPermis)
+      if (tarif == null) {
+        toast.error('Veuillez saisir le prix du permis (montant entier positif en FCFA)')
+        return
+      }
     }
     updateEleve(eleve.id, {
       nom: nom.trim(),
@@ -75,6 +100,17 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
       moniteur,
       accesPortail,
     })
+    if (inscription && tarif != null && tarif !== inscription.tarif) {
+      setSaving(true)
+      try {
+        await ajusterTarifEleve(eleve.id, tarif)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Impossible de modifier le prix du permis')
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+    }
     toast.success('Élève modifié avec succès')
     setActiveView('eleve-detail')
   }
@@ -90,9 +126,9 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <ArrowLeft className="h-4 w-4" />
           Retour à la fiche
         </button>
-        <ActionButton variant="primary" onClick={handleSubmit}>
+        <ActionButton variant="primary" onClick={() => void handleSubmit()} disabled={saving}>
           <Save className="h-4 w-4" />
-          Enregistrer
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </ActionButton>
       </div>
 
@@ -194,6 +230,21 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
                 <p className="mt-1 text-xs text-warning">Aucun type de permis — créez-en dans Paramètres → Catalogue.</p>
               )}
             </Field>
+            <Field label="Prix du permis (FCFA)" required={!!inscription}>
+              <FormInput
+                type="text"
+                inputMode="numeric"
+                value={prixPermis}
+                onChange={(e) => setPrixPermis(e.target.value)}
+                placeholder="150000"
+                disabled={!inscription}
+              />
+              {!inscription && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Aucune inscription facturée — le prix sera saisi lors de l&apos;inscription.
+                </p>
+              )}
+            </Field>
             <Field label="Statut" required>
               <FormSelect value={statut} onChange={(e) => setStatut(e.target.value as StatutEleve)}>
                 {STATUTS_ELEVE.map((s) => (
@@ -234,9 +285,9 @@ export function EleveEditView({ eleveCode }: { eleveCode: string }) {
           <ActionButton variant="outline" onClick={() => setActiveView('eleve-detail')}>
             Annuler
           </ActionButton>
-          <ActionButton variant="primary" onClick={handleSubmit}>
+          <ActionButton variant="primary" onClick={() => void handleSubmit()} disabled={saving}>
             <Save className="h-4 w-4" />
-            Enregistrer les modifications
+            {saving ? 'Enregistrement…' : 'Enregistrer les modifications'}
           </ActionButton>
         </div>
       </div>

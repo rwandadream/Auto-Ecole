@@ -978,8 +978,12 @@ export type Database = {
         Args: { p_code: string; p_telephone: string }
         Returns: Json
       }
+      ajuster_tarif_inscription: {
+        Args: { p_eleve_id: string; p_tarif: number }
+        Returns: Json
+      }
       inscrire_eleve: {
-        Args: { p_eleve_id: string; p_formation_id: string; p_tarif?: number }
+        Args: { p_eleve_id: string; p_formation_id: string; p_tarif: number }
         Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }

@@ -8,6 +8,7 @@ import {
   persistEleveUpdate,
   persistFormation,
   persistInspecteur,
+  persistAjusterTarifEleve,
   persistInscrireEleve,
   persistMoniteur,
   persistPermis,
@@ -66,7 +67,8 @@ export type ResourceSlice = {
   requestDeleteEleve: (id: string) => void
   /** Annule/rejette une demande de suppression en attente (demandeur ou Super Admin). */
   cancelDeleteEleveRequest: (id: string) => void
-  inscrireEleve: (eleveId: string, formationId: string, tarif?: number) => Promise<Inscription | null>
+  inscrireEleve: (eleveId: string, formationId: string, tarif: number) => Promise<Inscription | null>
+  ajusterTarifEleve: (eleveId: string, tarif: number) => Promise<void>
 
   addMoniteur: (data: Omit<Moniteur, 'id' | 'seances'>) => void
   updateMoniteur: (id: string, patch: Partial<Moniteur>) => void
@@ -274,6 +276,14 @@ export const createResourceSlice: StateCreator<DataState, [], [], ResourceSlice>
       throw new Error(getSupabaseErrorMessage(error))
     }
     return get().inscriptions.find((i) => i.eleveId === eleveId) ?? null
+  },
+
+  ajusterTarifEleve: async (eleveId, tarif) => {
+    try {
+      await persistAjusterTarifEleve(eleveId, tarif)
+    } catch (error) {
+      throw new Error(getSupabaseErrorMessage(error))
+    }
   },
 
   addMoniteur: (data) => {

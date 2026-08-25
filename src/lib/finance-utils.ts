@@ -9,6 +9,13 @@ export function normalizeMoney(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+/** Parse un montant FCFA saisi (entier strictement positif). */
+export function parsePrixFcfa(raw: string): number | null {
+  const n = parseInt(raw.replace(/\D/g, ''), 10)
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n
+}
+
 /**
  * Statut facture unique :
  * - Non payée  = payé == 0

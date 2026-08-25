@@ -8,6 +8,7 @@ import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
+import { parsePrixFcfa } from '@/lib/finance-utils'
 import { uploadMediaFromDataUrl } from '@/lib/supabase/storage'
 import { useCniScanner, type CniScanResult } from '@/hooks/use-cni-scanner'
 
@@ -72,11 +73,11 @@ export function ScannerCniView() {
   const [sexe, setSexe] = useState<'M' | 'F'>('M')
   const [nationalite, setNationalite] = useState('Ivoirienne')
   const [formationId, setFormationId] = useState('')
+  const [prixPermis, setPrixPermis] = useState('')
 
   const isProcessing = status === 'processing'
   const cameraActive = status === 'camera' || status === 'processing' || status === 'done'
   const formationsActives = formations.filter((f) => f.actif)
-  const formationSelectionnee = formationsActives.find((f) => f.id === formationId)
 
   const setters = {
     setNom,
@@ -128,6 +129,7 @@ export function ScannerCniView() {
     setSexe('M')
     setTypePiece('CNI')
     setFormationId('')
+    setPrixPermis('')
   }
 
   const handleCreerEleve = async () => {
@@ -141,6 +143,11 @@ export function ScannerCniView() {
     }
     if (!formationId) {
       toast.error('Veuillez sélectionner une formation')
+      return
+    }
+    const tarif = parsePrixFcfa(prixPermis)
+    if (tarif == null) {
+      toast.error('Veuillez saisir le prix du permis (montant entier positif en FCFA)')
       return
     }
 
@@ -170,7 +177,7 @@ export function ScannerCniView() {
         }
       }
 
-      await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId)
+      await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId, tarif)
       toast.success('Élève créé et facture émise')
       if (newEleve.code) {
         useNavStore.getState().setSelectedEleveCode(newEleve.code)
@@ -385,15 +392,19 @@ export function ScannerCniView() {
                 <option value="">Sélectionner une formation</option>
                 {formationsActives.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nom} — {f.prix.toLocaleString('fr-FR')} FCFA
+                    {f.nom}
                   </option>
                 ))}
               </FormSelect>
-              {formationSelectionnee && (
-                <p className="mt-1.5 text-xs font-medium text-foreground">
-                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} FCFA
-                </p>
-              )}
+            </Field>
+            <Field label="Prix du permis (FCFA)" required>
+              <FormInput
+                type="text"
+                inputMode="numeric"
+                value={prixPermis}
+                onChange={(e) => setPrixPermis(e.target.value)}
+                placeholder="150000"
+              />
             </Field>
             <Field label="Type de permis" required>
               <FormSelect value={typePermis} onChange={(e) => setTypePermis(e.target.value)}>
@@ -409,7 +420,7 @@ export function ScannerCniView() {
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement. La facture utilise le prix de la formation (le type de permis n&apos;influence pas le tarif).
+            Le code dossier est généré automatiquement. Le prix saisi est celui réellement facturé à cet élève.
           </p>
 
           <div className="mt-5 flex justify-end">

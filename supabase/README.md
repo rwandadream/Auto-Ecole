@@ -36,6 +36,7 @@ Exécutez **dans cet ordre** via le SQL Editor Supabase ou le MCP :
 | 26 | `20260729000001_reset_platform_business_data.sql` | RPC `reset_platform_business_data` (purge métier, Super Admin) |
 | 27 | `20260729000002_import_platform_backup.sql` | RPC `import_platform_backup` (restauration JSON, Super Admin) |
 | 28 | `20260818000001_fix_seances_totales_permis.sql` | RPC `inscrire_eleve` : séances totales calculées depuis `type_permis` (au lieu du nom de la formation) |
+| 29 | `20260824000001_tarif_manuel_inscription.sql` | Tarif manuel à l'inscription : `p_tarif` obligatoire, RPC `ajuster_tarif_inscription` |
 
 > L'ancien `20260621000004_seed_demo.sql` et `seed_full_mock.sql` ont été remplacés par `seed_reference_data.sql`.
 

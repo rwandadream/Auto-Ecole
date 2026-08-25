@@ -49,6 +49,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
   const seances = useDataStore((s) => s.seances)
   const examens = useDataStore((s) => s.examens)
   const factures = useDataStore((s) => s.factures)
+  const inscriptions = useDataStore((s) => s.inscriptions)
 
   const eleve = eleves.find((e) => e.code === eleveCode)
 
@@ -67,6 +68,7 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
   const eleveSeances = seances.filter((s) => s.eleveCode === eleve.code)
   const eleveExamens = examens.filter((x) => x.eleveCode === eleve.code)
   const eleveFactures = factures.filter((f) => f.eleveCode === eleve.code)
+  const inscription = inscriptions.find((i) => i.eleveId === eleve.id)
   const progressPct = eleve.seancesTotales > 0 ? Math.round((eleve.seancesFaites / eleve.seancesTotales) * 100) : 0
   const nomComplet = `${eleve.prenom} ${eleve.nom}`
   const totalPaye = eleveFactures.reduce((sum, f) => sum + f.paye, 0)
@@ -230,6 +232,11 @@ export function EleveDetailView({ eleveCode }: { eleveCode: string }) {
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <InfoRow label="Type de permis" value={eleve.typePermis || '—'} icon={<Car className="h-4 w-4" />} />
+              <InfoRow
+                label="Prix du permis"
+                value={inscription ? formatXOF(inscription.tarif) : '—'}
+                icon={<CreditCard className="h-4 w-4" />}
+              />
               <InfoRow label="Moniteur assigné" value={eleve.moniteur} icon={<User className="h-4 w-4" />} />
               <InfoRow label="Date d'inscription" value={eleve.dateInscription} icon={<Calendar className="h-4 w-4" />} />
             </div>

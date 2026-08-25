@@ -184,14 +184,22 @@ export const supabaseRepos = {
   },
 
   inscriptions: {
-    async inscrireEleve(eleveId: string, formationId: string, tarif?: number) {
+    async inscrireEleve(eleveId: string, formationId: string, tarif: number) {
       const { data, error } = await db().rpc('inscrire_eleve', {
         p_eleve_id: eleveId,
         p_formation_id: formationId,
-        p_tarif: tarif ?? undefined,
+        p_tarif: tarif,
       })
       assertNoSupabaseError(error)
       return data as { inscription_id: string; facture_id: string; facture_numero: string; tarif: number }
+    },
+    async ajusterTarif(eleveId: string, tarif: number) {
+      const { data, error } = await db().rpc('ajuster_tarif_inscription', {
+        p_eleve_id: eleveId,
+        p_tarif: tarif,
+      })
+      assertNoSupabaseError(error)
+      return data as { inscription_id: string; facture_id: string | null; tarif: number; statut: string | null }
     },
   },
 

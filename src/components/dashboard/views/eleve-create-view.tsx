@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useDataStore } from '@/store/data-store'
 import { useNavStore } from '@/store/nav-store'
 import { inscrireEleveAvecFacture } from '@/lib/inscription'
+import { parsePrixFcfa } from '@/lib/finance-utils'
 import { ActionButton, Card } from './shared'
 import { Field, FormInput, FormSelect } from '@/components/dashboard/modal'
 
@@ -30,10 +31,10 @@ export function EleveCreateView() {
   const [numPiece, setNumPiece] = useState('')
   const [typePermis, setTypePermis] = useState('')
   const [formationId, setFormationId] = useState('')
+  const [prixPermis, setPrixPermis] = useState('')
   const [parrain, setParrain] = useState('')
 
   const formationsActives = formations.filter((f) => f.actif)
-  const formationSelectionnee = formationsActives.find((f) => f.id === formationId)
 
   const handleSubmit = async () => {
     if (!nom.trim() || !prenom.trim() || !telephone.trim()) {
@@ -46,6 +47,11 @@ export function EleveCreateView() {
     }
     if (!formationId) {
       toast.error('Veuillez sélectionner une formation pour inscrire l\'élève')
+      return
+    }
+    const tarif = parsePrixFcfa(prixPermis)
+    if (tarif == null) {
+      toast.error('Veuillez saisir le prix du permis (montant entier positif en FCFA)')
       return
     }
     const estParraine = parrain.trim() !== ''
@@ -66,7 +72,7 @@ export function EleveCreateView() {
       parrainNom: parrain.trim(),
     })
     try {
-      await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId)
+      await inscrireEleveAvecFacture(useDataStore.getState(), newEleve.id, formationId, tarif)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Impossible de créer l\'élève')
       return
@@ -196,23 +202,26 @@ export function EleveCreateView() {
                 <option value="">Sélectionner une formation</option>
                 {formationsActives.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.nom} — {f.prix.toLocaleString('fr-FR')} FCFA
+                    {f.nom}
                   </option>
                 ))}
               </FormSelect>
-              {formationSelectionnee && (
-                <p className="mt-1.5 text-xs font-medium text-foreground">
-                  Tarif facturé : {formationSelectionnee.prix.toLocaleString('fr-FR')} FCFA
-                  <span className="font-normal text-muted-foreground"> (prix de la formation)</span>
-                </p>
-              )}
+            </Field>
+            <Field label="Prix du permis (FCFA)" required>
+              <FormInput
+                type="text"
+                inputMode="numeric"
+                value={prixPermis}
+                onChange={(e) => setPrixPermis(e.target.value)}
+                placeholder="150000"
+              />
             </Field>
             <Field label="Parrainé par (optionnel)">
               <FormInput value={parrain} onChange={(e) => setParrain(e.target.value)} placeholder="Nom du parrain" />
             </Field>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            Le code dossier est généré automatiquement. La facture utilise le prix de la formation sélectionnée ; le nombre de séances totales est calculé à partir du type de permis choisi.
+            Le code dossier est généré automatiquement. Le prix saisi est celui réellement facturé à cet élève ; le nombre de séances totales est calculé à partir du type de permis choisi.
           </p>
         </Card>
 

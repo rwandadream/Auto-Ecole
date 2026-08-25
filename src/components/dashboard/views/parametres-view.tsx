@@ -624,7 +624,9 @@ export function ParametresView() {
               <div className="flex items-center justify-between border-b border-border p-4">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Formations</h2>
-                  <p className="text-sm text-muted-foreground">Catalogue des packs proposés</p>
+                  <p className="text-sm text-muted-foreground">
+                    Catalogue des packs — le tarif indiqué est indicatif, le prix facturé se saisit à l&apos;inscription de chaque élève
+                  </p>
                 </div>
                 {canManageFormations && (
                   <ActionButton
@@ -652,7 +654,7 @@ export function ParametresView() {
                       <StatusBadge label={f.actif ? 'Actif' : 'Inactif'} tone={f.actif ? 'success' : 'neutral'} />
                     </div>
                     <div className="mt-3 space-y-2">
-                      <MobileListCardRow label="Prix">
+                      <MobileListCardRow label="Tarif catalogue (indicatif)">
                         <span className="font-bold text-primary">{formatXOF(f.prix)}</span>
                       </MobileListCardRow>
                     </div>
@@ -683,7 +685,7 @@ export function ParametresView() {
                     <tr className="border-b border-border text-left">
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Formation</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prix</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tarif catalogue</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Statut</th>
                       <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</th>
                     </tr>

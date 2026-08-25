@@ -248,8 +248,14 @@ export function persistExamenSession(
   }, rollback, label)
 }
 
-export async function persistInscrireEleve(eleveId: string, formationId: string, tarif?: number) {
+export async function persistInscrireEleve(eleveId: string, formationId: string, tarif: number) {
   const result = await supabaseRepos.inscriptions.inscrireEleve(eleveId, formationId, tarif)
+  await syncDataFromSupabase()
+  return result
+}
+
+export async function persistAjusterTarifEleve(eleveId: string, tarif: number) {
+  const result = await supabaseRepos.inscriptions.ajusterTarif(eleveId, tarif)
   await syncDataFromSupabase()
   return result
 }
