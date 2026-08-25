@@ -17,23 +17,31 @@ function DesktopSidebarHeader({
   onToggle: () => void
 }) {
   return (
-    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-5">
-      <BrandLogo />
+    <div
+      className={cn(
+        'flex h-16 shrink-0 items-center border-b border-border',
+        collapsed ? 'justify-center px-2' : 'gap-3 px-5',
+      )}
+    >
       {!collapsed && (
-        <div className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="text-base font-bold tracking-tight text-foreground">
-            SARAH AUTO
-          </span>
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            ERP Auto-École
-          </span>
-        </div>
+        <>
+          <BrandLogo />
+          <div className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="text-base font-bold tracking-tight text-foreground">
+              SARAH AUTO
+            </span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              ERP Auto-École
+            </span>
+          </div>
+        </>
       )}
       <button
         type="button"
         onClick={onToggle}
-        className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        aria-label="Réduire le menu"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Déplier le menu' : 'Replier le menu'}
       >
         <ChevronLeft
           className={cn(
@@ -59,7 +67,7 @@ export function Sidebar() {
     <>
       <aside
         className={cn(
-          'hidden h-dvh shrink-0 flex-col border-r border-border bg-sidebar transition-[width] duration-300 ease-in-out lg:flex',
+          'relative z-20 hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar transition-[width] duration-300 ease-in-out lg:flex',
           collapsed ? 'w-[78px]' : 'w-[260px]',
         )}
       >
